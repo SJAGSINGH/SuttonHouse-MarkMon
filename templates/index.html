@@ -20,15 +20,14 @@
             background-color: var(--bg);
             color: white;
             margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
         }
 
-        /* High-End Header */
         header {
-            padding: 15px 40px;
+            padding: 20px 40px;
             background: #000;
             border-bottom: 2px solid var(--gold);
             display: flex;
@@ -36,55 +35,90 @@
             justify-content: space-between;
         }
 
-        .logo { height: 90px; width: auto; filter: drop-shadow(0 0 10px rgba(197, 160, 89, 0.3)); }
-        .header-left { display: flex; align-items: center; gap: 30px; }
-        
-        .title-group h1 { font-size: 1.8rem; margin: 0; font-weight: 800; color: #fff; }
-        .subtitle { color: var(--gold); font-size: 0.7rem; letter-spacing: 3px; font-weight: 600; }
+        .logo { height: 70px; width: auto; }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        h1 { font-size: 1.6rem; margin: 0; font-weight: 800; }
 
-        /* MACRO SUB-SECTION (Gauges based on 100) */
+        /* MACRO SECTION */
         .macro-ribbon {
             background: var(--panel);
-            padding: 25px 40px;
+            padding: 30px 40px;
             display: flex;
-            gap: 60px;
+            gap: 40px;
             border-bottom: 1px solid var(--border);
         }
 
-        .gauge-container { flex: 1; }
-        .gauge-label { font-size: 0.75rem; color: #8b949e; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
+        .gauge-box { flex: 1; }
+        .label { font-size: 0.7rem; color: #8b949e; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
         
-        .progress-bg { background: #111; height: 16px; border-radius: 2px; border: 1px solid #222; overflow: hidden; position: relative; }
-        
-        /* Updated Math: (Value / 100) * 100 */
-        .progress-fill-rise { background: var(--bull); height: 100%; transition: width 1s ease; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); }
-        .progress-fill-fall { background: var(--bear); height: 100%; transition: width 1s ease; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
+        .track { background: #111; height: 14px; border-radius: 2px; border: 1px solid #222; overflow: hidden; }
+        .fill-rise { background: var(--bull); height: 100%; box-shadow: 0 0 10px var(--bull); }
+        .fill-fall { background: var(--bear); height: 100%; box-shadow: 0 0 10px var(--bear); }
 
-        .gauge-meta { display: flex; justify-content: space-between; margin-top: 8px; font-weight: 700; font-size: 1rem; font-family: 'Courier New', monospace; }
-        .rise-val { color: var(--bull); }
-        .fall-val { color: var(--bear); }
+        .meta { display: flex; justify-content: space-between; margin-top: 8px; font-weight: 700; font-size: 0.9rem; }
 
-        /* Expansion Grid Area */
-        .main-content {
+        /* MAIN AREA */
+        .content {
             flex: 1;
-            display: grid;
-            grid-template-columns: 2.5fr 1fr;
-            gap: 1px;
-            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #161b22;
+            letter-spacing: 5px;
+            text-transform: uppercase;
         }
 
-        .data-panel { background: var(--bg); padding: 25px; position: relative; }
-        .panel-title { font-size: 0.8rem; color: var(--gold); letter-spacing: 4px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px; font-weight: 700; }
-
-        .placeholder-text { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #161b22; font-size: 1.2rem; letter-spacing: 8px; text-align: center; width: 80%;
-        }
-
-        footer { padding: 12px 40px; background: #000; font-size: 0.7rem; color: #30363d; display: flex; justify-content: space-between; border-top: 1px solid var(--border); }
+        footer { padding: 10px 40px; background: #000; font-size: 0.6rem; color: #30363d; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">
+            <div>
+                <h1>Sutton House MarkMon</h1>
+                <div style="color: var(--gold); font-size: 0.6rem; letter-spacing: 2px;">COMMODITY MACRO // RATIO > 50SMA</div>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 0.6rem; color: #484f58;">PHASE</div>
+            <div style="color: var(--gold); font-weight: 900;">{{ cycle or 'WAITING' }}</div>
+        </div>
+    </header>
+
+    <section class="macro-ribbon">
+        <div class="gauge-box">
+            <div class="label">Monthly Rise (Early Cycle)</div>
+            <div class="track">
+                <div class="fill-rise" style="width: {{ rise|default(0)|int }}%;"></div>
+            </div>
+            <div class="meta">
+                <span>0</span>
+                <span style="color:var(--bull)">{{ rise|default(0) }} / 100</span>
+            </div>
+        </div>
+
+        <div class="gauge-box">
+            <div class="label">Monthly Fall (Tank Status)</div>
+            <div class="track">
+                <div class="fill-fall" style="width: {{ fall|default(0)|int }}%;"></div>
+            </div>
+            <div class="meta">
+                <span>0</span>
+                <span style="color:var(--bear)">{{ fall|default(0) }} / 100</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="content">
+        Watchlist & Trade Setups Configuration Pending
+    </div>
+
+    <footer>
+        <div>TICKER: {{ ticker or 'N/A' }}</div>
+        <div>&copy; 2026 SUTTON HOUSE MARKET ANALYTICS</div>
+    </footer>
+
+</body>
+</html>
