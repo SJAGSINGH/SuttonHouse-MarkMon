@@ -3,67 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60"> 
+    <meta http-equiv="refresh" content="30"> 
     <title>Sutton House MarkMon</title>
     <style>
         :root {
-            --bg: #0a0c0f;
-            --panel: #14171c;
+            --bg: #05070a;
+            --panel: #0d1117;
             --gold: #d4af37;
             --bull: #00ff88;
             --bear: #ff4444;
-            --border: #2d333b;
+            --border: #1f242b;
         }
 
         body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            font-family: 'Inter', -apple-system, sans-serif; 
             background-color: var(--bg);
             color: white;
             margin: 0;
-            padding: 0;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        /* Top Navigation Bar */
+        /* High-End Navigation Bar */
         header {
-            background: var(--panel);
-            border-bottom: 2px solid var(--gold);
-            padding: 10px 40px;
+            padding: 20px 50px;
+            background: #000;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .header-left { display: flex; align-items: center; gap: 20px; }
+        .header-brand { 
+            display: flex; 
+            align-items: center; 
+            gap: 25px; 
+        }
         
+        /* THE LOGO FIX: Removing the forced circle and adding proper scaling */
         .logo {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 1px solid var(--gold);
+            height: 70px; /* Increased size */
+            width: auto;  /* Maintains aspect ratio */
+            display: block;
         }
 
-        h1 {
-            font-size: 1.4rem;
+        .title-group h1 {
+            font-size: 1.6rem;
             margin: 0;
             letter-spacing: 1px;
+            font-weight: 600;
             color: #ffffff;
         }
 
-        .status-badge {
-            font-size: 0.8rem;
+        .title-group p {
+            margin: 0;
+            font-size: 0.7rem;
             color: var(--gold);
-            border: 1px solid var(--gold);
-            padding: 5px 15px;
-            border-radius: 4px;
+            letter-spacing: 3px;
             text-transform: uppercase;
         }
 
-        /* Main Dashboard Area */
-        .main-grid {
+        .cycle-badge {
+            background: transparent;
+            color: var(--gold);
+            padding: 10px 25px;
+            border: 1px solid var(--gold);
+            font-weight: bold;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        /* Massive Scoreboard */
+        .scoreboard {
+            flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            height: calc(100vh - 72px);
         }
 
         .panel {
@@ -74,61 +89,62 @@
             border-right: 1px solid var(--border);
         }
 
+        .panel:last-child { border-right: none; }
+
         .label {
-            font-size: 1.2rem;
-            color: #8b949e;
-            letter-spacing: 3px;
-            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #6e7681;
+            letter-spacing: 5px;
+            margin-bottom: 0px;
         }
 
         .value {
-            font-size: 12rem;
-            font-weight: 700;
-            line-height: 1;
+            font-size: 16rem; /* Full impact */
+            font-weight: 800;
+            line-height: 0.9;
         }
 
-        .rise { color: var(--bull); }
-        .fall { color: var(--bear); }
+        .rise-text { color: var(--bull); }
+        .fall-text { color: var(--bear); }
 
-        /* Footer Info */
         footer {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 40px;
-            font-size: 0.75rem;
+            background: #000;
+            padding: 12px 50px;
+            font-size: 0.7rem;
             color: #484f58;
             display: flex;
             justify-content: space-between;
-            box-sizing: border-box;
+            border-top: 1px solid var(--border);
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left">
-            <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">
-            <h1>Sutton House MarkMon</h1>
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Sutton House">
+            <div class="title-group">
+                <h1>Sutton House MarkMon</h1>
+                <p>Proprietary Macro Terminal</p>
+            </div>
         </div>
-        <div class="status-badge">Cycle: {{ cycle }}</div>
+        <div class="cycle-badge">{{ cycle }}</div>
     </header>
 
-    <div class="main-grid">
+    <div class="scoreboard">
         <div class="panel">
             <div class="label">MONTHLY RISE</div>
-            <div class="value rise">{{ rise }}</div>
+            <div class="value rise-text">{{ rise }}</div>
         </div>
         <div class="panel">
             <div class="label">MONTHLY FALL</div>
-            <div class="value fall">{{ fall }}</div>
+            <div class="value fall-text">{{ fall }}</div>
         </div>
     </div>
 
     <footer>
         <div>TICKER: {{ ticker }} | TIME: MONTHLY</div>
-        <div>SYSTEM STATUS: ACTIVE // CONNECTION: SECURE</div>
+        <div>MARKET ANALYTICS DIVISION // SECURE TERMINAL</div>
     </footer>
 
 </body>
