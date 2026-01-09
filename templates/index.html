@@ -7,99 +7,129 @@
     <title>Sutton House MarkMon</title>
     <style>
         :root {
-            --bg: #05070a;
-            --card: #111418;
+            --bg: #0a0c0f;
+            --panel: #14171c;
             --gold: #d4af37;
             --bull: #00ff88;
             --bear: #ff4444;
-            --text-muted: #8b949e;
+            --border: #2d333b;
         }
 
         body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg);
             color: white;
             margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Top Navigation Bar */
+        header {
+            background: var(--panel);
+            border-bottom: 2px solid var(--gold);
+            padding: 10px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px solid var(--gold);
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin: 0;
+            letter-spacing: 1px;
+            color: #ffffff;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            padding: 5px 15px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Main Dashboard Area */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: calc(100vh - 72px);
+        }
+
+        .panel {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            border-right: 1px solid var(--border);
         }
 
-        .container {
-            text-align: center;
-            background: linear-gradient(145deg, #161b22, #0d1117);
-            padding: 50px;
-            border-radius: 30px;
-            border: 1px solid #30363d;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-        }
-
-        .logo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 3px solid var(--gold);
+        .label {
+            font-size: 1.2rem;
+            color: #8b949e;
+            letter-spacing: 3px;
             margin-bottom: 20px;
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
         }
 
-        h1 {
-            color: var(--gold);
-            letter-spacing: 2px;
-            font-size: 1.8rem;
-            margin: 0 0 30px 0;
-            /* Text is now Title Case */
+        .value {
+            font-size: 12rem;
+            font-weight: 700;
+            line-height: 1;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-bottom: 30px;
-        }
+        .rise { color: var(--bull); }
+        .fall { color: var(--bear); }
 
-        .stat-label {
-            color: var(--text-muted);
+        /* Footer Info */
+        footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 40px;
             font-size: 0.75rem;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-        }
-
-        .stat-value {
-            font-size: 4rem;
-            font-weight: 800;
-        }
-
-        .rise { color: var(--bull); text-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
-        .fall { color: var(--bear); text-shadow: 0 0 20px rgba(255, 68, 68, 0.2); }
-
-        .status-pill {
-            display: inline-block;
-            padding: 12px 30px;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #30363d;
-            font-weight: bold;
-            color: var(--gold);
-        }
-
-        .footer {
-            margin-top: 40px;
-            font-size: 0.7rem;
             color: #484f58;
-            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Sutton House">
-        <h1>Sutton House MarkMon</h1>
+    <header>
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">
+            <h1>Sutton House MarkMon</h1>
+        </div>
+        <div class="status-badge">Cycle: {{ cycle }}</div>
+    </header>
 
-        <div class="stats-grid">
-            <div>
-                <div class="stat-label">MONTHLY RISE</div>
-                <div class="stat-value rise">{{ rise }}</div>
+    <div class="main-grid">
+        <div class="panel">
+            <div class="label">MONTHLY RISE</div>
+            <div class="value rise">{{ rise }}</div>
+        </div>
+        <div class="panel">
+            <div class="label">MONTHLY FALL</div>
+            <div class="value fall">{{ fall }}</div>
+        </div>
+    </div>
+
+    <footer>
+        <div>TICKER: {{ ticker }} | TIME: MONTHLY</div>
+        <div>SYSTEM STATUS: ACTIVE // CONNECTION: SECURE</div>
+    </footer>
+
+</body>
+</html>
