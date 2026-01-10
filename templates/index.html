@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House Market Monitor</title>
     <style>
         :root {
@@ -14,124 +15,87 @@
             --lime: #32ff7e;
             --orange: #ff9f43;
             --dim: #2a2f36;
+            /* Adaptive regime color based on your ticker logic */
             --regime: {% if 'CMD' in ticker %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
-        
+
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; 
+            overflow-x: hidden; 
+        }
+
+        /* HEADER SECTION */
         header { 
-            padding: 25px 40px; 
-            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 20px 40px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
             background: #000;
             border-bottom: 2px solid var(--regime);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         /* BRANDING (LEFT) */
-        .brand { display: flex; align-items: center; gap: 20px; }
-        .logo img { height: 55px; border-radius: 5px; } /* Increased size for detail */
-        .title-block { display: flex; flex-direction: column; }
-        .main-title { font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; }
-        .live-feed { font-size: 0.7rem; color: var(--bull); letter-spacing: 4px; font-weight: bold; margin-top: 3px; }
-
-        /* CLOCK & STATUS (RIGHT) */
-        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-        .clock { font-family: 'Courier New', monospace; font-size: 2.2rem; font-weight: bold; color: #fff; }
-        
-        .city-status-row { display: flex; gap: 15px; font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; }
-        .city { transition: color 0.5s; color: var(--dim); }
-        .active-city { color: var(--lime); text-shadow: 0 0 10px rgba(50, 255, 126, 0.3); }
-        .pre-city { color: var(--orange); }
-
-        /* MACRO ROW (LEVEL 3) */
-        .macro-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
-        .card { background: var(--panel); padding: 30px; border-radius: 6px; text-align: center; border-bottom: 3px solid #1f242b; }
-        .val { font-size: 3rem; font-weight: 800; margin: 10px 0; }
-        .label { font-size: 0.7rem; color: #6c757d; letter-spacing: 2px; text-transform: uppercase; }
-    </style>
-</head>
-<body onload="init()">
-
-    <header>
-        <div class="brand">
-            <div class="logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Sutton House"></div>
-            <div class="title-block">
-                <span class="main-title">SUTTON HOUSE MARKET MONITOR</span>
-                <span class="live-feed">● LIVE DATA FEED</span>
-            </div>
-        </div>
-
-        <div class="header-right">
-            <div class="clock" id="clock">00:00:00</div>
-            <div class="city-status-row">
-                <span id="ldn" class="city">LONDON</span>
-                <span id="ny" class="city">NEW YORK</span>
-                <span id="tor" class="city">TORONTO</span>
-                <span id="syd" class="city">SYDNEY</span>
-            </div>
-        </div>
-    </header>
-
-    <div class="macro-container">
-        <div class="card" style="border-bottom-color: var(--bull);">
-            <div class="label">Monthly Rise</div>
-            <div class="val" style="color: var(--bull);">{{ rise }}%</div>
-        </div>
-        <div class="card" style="border-bottom-color: var(--regime);">
-            <div class="label">Cycle Duration</div>
-            <div class="val">{{ cycle_len }}</div>
-            <div class="label" style="color: var(--regime);">{{ cycle }} PHASE</div>
-        </div>
-        <div class="card" style="border-bottom-color: var(--bear);">
-            <div class="label">Monthly Fall</div>
-            <div class="val" style="color: var(--bear);">{{ fall }}%</div>
-        </div>
-        <div class="card" style="border-bottom-color: #00d2ff;">
-            <div class="label">Recession Radar</div>
-            <div class="val" style="color: #00d2ff;">{{ sahm }}%</div>
-            <div class="label">SAHM SIGNAL</div>
-        </div>
-    </div>
-
-    <script>
-        function init() {
-            update();
-            setInterval(update, 1000);
+        .brand-block { 
+            display: flex; 
+            align-items: center; 
+            gap: 25px; 
         }
 
-        function update() {
-            const now = new Date();
-            const utcHr = now.getUTCHours();
-            const day = now.getUTCDay(); // 0 = Sun, 6 = Sat
-            
-            // 1. Clock
-            document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
-
-            // 2. Market Status (Weekend check: Sat/Sun = all dimmed)
-            const isWeekend = (day === 6 || (day === 0 && utcHr < 22)); // Closed Sat all day, Sun until Sydney open
-            
-            if (isWeekend) {
-                resetCities();
-            } else {
-                setCityStatus('ldn', utcHr, 8, 16);
-                setCityStatus('ny', utcHr, 13, 21);
-                setCityStatus('tor', utcHr, 14, 20);
-                setCityStatus('syd', (utcHr >= 22 || utcHr < 6), 0, 1);
-            }
+        .logo-container {
+            width: 80px;  /* Larger, clearer logo area */
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        function setCityStatus(id, cur, open, close) {
-            const el = document.getElementById(id);
-            if (id === 'syd') { // Sydney cross-over
-                el.className = cur ? 'city active-city' : 'city';
-                return;
-            }
-            if (cur >= open && cur < close) el.className = 'city active-city';
-            else if (cur === open - 1) el.className = 'city pre-city';
-            else el.className = 'city';
+        .logo-container img { 
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain;
+            /* Enhances the logo contrast on dark background */
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1)); 
         }
 
-        function resetCities() {
-            document.querySelectorAll('.city').forEach(c => c.className = 'city');
+        .text-block { 
+            display: flex; 
+            flex-direction: column; 
         }
-    </script>
-</body>
-</html>
+
+        .main-title { 
+            font-size: 1.7rem; 
+            font-weight: 900; 
+            letter-spacing: 2px; 
+            color: #ffffff;
+            line-height: 1.1;
+        }
+
+        .live-indicator { 
+            font-size: 0.75rem; 
+            color: var(--bull); 
+            letter-spacing: 4px; 
+            font-weight: bold; 
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Pulsing "Live" Dot */
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--bull);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--bull);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
