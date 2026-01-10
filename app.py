@@ -1,68 +1,41 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, render_template
+from flask_socketio import SocketIO, emit
+import json
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'sutton_secret'
+# This allows the dashboard to listen for live updates
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# --- MASTER DATA STORE ---
-# Initializing with baseline values (Current Sahm reading 0.35)
-market_data = {
-    "ratio": 1.1,         # Used for UI theme color (Gold vs Equity)
-    "sma": 1.0,           
-    "count": 0,           # Will display either rCount or fCount
-    "regime_name": "Trend Transition",
-    "momentum": "STABLE", # For the 3rd box
-    "sahm": 0.35          # Your current calibrated reading
-}
-
+# 1. Route to serve the HTML Dashboard
 @app.route('/')
 def index():
-    # Pass all live data to the HTML template
-    return render_template('index.html', 
-                           ratio=market_data["ratio"], 
-                           sma=market_data["sma"], 
-                           count=int(market_data["count"]),
-                           regime_name=market_data["regime_name"],
-                           momentum=market_data["momentum"],
-                           sahm=market_data["sahm"])
+    return render_template('index.html')
 
-# --- TRADINGVIEW WEBHOOK ENDPOINT ---
+# 2. The Webhook Endpoint (Where TradingView sends data)
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    try:
-        # Retrieve the JSON message sent by Pine Script
-        data = request.get_json()
-        
-        # Security check: Match the ticker name set in Pine Script
-        if data.get("ticker") == "SUTTON_MACRO":
+    if request.method == 'POST':
+        data = request.data.decode('utf-8')
+        try:
+            # Parse the incoming JSON from TradingView
+            json_data = json.loads(data)
             
-            # 1. Update Sahm Rule (For the LED and Recession Override)
-            market_data["sahm"] = float(data.get("sahm", 0.35))
+            # Print to Render logs for debugging
+            print(f"Received Data: {json_data}")
             
-            # 2. Update Regime Name
-            market_data["regime_name"] = data.get("cycle", "Neutral")
+            # 3. Push data to the Dashboard via WebSockets
+            socketio.emit('macro_update', json_data)
             
-            # 3. Dynamic Lookback: Use rise count for Commodities, fall count for Stocks
-            if "Commodities" in market_data["regime_name"]:
-                market_data["count"] = data.get("rise", 0)
-                market_data["ratio"] = 1.1  # Set theme to Gold
-                market_data["sma"] = 1.0
-            else:
-                market_data["count"] = data.get("fall", 0)
-                market_data["ratio"] = 0.9  # Set theme to Equity Blue
-                market_data["sma"] = 1.0
-
-            # 4. Optional: Capture Momentum if added to Pine Script later
-            if "momentum" in data:
-                market_data["momentum"] = data.get("momentum")
-
-            print(f"Data Received: {market_data['regime_name']} | Sahm: {market_data['sahm']}")
-            
-        return jsonify({"status": "success"}), 200
-
-    except Exception as e:
-        print(f"Webhook processing error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 400
+            return "Webhook Received", 200
+        except Exception as e:
+            print(f"Error parsing JSON: {e}")
+            return "Error", 400
+    else:
+        return "Invalid Method", 405
 
 if __name__ == '__main__':
-    # host='0.0.0.0' allows external access from TradingView servers
-    # port=5000 is the default; ensure this is open on your firewall
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use the port Render provides
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
