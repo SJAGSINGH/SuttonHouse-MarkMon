@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House Market Monitor</title>
     <style>
         :root {
@@ -13,67 +14,161 @@
             --open-lime: #32CD32;
             --panel: #0d1117;
             --dim: #1a1d23;
+            /* Theme accent flips based on Gold vs Stocks ratio */
             --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; 
+            overflow-x: hidden;
+        }
 
+        /* MASTER HEADER */
         header { 
-            padding: 0 40px; 
-            display: flex; justify-content: space-between; align-items: center;
-            background: #000; border-bottom: 2px solid var(--regime);
-            height: 90px; 
+            padding: 0 50px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: #000; 
+            border-bottom: 3px solid var(--regime);
+            height: 120px; /* Tall header for the larger Rose logo */
         }
 
         .brand-block { display: flex; align-items: center; }
 
-        /* NEW CLEAN LOGO CONTAINER */
+        /* MAXIMIZED LOGO CONTAINER */
         .logo-container {
-            width: 60px; 
-            height: 60px;
+            width: 95px; 
+            height: 95px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 20px;
+            margin-right: 30px;
         }
 
         .logo-container img { 
             max-width: 100%; 
             max-height: 100%; 
-            object-fit: contain; /* Keeps the rose sharp and proportional */
+            object-fit: contain;
+            /* Subtle glow to make the high-res rose pop */
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.05));
         }
 
+        /* BRANDING TEXT */
         .text-block { 
             display: flex; 
             flex-direction: column; 
-            border-left: 2px solid var(--dim); 
-            padding-left: 20px;
+            border-left: 2px solid #222; 
+            padding-left: 30px;
+            justify-content: center;
         }
-        .main-title { font-size: 1.4rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #fff; }
-        .sub-title { font-size: 0.9rem; font-weight: 400; color: #888; letter-spacing: 2px; margin-top: 5px; text-transform: uppercase; }
-        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 4px; font-weight: bold; margin-top: 8px; }
+
+        .main-title { 
+            font-size: 1.7rem; 
+            font-weight: 900; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            line-height: 1;
+            color: #fff;
+        }
+
+        .sub-title { 
+            font-size: 1.1rem; 
+            font-weight: 400; 
+            color: #888; 
+            letter-spacing: 3px; 
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        .live-tag { 
+            font-size: 0.65rem; 
+            color: var(--bull); 
+            letter-spacing: 5px; 
+            font-weight: bold; 
+            margin-top: 12px;
+            text-transform: uppercase;
+        }
 
         /* CLOCK & CITIES */
         .status-block { text-align: right; }
-        .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: 'Courier New', monospace; }
-        .city-row { display: flex; gap: 15px; font-size: 0.75rem; font-weight: 800; margin-top: 8px; color: #222; justify-content: flex-end; }
-
-        /* GRID LOGIC */
-        .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
-        .macro-card { background: var(--panel); padding: 35px 20px; text-align: center; border-bottom: 4px solid var(--dim); border-radius: 4px; }
-        .active-card { border-bottom-color: var(--regime); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .digital-clock { 
+            font-size: 2.6rem; 
+            font-weight: bold; 
+            font-family: 'Courier New', monospace; 
+            line-height: 1;
+        }
         
-        .label { font-size: 0.7rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px; }
-        .value { font-size: 2.6rem; font-weight: 800; margin: 10px 0; line-height: 1; }
-        .sub-label { font-size: 0.65rem; font-weight: bold; color: #444; letter-spacing: 1px; margin-top: 10px; }
+        .city-row { 
+            display: flex; 
+            gap: 20px; 
+            font-size: 0.8rem; 
+            font-weight: 800; 
+            margin-top: 10px; 
+            color: #2a2f36; 
+            justify-content: flex-end;
+            letter-spacing: 2px;
+        }
 
+        /* MACRO GRID */
+        .macro-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 25px; 
+            padding: 50px; 
+        }
+
+        .macro-card { 
+            background: var(--panel); 
+            padding: 40px 20px; 
+            text-align: center; 
+            border-bottom: 4px solid var(--dim);
+            border-radius: 4px;
+            transition: all 0.4s ease;
+        }
+
+        .active-card { 
+            border-bottom-color: var(--regime); 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+        }
+
+        .label { 
+            font-size: 0.75rem; 
+            color: #666; 
+            letter-spacing: 3px; 
+            text-transform: uppercase; 
+            margin-bottom: 15px;
+        }
+
+        .value { 
+            font-size: 2.8rem; 
+            font-weight: 800; 
+            margin: 15px 0; 
+            line-height: 1;
+        }
+
+        .sub-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* DYNAMIC COLORS */
         .early { color: var(--bull); }
         .mature { color: var(--regime); }
-        .end { color: var(--bear); animation: pulse 2s infinite; }
-        @keyframes pulse { 50% { opacity: 0.4; } }
+        .end { color: var(--bear); animation: pulse-alert 2s infinite; }
+
+        @keyframes pulse-alert {
+            50% { opacity: 0.3; }
+        }
     </style>
 </head>
-<body onload="init()">
+<body onload="runMonitor()">
 
     <header>
         <div class="brand-block">
@@ -90,7 +185,10 @@
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN">LDN</span> <span id="NY">NY</span> <span id="TOR">TOR</span> <span id="SYD">SYD</span>
+                <span id="LDN">LDN</span>
+                <span id="NY">NY</span>
+                <span id="TOR">TOR</span>
+                <span id="SYD">SYD</span>
             </div>
         </div>
     </header>
@@ -101,59 +199,4 @@
             <div class="value" style="color: var(--regime);">
                 {% if ratio|default(0) > sma|default(1) %}COMMODITY{% else %}EQUITY{% endif %}
             </div>
-            <div class="sub-label">GOLD / WILSHIRE 5000</div>
-        </div>
-
-        <div class="macro-card active-card">
-            <div class="label">Cycle Maturity</div>
-            <div class="value {% if count|default(0) <= 25 %}early{% elif count|default(0) <= 75 %}mature{% else %}end{% endif %}">
-                {% if count|default(0) <= 25 %}EARLY{% elif count|default(0) <= 75 %}MATURE{% else %}END CYCLE{% endif %}
-            </div>
-            <div class="sub-label">{{ count|default(0) }} DAY TREND</div>
-        </div>
-
-        <div class="macro-card">
-            <div class="label">Capital Flow</div>
-            <div class="value" style="color: {% if momentum|default('STABLE') == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
-                {{ momentum|default('STABLE') }}
-            </div>
-            <div class="sub-label">DISTANCE TRACKER</div>
-        </div>
-
-        <div class="macro-card" style="border-bottom-color: #00d2ff;">
-            <div class="label">Recession Radar</div>
-            <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
-            <div class="sub-label">SAHM SIGNAL</div>
-        </div>
-    </div>
-
-    <script>
-        function init() {
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
-                
-                const day = now.getUTCDay(); 
-                const hr = now.getUTCHours();
-                const isWeekend = (day === 0 || day === 6);
-
-                const highlight = (cityId, openHr, closeHr) => {
-                    const el = document.getElementById(cityId);
-                    if (!isWeekend && hr >= openHr && hr < closeHr) {
-                        el.style.color = "var(--open-lime)";
-                    } else {
-                        el.style.color = "#2a2f36";
-                    }
-                };
-
-                highlight('LDN', 8, 16);
-                highlight('NY', 13, 21);
-                highlight('TOR', 13, 21);
-                const isSydOpen = !isWeekend && (hr >= 22 || hr < 6);
-                document.getElementById('SYD').style.color = isSydOpen ? "var(--open-lime)" : "#2a2f36";
-                
-            }, 1000);
-        }
-    </script>
-</body>
-</html>
+            <div class="sub-label">
