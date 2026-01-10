@@ -4,182 +4,219 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House | Master Macro</title>
-    
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    
     <style>
         :root {
-            --bg-color: #0a0a0a;
-            --card-bg: #161616;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
-            --lime-green: #32CD32; /* Used for "Market Open" and positive flow */
-            --early-green: #00FF7F;
-            --mid-yellow: #FFD700;
-            --mature-red: #FF4500;
+            --bg: #0a0a0a;
+            --card-bg: #141414;
+            --text: #ffffff;
+            --dim: #a0a0a0;
+            --lime: #32CD32; /* Correct Lime Green for Cities and Open Status */
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* HEADER SECTION */
+        /* --- RESTORED PREMIUM HEADER --- */
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 1200px;
-            padding: 20px 0;
+            max-width: 1300px;
             border-bottom: 1px solid #222;
-            margin-bottom: 30px;
+            padding-bottom: 35px;
+            margin-bottom: 50px;
+            position: relative;
         }
 
-        .brand {
+        .brand-section {
             display: flex;
             align-items: center;
         }
 
-        .vertical-divider {
-            width: 1px;
-            height: 40px;
-            background: #444;
-            margin: 0 15px;
+        .brand-logo {
+            font-size: 38px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-right: 25px;
         }
 
-        .center-clock-stack {
+        .vertical-divider {
+            width: 1px;
+            height: 55px;
+            background-color: #333;
+            margin-right: 25px;
+        }
+
+        .brand-text h1 {
+            font-size: 24px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+
+        .brand-text p {
+            font-size: 12px;
+            color: var(--dim);
+            margin: 0;
+            font-family: monospace;
+            letter-spacing: 1.5px;
+        }
+
+        /* CENTERED CLOCK & LIME CITIES */
+        .center-stack {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             text-align: center;
         }
 
         #digital-clock {
-            font-size: 32px;
-            font-weight: bold;
-            font-family: monospace;
+            font-size: 48px;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
         }
 
-        .city-list {
+        .city-grid {
             display: flex;
-            gap: 15px;
-            font-size: 10px;
-            color: var(--text-dim);
-            margin-top: 5px;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: var(--lime-green);
-            border-radius: 50%;
-            margin-right: 4px;
-        }
-
-        /* GRID LAYOUT */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
+            justify-content: center;
+        }
+
+        .city-item {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 1px;
+        }
+
+        .lime-dot {
+            width: 7px;
+            height: 7px;
+            background-color: var(--lime); /* Jan 10 Instruction: Lime Green */
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--lime);
+        }
+
+        /* --- MACRO GRID --- */
+        .macro-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1300px;
         }
 
-        .card {
+        .macro-card {
             background: var(--card-bg);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #222;
+            padding: 35px;
+            border-radius: 15px;
+            border: 1px solid #1f1f1f;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .card h3 { font-size: 12px; color: var(--text-dim); text-transform: uppercase; margin: 0 0 10px 0; }
+        .macro-card h3 {
+            margin: 0 0 20px 0;
+            color: var(--dim);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-        /* MATURITY BAR */
-        .bar-bg { width: 100%; height: 10px; background: #222; border-radius: 5px; margin: 15px 0; overflow: hidden; }
-        #maturity-bar { width: 0%; height: 100%; background: var(--early-green); transition: 1s ease; }
+        #regime-display {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--lime);
+        }
 
-        #recession-radar { font-size: 24px; font-weight: bold; color: var(--lime-green); }
+        .maturity-track {
+            width: 100%;
+            height: 10px;
+            background: #222;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        #maturity-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--lime);
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
 </head>
 <body>
 
     <header class="dashboard-header">
-        <div class="brand">
-            <div style="font-weight: 900; font-size: 24px;">SH</div>
+        <div class="brand-section">
+            <div class="brand-logo">SH</div>
             <div class="vertical-divider"></div>
-            <div>
-                <div style="font-weight: bold; text-transform: uppercase;">Sutton House</div>
-                <div style="font-size: 10px; color: var(--text-dim);">> LIVE DATA FEED</div>
+            <div class="brand-text">
+                <h1>Sutton House</h1>
+                <p>> LIVE DATA FEED</p>
             </div>
         </div>
 
-        <div class="center-clock-stack">
+        <div class="center-stack">
             <div id="digital-clock">00:00:00</div>
-            <div class="city-list">
-                <span><i class="status-dot"></i>LONDON</span>
-                <span><i class="status-dot"></i>NEW YORK</span>
-                <span><i class="status-dot"></i>TOKYO</span>
+            <div class="city-grid">
+                <span class="city-item"><div class="lime-dot"></div> LONDON</span>
+                <span class="city-item"><div class="lime-dot"></div> NEW YORK</span>
+                <span class="city-item"><div class="lime-dot"></div> TOKYO</span>
             </div>
         </div>
         
-        <div style="width: 100px;"></div> </header>
+        <div style="width: 280px;"></div> </header>
 
-    <div class="grid">
-        <div class="card">
-            <h3>Regime</h3>
-            <div id="regime-text" style="font-size: 20px; font-weight: bold;">WAITING...</div>
+    <main class="macro-container">
+        <div class="macro-card">
+            <h3>Current Regime</h3>
+            <div id="regime-display">Awaiting...</div>
         </div>
 
-        <div class="card">
+        <div class="macro-card">
             <h3>Cycle Maturity</h3>
-            <div class="bar-bg"><div id="maturity-bar"></div></div>
-            <div id="maturity-label" style="font-size: 11px;">INITIALIZING</div>
+            <div class="maturity-track"><div id="maturity-fill"></div></div>
+            <div id="maturity-label" style="font-size: 12px; font-weight: bold;">INITIALIZING</div>
         </div>
 
-        <div class="card">
+        <div class="macro-card">
             <h3>Recession Radar</h3>
-            <div id="recession-radar">EXPANSION</div>
+            <div id="radar-status" style="font-size: 28px; font-weight: 800; color: var(--lime);">EXPANSION</div>
         </div>
-    </div>
+    </main>
 
     <script>
-        // 1. CLOCK
-        function runClock() {
+        function tick() {
             document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString([], {hour12:false});
         }
-        setInterval(runClock, 1000);
-        runClock();
+        setInterval(tick, 1000);
+        tick();
 
-        // 2. SOCKET
         const socket = io({ transports: ["websocket", "polling"] });
 
         socket.on("macro_update", (data) => {
-            // Update Regime
-            document.getElementById('regime-text').innerText = data.cycle;
-
-            // Update Maturity
-            const bar = document.getElementById('maturity-bar');
-            const label = document.getElementById('maturity-label');
-            bar.style.width = data.count + "%";
+            document.getElementById('regime-display').innerText = data.cycle;
+            document.getElementById('maturity-fill').style.width = data.count + "%";
+            document.getElementById('maturity-label').innerText = data.count + "% MATURE";
             
-            if(data.count < 30) {
-                bar.style.background = "#00FF7F";
-                label.innerText = "EARLY STAGE";
-            } else if (data.count < 70) {
-                bar.style.background = "#FFD700";
-                label.innerText = "MID-CYCLE";
-            } else {
-                bar.style.background = "#FF4500";
-                label.innerText = "MATURE";
-            }
-
-            // Update Radar
-            const radar = document.getElementById('recession-radar');
+            const radar = document.getElementById('radar-status');
             radar.innerText = data.sahm > 0.5 ? "CONTRACTION" : "EXPANSION";
             radar.style.color = data.sahm > 0.5 ? "#FF4500" : "#32CD32";
         });
