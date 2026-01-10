@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House Market Monitor</title>
     <style>
         :root {
@@ -12,60 +13,145 @@
             --bear: #ff4444;
             --open-lime: #32CD32; /* Lime Green for Open Markets */
             --panel: #0d1117;
-            --dim: #1f242b;
+            --dim: #1a1d23;
+            /* Theme color flips based on Gold/Stock outperformance */
             --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; 
+            overflow-x: hidden;
+        }
 
+        /* POLISHED HEADER */
         header { 
-            padding: 10px 40px; 
-            display: flex; justify-content: space-between; align-items: center;
-            background: #000; border-bottom: 2px solid var(--regime);
+            padding: 0 40px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: #000; 
+            border-bottom: 2px solid var(--regime);
+            height: 70px;
         }
 
-        .brand-block { display: flex; align-items: center; }
+        .brand-block { display: flex; align-items: center; height: 100%; }
 
-        /* POLISHED LOGO FIX */
         .logo-container {
-            width: 50px; height: 50px;
-            display: flex; align-items: center; justify-content: center;
-            margin-right: 15px;
+            width: 48px; 
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
         }
+
         .logo-container img { 
             max-width: 100%; 
             max-height: 100%; 
             object-fit: contain;
+            filter: contrast(1.1) brightness(1.1);
         }
 
-        .text-block { display: flex; flex-direction: column; border-left: 1px solid #333; padding-left: 15px; }
-        .main-title { font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
-        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 3px; font-weight: bold; margin-top: 2px; }
+        .text-block { 
+            display: flex; 
+            flex-direction: column; 
+            border-left: 2px solid #1a1d23; 
+            padding-left: 20px; 
+            height: 35px; 
+            justify-content: center;
+        }
 
-        /* STATUS BLOCK */
+        .main-title { 
+            font-size: 1.1rem; 
+            font-weight: 900; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            line-height: 1;
+        }
+
+        .live-tag { 
+            font-size: 0.55rem; 
+            color: var(--open-lime); 
+            letter-spacing: 4px; 
+            font-weight: bold; 
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        /* STATUS & CLOCK */
         .status-block { text-align: right; }
-        .digital-clock { font-size: 2rem; font-weight: bold; font-family: 'Courier New', monospace; color: #fff; }
+        .digital-clock { 
+            font-size: 2rem; 
+            font-weight: bold; 
+            font-family: 'Courier New', monospace; 
+            line-height: 1;
+        }
+        
         .city-row { 
-            display: flex; gap: 15px; font-size: 0.65rem; font-weight: 800; 
-            margin-top: 5px; color: #444; justify-content: flex-end; letter-spacing: 1px;
+            display: flex; 
+            gap: 15px; 
+            font-size: 0.65rem; 
+            font-weight: 800; 
+            margin-top: 6px; 
+            color: #2a2f36; 
+            justify-content: flex-end;
+            letter-spacing: 1px;
         }
 
         /* MACRO GRID */
-        .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
-        .macro-card { background: var(--panel); padding: 30px; text-align: center; border-bottom: 4px solid var(--dim); }
+        .macro-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 20px; 
+            padding: 40px; 
+        }
+
+        .macro-card { 
+            background: var(--panel); 
+            padding: 30px; 
+            text-align: center; 
+            border-bottom: 4px solid var(--dim);
+            transition: all 0.4s ease;
+        }
+
         .active-card { border-bottom-color: var(--regime); }
 
-        .label { font-size: 0.7rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-        .value { font-size: 2.3rem; font-weight: 800; margin: 10px 0; line-height: 1; }
-        .sub-label { font-size: 0.6rem; font-weight: bold; color: #444; }
+        .label { 
+            font-size: 0.7rem; 
+            color: #666; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            margin-bottom: 10px;
+        }
 
+        .value { 
+            font-size: 2.4rem; 
+            font-weight: 800; 
+            margin: 10px 0; 
+            line-height: 1;
+        }
+
+        .sub-label {
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: #444;
+            text-transform: uppercase;
+        }
+
+        /* DYNAMIC CLASSES */
         .early { color: var(--bull); }
         .mature { color: var(--regime); }
-        .end { color: var(--bear); animation: pulse 2s infinite; }
-        @keyframes pulse { 50% { opacity: 0.4; } }
+        .end { color: var(--bear); animation: pulse-red 2s infinite; }
+
+        @keyframes pulse-red {
+            50% { opacity: 0.4; }
+        }
     </style>
 </head>
-<body onload="init()">
+<body onload="initDashboard()">
 
     <header>
         <div class="brand-block">
@@ -74,14 +160,17 @@
             </div>
             <div class="text-block">
                 <span class="main-title">Sutton House</span>
-                <span class="live-tag">● Market Monitor</span>
+                <span class="live-tag">● Live Data Feed</span>
             </div>
         </div>
 
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN">LDN</span> <span id="NY">NY</span> <span id="TOR">TOR</span> <span id="SYD">SYD</span>
+                <span id="LDN">LDN</span>
+                <span id="NY">NY</span>
+                <span id="TOR">TOR</span>
+                <span id="SYD">SYD</span>
             </div>
         </div>
     </header>
@@ -108,24 +197,25 @@
             <div class="value" style="color: {% if momentum|default('STABLE') == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
                 {{ momentum|default('STABLE') }}
             </div>
-            <div class="sub-label">DISTANCE TRACKER</div>
+            <div class="sub-label">Momentum Tracker</div>
         </div>
 
         <div class="macro-card" style="border-bottom-color: #00d2ff;">
             <div class="label">Recession Radar</div>
             <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
-            <div class="sub-label">SAHM SIGNAL</div>
+            <div class="sub-label">Sahm Signal</div>
         </div>
     </div>
 
     <script>
-        function init() {
+        function initDashboard() {
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
                 
+                // HIGHLIGHT LOGIC
                 const hr = now.getUTCHours();
-                // Lime Green for Open Markets, Dim for Closed
+                // London (8-16 UTC), NY/TOR (13-21 UTC), SYD (22-06 UTC)
                 document.getElementById('LDN').style.color = (hr >= 8 && hr < 16) ? "var(--open-lime)" : "#2a2f36";
                 document.getElementById('NY').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
                 document.getElementById('TOR').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
