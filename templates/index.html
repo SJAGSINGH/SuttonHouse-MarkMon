@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sutton House Market Monitor</title>
+    <title>Sutton House | Master Macro</title>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
     <style>
         :root {
             --bg-color: #0a0a0a;
@@ -19,105 +22,61 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        /* --- HEADER SECTION --- */
+        /* --- HEADER: LEFT LOGO, CENTERED CLOCK --- */
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            width: 100%;
+            max-width: 1200px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 25px;
+            margin-bottom: 40px;
+            position: relative;
         }
 
         .brand-container {
             display: flex;
             align-items: center;
+            z-index: 2;
         }
 
         .main-logo {
-            width: 70px; /* Increased size */
+            width: 75px;
             height: auto;
+            filter: brightness(1.2);
         }
 
         .vertical-divider {
             width: 1px;
-            height: 50px;
+            height: 45px;
             background-color: #444;
             margin: 0 20px;
         }
 
         .brand-text h1 {
-            font-size: 24px;
+            font-size: 22px;
             margin: 0;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             text-transform: uppercase;
+            font-weight: 700;
         }
 
         .brand-text p {
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-dim);
             margin: 0;
             font-family: monospace;
+            letter-spacing: 1px;
         }
 
-        /* --- CLOCK & CITIES --- */
-        .center-stack {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        #digital-clock {
-            font-size: 32px;
-            font-family: monospace;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .city-container {
-            display: flex;
-            gap: 15px;
-        }
-
-        .city {
-            font-size: 11px;
-            color: var(--text-dim);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background-color: var(--lime-green); /* Lime Green for Open */
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--lime-green);
-        }
-
-        /* --- MACRO CARDS --- */
-        .macro-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-
-        /* Maturity Progress Bar */
-        .progress-container {
-            width
+        /* CENTER STACK */
+        .center
