@@ -22,68 +22,50 @@
             padding: 0 40px; 
             display: flex; justify-content: space-between; align-items: center;
             background: #000; border-bottom: 2px solid var(--regime);
-            height: 80px; /* Slightly taller for better text spacing */
+            height: 90px; 
         }
 
         .brand-block { display: flex; align-items: center; }
 
-        /* LOGO FIX: Forced constraints */
+        /* LOGO ZOOM FIX: Overcoming the white border in the file */
         .logo-container {
-            width: 45px; 
-            height: 45px;
+            width: 70px; /* Increased container size */
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
+            overflow: hidden; /* Clips the outer white border of your image */
+            margin-right: 10px;
         }
         .logo-container img { 
-            max-width: 100%; 
-            max-height: 100%; 
-            object-fit: contain; 
+            width: 130%; /* Zooms in to push the white borders outside the clip area */
+            height: 130%; 
+            object-fit: cover; 
+            transform: scale(1.1); /* Fine-tune the zoom on the symbol */
         }
 
-        /* TEXT FIX: "Market Monitor" added back */
         .text-block { 
             display: flex; 
             flex-direction: column; 
             border-left: 1px solid #333; 
             padding-left: 15px;
         }
-        .main-title { 
-            font-size: 1.1rem; 
-            font-weight: 900; 
-            letter-spacing: 1px; 
-            text-transform: uppercase; 
-            line-height: 1.2;
-        }
-        .sub-title { 
-            font-size: 0.8rem; 
-            font-weight: 400; 
-            color: #888; 
-            letter-spacing: 1px;
-            line-height: 1.2;
-        }
-        .live-tag { 
-            font-size: 0.55rem; 
-            color: var(--bull); 
-            letter-spacing: 3px; 
-            font-weight: bold; 
-            margin-top: 4px;
-        }
+        .main-title { font-size: 1.3rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+        .sub-title { font-size: 0.9rem; font-weight: 400; color: #888; letter-spacing: 1px; margin-top: 4px; }
+        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 3px; font-weight: bold; margin-top: 6px; }
 
         .status-block { text-align: right; }
-        .digital-clock { font-size: 2rem; font-weight: bold; font-family: monospace; line-height: 1; }
+        .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: monospace; line-height: 1; }
         .city-row { 
-            display: flex; gap: 15px; font-size: 0.65rem; font-weight: 800; 
-            margin-top: 5px; color: #444; justify-content: flex-end;
+            display: flex; gap: 15px; font-size: 0.7rem; font-weight: 800; 
+            margin-top: 8px; color: #444; justify-content: flex-end;
         }
 
-        /* GRID */
         .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
         .macro-card { background: var(--panel); padding: 30px; text-align: center; border-bottom: 4px solid var(--dim); }
         .active-card { border-bottom-color: var(--regime); }
         .label { font-size: 0.7rem; color: #666; letter-spacing: 2px; text-transform: uppercase; }
-        .value { font-size: 2.3rem; font-weight: 800; margin: 10px 0; line-height: 1; }
+        .value { font-size: 2.5rem; font-weight: 800; margin: 10px 0; line-height: 1; }
         .sub-label { font-size: 0.6rem; font-weight: bold; color: #444; }
 
         .early { color: var(--bull); }
@@ -152,11 +134,28 @@
                 const now = new Date();
                 document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
                 
+                const day = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
                 const hr = now.getUTCHours();
-                document.getElementById('LDN').style.color = (hr >= 8 && hr < 16) ? "var(--open-lime)" : "#2a2f36";
-                document.getElementById('NY').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
-                document.getElementById('TOR').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
-                document.getElementById('SYD').style.color = (hr >= 22 || hr < 6) ? "var(--open-lime)" : "#2a2f36";
+                const isWeekend = (day === 0 || day === 6);
+
+                // City Highlighting with Weekend Check
+                const highlight = (cityId, openHr, closeHr) => {
+                    const el = document.getElementById(cityId);
+                    if (!isWeekend && hr >= openHr && hr < closeHr) {
+                        el.style.color = "var(--open-lime)";
+                    } else {
+                        el.style.color = "#2a2f36";
+                    }
+                };
+
+                highlight('LDN', 8, 16);
+                highlight('NY', 13, 21);
+                highlight('TOR', 13, 21);
+                
+                // Sydney is tricky because it crosses midnight UTC
+                const isSydOpen = !isWeekend && (hr >= 22 || hr < 6);
+                document.getElementById('SYD').style.color = isSydOpen ? "var(--open-lime)" : "#2a2f36";
+                
             }, 1000);
         }
     </script>
