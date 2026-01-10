@@ -3,6 +3,7 @@ import os
 
 app = Flask(__name__)
 
+# System Memory V4.8
 data_storage = {
     "rise": 0,
     "fall": 0,
@@ -10,7 +11,7 @@ data_storage = {
     "cycle_len": "0 DAYS",
     "ticker": "MARKMON-V4",
     "regime": "EQUITY",
-    "sahm": 0.0
+    "sahm": 0.00
 }
 
 @app.route('/')
