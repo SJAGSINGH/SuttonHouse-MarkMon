@@ -13,7 +13,7 @@
             --card-bg: #161616;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
-            --lime-green: #32CD32;
+            --lime-green: #32CD32; /* Used for "Market Open" and positive flow */
             --early-green: #00FF7F;
             --mid-yellow: #FFD700;
             --mature-red: #FF4500;
@@ -22,61 +22,167 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 30px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* --- HEADER: LEFT LOGO, CENTERED CLOCK --- */
+        /* HEADER SECTION */
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
             max-width: 1200px;
+            padding: 20px 0;
             border-bottom: 1px solid #222;
-            padding-bottom: 25px;
-            margin-bottom: 40px;
-            position: relative;
+            margin-bottom: 30px;
         }
 
-        .brand-container {
+        .brand {
             display: flex;
             align-items: center;
-            z-index: 2;
-        }
-
-        .main-logo {
-            width: 75px;
-            height: auto;
-            filter: brightness(1.2);
         }
 
         .vertical-divider {
             width: 1px;
-            height: 45px;
-            background-color: #444;
-            margin: 0 20px;
+            height: 40px;
+            background: #444;
+            margin: 0 15px;
         }
 
-        .brand-text h1 {
-            font-size: 22px;
-            margin: 0;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-weight: 700;
+        .center-clock-stack {
+            text-align: center;
         }
 
-        .brand-text p {
-            font-size: 12px;
-            color: var(--text-dim);
-            margin: 0;
+        #digital-clock {
+            font-size: 32px;
+            font-weight: bold;
             font-family: monospace;
-            letter-spacing: 1px;
         }
 
-        /* CENTER STACK */
-        .center
+        .city-list {
+            display: flex;
+            gap: 15px;
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--lime-green);
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        /* GRID LAYOUT */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #222;
+        }
+
+        .card h3 { font-size: 12px; color: var(--text-dim); text-transform: uppercase; margin: 0 0 10px 0; }
+
+        /* MATURITY BAR */
+        .bar-bg { width: 100%; height: 10px; background: #222; border-radius: 5px; margin: 15px 0; overflow: hidden; }
+        #maturity-bar { width: 0%; height: 100%; background: var(--early-green); transition: 1s ease; }
+
+        #recession-radar { font-size: 24px; font-weight: bold; color: var(--lime-green); }
+    </style>
+</head>
+<body>
+
+    <header class="dashboard-header">
+        <div class="brand">
+            <div style="font-weight: 900; font-size: 24px;">SH</div>
+            <div class="vertical-divider"></div>
+            <div>
+                <div style="font-weight: bold; text-transform: uppercase;">Sutton House</div>
+                <div style="font-size: 10px; color: var(--text-dim);">> LIVE DATA FEED</div>
+            </div>
+        </div>
+
+        <div class="center-clock-stack">
+            <div id="digital-clock">00:00:00</div>
+            <div class="city-list">
+                <span><i class="status-dot"></i>LONDON</span>
+                <span><i class="status-dot"></i>NEW YORK</span>
+                <span><i class="status-dot"></i>TOKYO</span>
+            </div>
+        </div>
+        
+        <div style="width: 100px;"></div> </header>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Regime</h3>
+            <div id="regime-text" style="font-size: 20px; font-weight: bold;">WAITING...</div>
+        </div>
+
+        <div class="card">
+            <h3>Cycle Maturity</h3>
+            <div class="bar-bg"><div id="maturity-bar"></div></div>
+            <div id="maturity-label" style="font-size: 11px;">INITIALIZING</div>
+        </div>
+
+        <div class="card">
+            <h3>Recession Radar</h3>
+            <div id="recession-radar">EXPANSION</div>
+        </div>
+    </div>
+
+    <script>
+        // 1. CLOCK
+        function runClock() {
+            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString([], {hour12:false});
+        }
+        setInterval(runClock, 1000);
+        runClock();
+
+        // 2. SOCKET
+        const socket = io({ transports: ["websocket", "polling"] });
+
+        socket.on("macro_update", (data) => {
+            // Update Regime
+            document.getElementById('regime-text').innerText = data.cycle;
+
+            // Update Maturity
+            const bar = document.getElementById('maturity-bar');
+            const label = document.getElementById('maturity-label');
+            bar.style.width = data.count + "%";
+            
+            if(data.count < 30) {
+                bar.style.background = "#00FF7F";
+                label.innerText = "EARLY STAGE";
+            } else if (data.count < 70) {
+                bar.style.background = "#FFD700";
+                label.innerText = "MID-CYCLE";
+            } else {
+                bar.style.background = "#FF4500";
+                label.innerText = "MATURE";
+            }
+
+            // Update Radar
+            const radar = document.getElementById('recession-radar');
+            radar.innerText = data.sahm > 0.5 ? "CONTRACTION" : "EXPANSION";
+            radar.style.color = data.sahm > 0.5 ? "#FF4500" : "#32CD32";
+        });
+    </script>
+</body>
+</html>
