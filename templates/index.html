@@ -11,61 +11,52 @@
             --bull: #00ff88;
             --bear: #ff4444;
             --panel: #0d1117;
-            --lime: #32ff7e;
-            --orange: #ff9f43;
             --dim: #2a2f36;
-            /* Simple fallback for regime color */
-            --regime: var(--equity-blue);
+            /* Adaptive regime color */
+            --regime: {% if ratio and sma and ratio > sma %}var(--equity-blue){% else %}var(--gold){% endif %};
         }
 
-        body { 
-            background: var(--bg); 
-            color: white; 
-            font-family: sans-serif; 
-            margin: 0; 
-        }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
 
         header { 
-            padding: 20px 40px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            background: #000;
-            border-bottom: 2px solid var(--gold);
+            padding: 15px 40px; 
+            display: flex; justify-content: space-between; align-items: center;
+            background: #000; border-bottom: 2px solid var(--regime);
         }
 
-        .brand-block { display: flex; align-items: center; gap: 20px; }
+        .brand-block { display: flex; align-items: center; gap: 15px; }
 
+        /* FIXED LOGO SIZE */
         .logo-container {
-            width: 70px; height: 70px;
-            background: #111;
+            width: 45px; height: 45px; /* Shrunk from 70px */
             display: flex; align-items: center; justify-content: center;
-            border-radius: 4px;
         }
+        .logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
         .text-block { display: flex; flex-direction: column; }
-        .main-title { font-size: 1.5rem; font-weight: 900; letter-spacing: 1px; }
-        .live-indicator { font-size: 0.7rem; color: var(--bull); letter-spacing: 3px; margin-top: 5px; }
+        .main-title { font-size: 1.3rem; font-weight: 900; letter-spacing: 1px; }
+        .live-indicator { font-size: 0.65rem; color: var(--bull); letter-spacing: 3px; margin-top: 2px; }
 
         .status-block { text-align: right; }
-        .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: monospace; }
-        
-        .city-row { display: flex; gap: 15px; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
-        .city-name { color: var(--dim); }
+        .digital-clock { font-size: 2rem; font-weight: bold; font-family: monospace; }
+        .city-row { display: flex; gap: 12px; font-size: 0.7rem; font-weight: bold; margin-top: 5px; color: var(--dim); }
 
-        .macro-grid { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 20px; 
-            padding: 40px; 
-        }
-
+        /* MACRO GRID */
+        .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
         .macro-card { 
-            background: var(--panel); 
-            padding: 30px; 
-            text-align: center; 
-            border-bottom: 4px solid #1f242b;
+            background: var(--panel); padding: 25px; text-align: center; 
+            border-bottom: 4px solid #1f242b; transition: 0.3s;
         }
+        .active-card { border-bottom-color: var(--regime); }
+        .label { font-size: 0.7rem; color: #666; letter-spacing: 1.5px; text-transform: uppercase; }
+        .value { font-size: 2.2rem; font-weight: 800; margin: 10px 0; }
+        .sub-label { font-size: 0.65rem; font-weight: bold; letter-spacing: 1px; }
+
+        /* CYCLE COLORS */
+        .early { color: var(--bull); }
+        .mature { color: var(--equity-blue); }
+        .end { color: var(--bear); animation: pulse 2s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body onload="startMonitor()">
@@ -84,30 +75,45 @@
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN" class="city-name">LONDON</span>
-                <span id="NY" class="city-name">NEW YORK</span>
-                <span id="TOR" class="city-name">TORONTO</span>
-                <span id="SYD" class="city-name">SYDNEY</span>
+                <span id="LDN">LONDON</span> <span id="NY">NEW YORK</span> <span id="TOR">TORONTO</span> <span id="SYD">SYDNEY</span>
             </div>
         </div>
     </header>
 
     <div class="macro-grid">
-        <div class="macro-card">
-            <div style="font-size: 0.7rem; color: #666;">MONTHLY RISE</div>
-            <div style="font-size: 2.5rem; color: var(--bull);">{{ rise|default(0) }}%</div>
+        <div class="macro-card active-card">
+            <div class="label">Current Regime</div>
+            <div class="value" style="color: var(--regime);">
+                {% if ratio and sma and ratio > sma %}EQUITY{% else %}COMMODITY{% endif %}
+            </div>
+            <div class="sub-label">RATIO vs 50SMA</div>
         </div>
-        <div class="macro-card">
-            <div style="font-size: 0.7rem; color: #666;">CYCLE STATUS</div>
-            <div style="font-size: 2rem;">{{ cycle|default('LOADING') }}</div>
+
+        <div class="macro-card active-card">
+            <div class="label">Cycle Maturity</div>
+            <div class="value 
+                {% if count <= 25 %}early
+                {% elif count <= 75 %}mature
+                {% else %}end{% endif %}">
+                {% if count <= 25 %}EARLY
+                {% elif count <= 75 %}MATURE
+                {% else %}END CYCLE{% endif %}
+            </div>
+            <div class="sub-label">COUNT: {{ count|default(0) }} DAYS</div>
         </div>
+
         <div class="macro-card">
-            <div style="font-size: 0.7rem; color: #666;">MONTHLY FALL</div>
-            <div style="font-size: 2.5rem; color: var(--bear);">{{ fall|default(0) }}%</div>
+            <div class="label">Capital Flow</div>
+            <div class="value" style="color: {% if momentum == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
+                {{ momentum|default('STABLE') }}
+            </div>
+            <div class="sub-label">MOMENTUM TRACKER</div>
         </div>
-        <div class="macro-card">
-            <div style="font-size: 0.7rem; color: #666;">RECESSION RADAR</div>
-            <div style="font-size: 2.5rem; color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
+
+        <div class="macro-card" style="border-bottom-color: #00d2ff;">
+            <div class="label">Recession Radar</div>
+            <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
+            <div class="sub-label">SAHM SIGNAL</div>
         </div>
     </div>
 
