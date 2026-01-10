@@ -11,125 +11,153 @@
             --bull: #00ff88;
             --bear: #ff4444;
             --panel: #0d1117;
+            --lime: #32ff7e;
+            --orange: #ff9f43;
+            --closed: #1a1f26;
             --regime: {% if 'CMD' in ticker %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
         
-        /* HEADER SECTION */
+        /* HEADER - LEVEL 1 */
         header { 
-            padding: 10px 30px; 
-            border-bottom: 2px solid var(--regime); 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 15px 30px 5px 30px; 
+            display: flex; justify-content: space-between; align-items: flex-start;
             background: #000;
         }
 
-        .brand-block { display: flex; align-items: center; gap: 20px; }
-        .logo img { height: 40px; }
-        .title-group { display: flex; flex-direction: column; }
-        .main-title { font-size: 1.2rem; font-weight: bold; letter-spacing: 1px; }
-        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 2px; }
+        .brand-container { display: flex; align-items: center; gap: 18px; }
+        .logo img { height: 42px; }
+        .title-block { display: flex; flex-direction: column; }
+        .main-title { font-size: 1.3rem; font-weight: 800; letter-spacing: 1px; line-height: 1.2; }
+        .live-feed { font-size: 0.65rem; color: var(--bull); letter-spacing: 3px; margin-top: 4px; font-weight: bold; }
 
-        .clock-block { font-family: 'Courier New', monospace; font-size: 1.4rem; color: #8b949e; }
+        .clock-container { text-align: right; }
+        .clock { font-family: 'Courier New', monospace; font-size: 1.8rem; color: #ced4da; font-weight: bold; }
 
-        /* MACRO SECTION */
-        .macro-subheading {
-            background: #161b22;
-            padding: 8px 30px;
-            font-size: 0.7rem;
-            letter-spacing: 3px;
-            color: var(--regime);
+        /* MACRO ROW (LEVEL 2) - UNDER CLOCK */
+        .header-sub-row {
+            display: flex; justify-content: flex-end;
+            padding: 0 30px 15px 30px;
+            background: #000;
+            border-bottom: 2px solid var(--regime);
+        }
+
+        .session-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 110px);
+            gap: 8px;
+        }
+
+        .session-card {
+            padding: 6px;
+            border: 1px solid #222;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
 
-        .macro-grid {
+        /* Status States */
+        .open { border-color: var(--lime); color: var(--lime); background: rgba(50, 255, 126, 0.05); }
+        .pre { border-color: var(--orange); color: var(--orange); background: rgba(255, 159, 67, 0.05); }
+        .closed { border-color: #222; color: #444; }
+        .radar-box { border-color: var(--bull); color: var(--bull); background: rgba(0, 255, 136, 0.05); }
+
+        /* MACRO INDICATORS (LEVEL 3) */
+        .macro-stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 Columns now */
-            gap: 15px;
-            padding: 20px 30px;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 20px;
+            padding: 30px;
         }
-
-        .macro-card {
+        .stat-card {
             background: var(--panel);
-            padding: 15px;
+            padding: 25px;
             border-radius: 4px;
-            border-bottom: 3px solid #30363d;
             text-align: center;
+            border-top: 1px solid #222;
         }
-        .val { font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
-        .label { font-size: 0.6rem; color: #8b949e; letter-spacing: 2px; }
+        .stat-val { font-size: 2.8rem; font-weight: 800; margin: 10px 0; }
+        .stat-label { font-size: 0.7rem; color: #6c757d; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* RADAR BEACON STYLE */
-        .radar-active {
-            border-bottom-color: var(--bull);
-            animation: {% if sahm|float > 0.45 %}pulse 1.5s infinite{% else %}none{% endif %};
-        }
-        @keyframes pulse {
-            0% { background: rgba(0, 255, 136, 0.1); }
-            50% { background: rgba(0, 255, 136, 0.2); }
-            100% { background: rgba(0, 255, 136, 0.1); }
-        }
     </style>
 </head>
-<body onload="startTime()">
+<body onload="startSystem()">
 
     <header>
-        <div class="brand-block">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="SH">
-            </div>
-            <div class="title-group">
+        <div class="brand-container">
+            <div class="logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="SH"></div>
+            <div class="title-block">
                 <span class="main-title">SUTTON HOUSE MARKET MONITOR</span>
-                <span class="live-tag">● LIVE DATA FEED</span>
+                <span class="live-feed">● LIVE DATA FEED</span>
             </div>
         </div>
 
-        <div class="clock-block" id="txt"></div>
+        <div class="clock-container">
+            <div class="clock" id="main-clock">00:00:00</div>
+        </div>
     </header>
 
-    <div class="macro-subheading">Macro Analysis Indicators</div>
-
-    <div class="macro-grid">
-        <div class="macro-card" style="border-bottom-color: var(--bull);">
-            <div class="label">MONTHLY RISE</div>
-            <div class="val" style="color: var(--bull);">{{ rise }}%</div>
+    <div class="header-sub-row">
+        <div class="session-grid">
+            <div id="city-london" class="session-card">LONDON</div>
+            <div id="city-ny" class="session-card">NEW YORK</div>
+            <div id="city-toronto" class="session-card">TORONTO</div>
+            <div id="city-sydney" class="session-card">SYDNEY</div>
+            <div class="session-card radar-box">RADAR: {{ sahm }}%</div>
         </div>
+    </div>
 
-        <div class="macro-card" style="border-bottom-color: var(--regime);">
-            <div class="label">CYCLE DURATION</div>
-            <div class="val">{{ cycle_len }}</div>
-            <div class="label" style="color: var(--regime);">{{ cycle }} PHASE</div>
+    <div class="macro-stats">
+        <div class="stat-card">
+            <div class="stat-label">Monthly Rise</div>
+            <div class="stat-val" style="color: var(--bull);">{{ rise }}%</div>
         </div>
-
-        <div class="macro-card" style="border-bottom-color: var(--bear);">
-            <div class="label">MONTHLY FALL</div>
-            <div class="val" style="color: var(--bear);">{{ fall }}%</div>
+        <div class="stat-card" style="border-top-color: var(--regime);">
+            <div class="stat-label">Cycle Duration</div>
+            <div class="stat-val">{{ cycle_len }}</div>
+            <div class="stat-label" style="color: var(--regime);">{{ cycle }} PHASE</div>
         </div>
-
-        <div class="macro-card radar-active">
-            <div class="label">RECESSION RADAR</div>
-            <div class="val" style="color: var(--bull);">{{ sahm }}%</div>
-            <div class="label">SAHM SIGNAL</div>
+        <div class="stat-card">
+            <div class="stat-label">Monthly Fall</div>
+            <div class="stat-val" style="color: var(--bear);">{{ fall }}%</div>
         </div>
     </div>
 
     <script>
-        function startTime() {
-            const today = new Date();
-            let h = today.getHours();
-            let m = today.getMinutes();
-            let s = today.getSeconds();
-            m = checkTime(m);
-            s = checkTime(s);
-            document.getElementById('txt').innerHTML =  h + ":" + m + ":" + s;
-            setTimeout(startTime, 1000);
+        function startSystem() {
+            refreshClock();
+            refreshSessions();
+            setInterval(refreshClock, 1000);
+            setInterval(refreshSessions, 60000);
         }
-        function checkTime(i) {
-            if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
-            return i;
+
+        function refreshClock() {
+            const now = new Date();
+            document.getElementById('main-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+        }
+
+        function refreshSessions() {
+            const hrs = new Date().getUTCHours();
+            // London: 08-16 UTC | NY: 13-21 UTC | Toronto: 14-20 UTC | Sydney: 22-06 UTC
+            applyStatus('city-london', hrs, 8, 16);
+            applyStatus('city-ny', hrs, 13, 21);
+            applyStatus('city-toronto', hrs, 14, 20);
+            applyStatus('city-sydney', (hrs >= 22 || hrs < 6), 0, 1);
+        }
+
+        function applyStatus(id, current, open, close) {
+            const el = document.getElementById(id);
+            if (id === 'city-sydney') {
+                el.className = current ? 'session-card open' : 'session-card closed';
+                return;
+            }
+            if (current >= open && current < close) el.className = 'session-card open';
+            else if (current === open - 1) el.className = 'session-card pre';
+            else el.className = 'session-card closed';
         }
     </script>
-
 </body>
 </html>
