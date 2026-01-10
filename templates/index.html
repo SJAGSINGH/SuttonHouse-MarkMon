@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sutton House MarkMon</title>
+    <title>Sutton House Market Monitor</title>
     <style>
         :root {
             --bg: #05070a;
@@ -13,109 +13,123 @@
             --panel: #0d1117;
             --regime: {% if 'CMD' in ticker %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
         
-        /* HEADER & LOGO */
+        /* HEADER SECTION */
         header { 
-            padding: 15px 40px; 
+            padding: 10px 30px; 
             border-bottom: 2px solid var(--regime); 
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
             background: #000;
         }
-        .logo-box img { height: 45px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
 
-        /* THE RECESSION BEACON */
-        .beacon-container { text-align: center; }
-        .beacon {
-            display: inline-block;
-            padding: 8px 30px;
-            border: 1px solid var(--bull);
-            border-radius: 4px;
-            background: rgba(0, 255, 136, 0.05);
-            /* Pulse animation if Sahm is high */
-            animation: {% if sahm|float > 0.45 %}pulse 1.5s infinite{% else %}none{% endif %};
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); border-color: var(--bull); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); border-color: #ff9800; }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
-        }
+        .brand-block { display: flex; align-items: center; gap: 20px; }
+        .logo img { height: 40px; }
+        .title-group { display: flex; flex-direction: column; }
+        .main-title { font-size: 1.2rem; font-weight: bold; letter-spacing: 1px; }
+        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 2px; }
+
+        .clock-block { font-family: 'Courier New', monospace; font-size: 1.4rem; color: #8b949e; }
 
         /* MACRO SECTION */
         .macro-subheading {
             background: #161b22;
-            padding: 8px 40px;
-            font-size: 0.75rem;
-            letter-spacing: 4px;
+            padding: 8px 30px;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
             color: var(--regime);
             text-transform: uppercase;
-            border-bottom: 1px solid #30363d;
         }
 
         .macro-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            padding: 30px 40px;
+            grid-template-columns: repeat(4, 1fr); /* 4 Columns now */
+            gap: 15px;
+            padding: 20px 30px;
         }
 
         .macro-card {
             background: var(--panel);
-            padding: 20px;
+            padding: 15px;
             border-radius: 4px;
-            border-left: 4px solid #30363d;
+            border-bottom: 3px solid #30363d;
             text-align: center;
         }
-        .val { font-size: 2.8rem; font-weight: 800; margin: 5px 0; }
-        .label { font-size: 0.65rem; color: #8b949e; letter-spacing: 2px; }
+        .val { font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
+        .label { font-size: 0.6rem; color: #8b949e; letter-spacing: 2px; }
+
+        /* RADAR BEACON STYLE */
+        .radar-active {
+            border-bottom-color: var(--bull);
+            animation: {% if sahm|float > 0.45 %}pulse 1.5s infinite{% else %}none{% endif %};
+        }
+        @keyframes pulse {
+            0% { background: rgba(0, 255, 136, 0.1); }
+            50% { background: rgba(0, 255, 136, 0.2); }
+            100% { background: rgba(0, 255, 136, 0.1); }
+        }
     </style>
 </head>
-<body>
+<body onload="startTime()">
 
     <header>
-        <div class="logo-box">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="SUTTON HOUSE">
-        </div>
-        
-        <div class="beacon-container">
-            <div class="beacon">
-                <span class="label" style="display:block; margin-bottom:2px;">RECESSION RADAR</span>
-                <span style="font-size: 1.4rem; font-weight: bold; color: var(--bull);">{{ sahm }}%</span>
+        <div class="brand-block">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="SH">
+            </div>
+            <div class="title-group">
+                <span class="main-title">SUTTON HOUSE MARKET MONITOR</span>
+                <span class="live-tag">● LIVE DATA FEED</span>
             </div>
         </div>
 
-        <div style="text-align: right;">
-            <div style="color: var(--regime); font-weight: bold; letter-spacing: 1px;">{{ ticker }}</div>
-            <div class="label">LIVE DATA FEED</div>
-        </div>
+        <div class="clock-block" id="txt"></div>
     </header>
 
     <div class="macro-subheading">Macro Analysis Indicators</div>
 
     <div class="macro-grid">
-        <div class="macro-card" style="border-left-color: var(--bull);">
+        <div class="macro-card" style="border-bottom-color: var(--bull);">
             <div class="label">MONTHLY RISE</div>
             <div class="val" style="color: var(--bull);">{{ rise }}%</div>
         </div>
 
-        <div class="macro-card" style="border-left-color: var(--regime);">
+        <div class="macro-card" style="border-bottom-color: var(--regime);">
             <div class="label">CYCLE DURATION</div>
             <div class="val">{{ cycle_len }}</div>
             <div class="label" style="color: var(--regime);">{{ cycle }} PHASE</div>
         </div>
 
-        <div class="macro-card" style="border-left-color: var(--bear);">
+        <div class="macro-card" style="border-bottom-color: var(--bear);">
             <div class="label">MONTHLY FALL</div>
             <div class="val" style="color: var(--bear);">{{ fall }}%</div>
         </div>
+
+        <div class="macro-card radar-active">
+            <div class="label">RECESSION RADAR</div>
+            <div class="val" style="color: var(--bull);">{{ sahm }}%</div>
+            <div class="label">SAHM SIGNAL</div>
+        </div>
     </div>
 
-    <div style="margin-top: 50px; text-align: center; color: #30363d; border-top: 1px dashed #30363d; padding-top: 40px;">
-        <div class="label">MARKET BREADTH MATRIX</div>
-        <div style="font-size: 0.8rem; margin-top: 10px;">AWAITING 25-STOCK BENCHMARK DATA...</div>
-    </div>
+    <script>
+        function startTime() {
+            const today = new Date();
+            let h = today.getHours();
+            let m = today.getMinutes();
+            let s = today.getSeconds();
+            m = checkTime(m);
+            s = checkTime(s);
+            document.getElementById('txt').innerHTML =  h + ":" + m + ":" + s;
+            setTimeout(startTime, 1000);
+        }
+        function checkTime(i) {
+            if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+            return i;
+        }
+    </script>
 
 </body>
 </html>
