@@ -13,150 +13,124 @@
             --panel: #0d1117;
             --lime: #32ff7e;
             --orange: #ff9f43;
-            --closed: #1a1f26;
+            --dim: #2a2f36;
             --regime: {% if 'CMD' in ticker %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
         body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
         
-        /* HEADER - LEVEL 1 */
         header { 
-            padding: 15px 30px 5px 30px; 
+            padding: 25px 40px; 
             display: flex; justify-content: space-between; align-items: flex-start;
-            background: #000;
-        }
-
-        .brand-container { display: flex; align-items: center; gap: 18px; }
-        .logo img { height: 42px; }
-        .title-block { display: flex; flex-direction: column; }
-        .main-title { font-size: 1.3rem; font-weight: 800; letter-spacing: 1px; line-height: 1.2; }
-        .live-feed { font-size: 0.65rem; color: var(--bull); letter-spacing: 3px; margin-top: 4px; font-weight: bold; }
-
-        .clock-container { text-align: right; }
-        .clock { font-family: 'Courier New', monospace; font-size: 1.8rem; color: #ced4da; font-weight: bold; }
-
-        /* MACRO ROW (LEVEL 2) - UNDER CLOCK */
-        .header-sub-row {
-            display: flex; justify-content: flex-end;
-            padding: 0 30px 15px 30px;
             background: #000;
             border-bottom: 2px solid var(--regime);
         }
 
-        .session-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 110px);
-            gap: 8px;
-        }
+        /* BRANDING (LEFT) */
+        .brand { display: flex; align-items: center; gap: 20px; }
+        .logo img { height: 55px; border-radius: 5px; } /* Increased size for detail */
+        .title-block { display: flex; flex-direction: column; }
+        .main-title { font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; }
+        .live-feed { font-size: 0.7rem; color: var(--bull); letter-spacing: 4px; font-weight: bold; margin-top: 3px; }
 
-        .session-card {
-            padding: 6px;
-            border: 1px solid #222;
-            border-radius: 3px;
-            text-align: center;
-            font-size: 0.65rem;
-            font-weight: 900;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+        /* CLOCK & STATUS (RIGHT) */
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+        .clock { font-family: 'Courier New', monospace; font-size: 2.2rem; font-weight: bold; color: #fff; }
+        
+        .city-status-row { display: flex; gap: 15px; font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; }
+        .city { transition: color 0.5s; color: var(--dim); }
+        .active-city { color: var(--lime); text-shadow: 0 0 10px rgba(50, 255, 126, 0.3); }
+        .pre-city { color: var(--orange); }
 
-        /* Status States */
-        .open { border-color: var(--lime); color: var(--lime); background: rgba(50, 255, 126, 0.05); }
-        .pre { border-color: var(--orange); color: var(--orange); background: rgba(255, 159, 67, 0.05); }
-        .closed { border-color: #222; color: #444; }
-        .radar-box { border-color: var(--bull); color: var(--bull); background: rgba(0, 255, 136, 0.05); }
-
-        /* MACRO INDICATORS (LEVEL 3) */
-        .macro-stats {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr 1fr;
-            gap: 20px;
-            padding: 30px;
-        }
-        .stat-card {
-            background: var(--panel);
-            padding: 25px;
-            border-radius: 4px;
-            text-align: center;
-            border-top: 1px solid #222;
-        }
-        .stat-val { font-size: 2.8rem; font-weight: 800; margin: 10px 0; }
-        .stat-label { font-size: 0.7rem; color: #6c757d; letter-spacing: 2px; text-transform: uppercase; }
-
+        /* MACRO ROW (LEVEL 3) */
+        .macro-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
+        .card { background: var(--panel); padding: 30px; border-radius: 6px; text-align: center; border-bottom: 3px solid #1f242b; }
+        .val { font-size: 3rem; font-weight: 800; margin: 10px 0; }
+        .label { font-size: 0.7rem; color: #6c757d; letter-spacing: 2px; text-transform: uppercase; }
     </style>
 </head>
-<body onload="startSystem()">
+<body onload="init()">
 
     <header>
-        <div class="brand-container">
-            <div class="logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="SH"></div>
+        <div class="brand">
+            <div class="logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Sutton House"></div>
             <div class="title-block">
                 <span class="main-title">SUTTON HOUSE MARKET MONITOR</span>
                 <span class="live-feed">● LIVE DATA FEED</span>
             </div>
         </div>
 
-        <div class="clock-container">
-            <div class="clock" id="main-clock">00:00:00</div>
+        <div class="header-right">
+            <div class="clock" id="clock">00:00:00</div>
+            <div class="city-status-row">
+                <span id="ldn" class="city">LONDON</span>
+                <span id="ny" class="city">NEW YORK</span>
+                <span id="tor" class="city">TORONTO</span>
+                <span id="syd" class="city">SYDNEY</span>
+            </div>
         </div>
     </header>
 
-    <div class="header-sub-row">
-        <div class="session-grid">
-            <div id="city-london" class="session-card">LONDON</div>
-            <div id="city-ny" class="session-card">NEW YORK</div>
-            <div id="city-toronto" class="session-card">TORONTO</div>
-            <div id="city-sydney" class="session-card">SYDNEY</div>
-            <div class="session-card radar-box">RADAR: {{ sahm }}%</div>
+    <div class="macro-container">
+        <div class="card" style="border-bottom-color: var(--bull);">
+            <div class="label">Monthly Rise</div>
+            <div class="val" style="color: var(--bull);">{{ rise }}%</div>
         </div>
-    </div>
-
-    <div class="macro-stats">
-        <div class="stat-card">
-            <div class="stat-label">Monthly Rise</div>
-            <div class="stat-val" style="color: var(--bull);">{{ rise }}%</div>
+        <div class="card" style="border-bottom-color: var(--regime);">
+            <div class="label">Cycle Duration</div>
+            <div class="val">{{ cycle_len }}</div>
+            <div class="label" style="color: var(--regime);">{{ cycle }} PHASE</div>
         </div>
-        <div class="stat-card" style="border-top-color: var(--regime);">
-            <div class="stat-label">Cycle Duration</div>
-            <div class="stat-val">{{ cycle_len }}</div>
-            <div class="stat-label" style="color: var(--regime);">{{ cycle }} PHASE</div>
+        <div class="card" style="border-bottom-color: var(--bear);">
+            <div class="label">Monthly Fall</div>
+            <div class="val" style="color: var(--bear);">{{ fall }}%</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Monthly Fall</div>
-            <div class="stat-val" style="color: var(--bear);">{{ fall }}%</div>
+        <div class="card" style="border-bottom-color: #00d2ff;">
+            <div class="label">Recession Radar</div>
+            <div class="val" style="color: #00d2ff;">{{ sahm }}%</div>
+            <div class="label">SAHM SIGNAL</div>
         </div>
     </div>
 
     <script>
-        function startSystem() {
-            refreshClock();
-            refreshSessions();
-            setInterval(refreshClock, 1000);
-            setInterval(refreshSessions, 60000);
+        function init() {
+            update();
+            setInterval(update, 1000);
         }
 
-        function refreshClock() {
+        function update() {
             const now = new Date();
-            document.getElementById('main-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+            const utcHr = now.getUTCHours();
+            const day = now.getUTCDay(); // 0 = Sun, 6 = Sat
+            
+            // 1. Clock
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+
+            // 2. Market Status (Weekend check: Sat/Sun = all dimmed)
+            const isWeekend = (day === 6 || (day === 0 && utcHr < 22)); // Closed Sat all day, Sun until Sydney open
+            
+            if (isWeekend) {
+                resetCities();
+            } else {
+                setCityStatus('ldn', utcHr, 8, 16);
+                setCityStatus('ny', utcHr, 13, 21);
+                setCityStatus('tor', utcHr, 14, 20);
+                setCityStatus('syd', (utcHr >= 22 || utcHr < 6), 0, 1);
+            }
         }
 
-        function refreshSessions() {
-            const hrs = new Date().getUTCHours();
-            // London: 08-16 UTC | NY: 13-21 UTC | Toronto: 14-20 UTC | Sydney: 22-06 UTC
-            applyStatus('city-london', hrs, 8, 16);
-            applyStatus('city-ny', hrs, 13, 21);
-            applyStatus('city-toronto', hrs, 14, 20);
-            applyStatus('city-sydney', (hrs >= 22 || hrs < 6), 0, 1);
-        }
-
-        function applyStatus(id, current, open, close) {
+        function setCityStatus(id, cur, open, close) {
             const el = document.getElementById(id);
-            if (id === 'city-sydney') {
-                el.className = current ? 'session-card open' : 'session-card closed';
+            if (id === 'syd') { // Sydney cross-over
+                el.className = cur ? 'city active-city' : 'city';
                 return;
             }
-            if (current >= open && current < close) el.className = 'session-card open';
-            else if (current === open - 1) el.className = 'session-card pre';
-            else el.className = 'session-card closed';
+            if (cur >= open && cur < close) el.className = 'city active-city';
+            else if (cur === open - 1) el.className = 'city pre-city';
+            else el.className = 'city';
+        }
+
+        function resetCities() {
+            document.querySelectorAll('.city').forEach(c => c.className = 'city');
         }
     </script>
 </body>
