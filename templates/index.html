@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House | Master Macro</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
@@ -11,7 +10,7 @@
             --card: #111111;
             --text: #ffffff;
             --dim: #888888;
-            --lime: #32CD32; /* Agreed Lime Green */
+            --lime: #32CD32; /* Pure Lime Green */
             --warning: #FF4500;
         }
 
@@ -26,7 +25,6 @@
             align-items: center;
         }
 
-        /* --- THE POLISHED HEADER --- */
         .header {
             display: flex;
             justify-content: space-between;
@@ -37,126 +35,29 @@
             position: relative;
         }
 
-        .brand-section {
-            display: flex;
-            align-items: center;
-        }
+        .brand-section { display: flex; align-items: center; }
+        
+        .logo-img { height: 75px; width: auto; margin-right: 25px; display: block; }
+        
+        .divider { width: 1px; height: 70px; background: #333; margin-right: 25px; }
 
-        .logo-img {
-            height: 75px;
-            width: auto;
-            margin-right: 25px;
-            display: block;
-        }
+        .brand-titles h1 { font-size: 26px; margin: 0; text-transform: uppercase; letter-spacing: 4px; font-weight: 800; }
+        .brand-titles p { font-size: 11px; margin: 5px 0 0 0; color: var(--dim); letter-spacing: 2px; font-family: monospace; }
 
-        .vertical-divider {
-            width: 1px;
-            height: 70px;
-            background: #333;
-            margin-right: 25px;
-        }
+        .center-stack { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; }
+        #digital-clock { font-size: 58px; font-family: 'Courier New', monospace; font-weight: 700; margin-bottom: 10px; }
 
-        .brand-titles h1 {
-            font-size: 26px;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            font-weight: 800;
-        }
+        .city-grid { display: flex; gap: 25px; justify-content: center; }
+        .city-item { font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+        .lime-dot { width: 8px; height: 8px; background-color: var(--lime); border-radius: 50%; box-shadow: 0 0 12px var(--lime); }
 
-        .brand-titles p {
-            font-size: 11px;
-            margin: 5px 0 0 0;
-            color: var(--dim);
-            letter-spacing: 2px;
-            font-family: monospace;
-        }
-
-        /* --- CENTER STACK --- */
-        .center-stack {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-        }
-
-        #digital-clock {
-            font-size: 58px;
-            font-family: 'Courier New', monospace;
-            font-weight: 700;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-        }
-
-        .city-grid {
-            display: flex;
-            gap: 25px;
-            justify-content: center;
-        }
-
-        .city-item {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--dim);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            letter-spacing: 1px;
-        }
-
-        .lime-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--lime);
-            border-radius: 50%;
-            box-shadow: 0 0 12px var(--lime);
-        }
-
-        /* --- MACRO DATA GRID --- */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 35px;
-            width: 100%;
-            max-width: 1400px;
-        }
-
-        .card {
-            background: var(--card);
-            padding: 40px;
-            border-radius: 12px;
-            border: 1px solid #1f1f1f;
-        }
-
-        .card h3 {
-            font-size: 13px;
-            color: var(--dim);
-            text-transform: uppercase;
-            margin-top: 0;
-            margin-bottom: 25px;
-            letter-spacing: 2px;
-        }
-
-        .data-value {
-            font-size: 34px;
-            font-weight: 800;
-            color: var(--lime);
-        }
-
-        .maturity-track {
-            height: 10px;
-            background: #222;
-            border-radius: 5px;
-            margin: 25px 0;
-            overflow: hidden;
-        }
-
-        #mat-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--lime);
-            transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 35px; width: 100%; max-width: 1400px; }
+        .card { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid #1f1f1f; }
+        .card h3 { font-size: 13px; color: var(--dim); text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; }
+        
+        .data-value { font-size: 34px; font-weight: 800; color: var(--lime); }
+        .maturity-track { height: 10px; background: #222; border-radius: 5px; margin: 25px 0; overflow: hidden; }
+        #mat-fill { height: 100%; width: 0%; background: var(--lime); transition: 1.5s ease; }
     </style>
 </head>
 <body>
@@ -164,7 +65,7 @@
     <div class="header">
         <div class="brand-section">
             <img src="{{ url_for('static', filename='logo.png') }}" class="logo-img" alt="Sutton House">
-            <div class="vertical-divider"></div>
+            <div class="divider"></div>
             <div class="brand-titles">
                 <h1>Sutton House</h1>
                 <p>> LIVE DATA FEED</p>
@@ -187,13 +88,11 @@
             <h3>Current Regime</h3>
             <div id="regime-val" class="data-value">Awaiting...</div>
         </div>
-
         <div class="card">
             <h3>Cycle Maturity</h3>
             <div class="maturity-track"><div id="mat-fill"></div></div>
             <div id="mat-text" style="font-size: 13px; font-weight: bold; color: var(--dim);">INITIALIZING</div>
         </div>
-
         <div class="card">
             <h3>Recession Pulse</h3>
             <div id="pulse-val" class="data-value">EXPANSION</div>
@@ -209,29 +108,21 @@
         updateClock();
 
         const socket = io({ transports: ["websocket", "polling"] });
-
         socket.on("macro_update", (data) => {
-            // Update Regime
             document.getElementById('regime-val').innerText = data.cycle;
-            
-            // Update Maturity
             document.getElementById('mat-fill').style.width = data.count + "%";
             document.getElementById('mat-text').innerText = data.count + "% MATURE";
             
-            // Update Recession Pulse (Sahm Rule)
             const pulse = document.getElementById('pulse-val');
             const sahmDisplay = document.getElementById('sahm-rule');
-            
             sahmDisplay.innerText = "SAHM RULE: " + data.sahm.toFixed(2) + "%";
             
             if (data.sahm >= 0.5) {
                 pulse.innerText = "CONTRACTION";
                 pulse.style.color = "var(--warning)";
-                pulse.style.textShadow = "0 0 15px rgba(255, 69, 0, 0.4)";
             } else {
                 pulse.innerText = "EXPANSION";
                 pulse.style.color = "var(--lime)";
-                pulse.style.textShadow = "none";
             }
         });
     </script>
