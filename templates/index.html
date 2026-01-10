@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House Market Monitor</title>
     <style>
         :root {
@@ -13,77 +12,104 @@
             --bear: #ff4444;
             --panel: #0d1117;
             --dim: #2a2f36;
-            /* Dynamic logic: If Ratio > SMA, use Blue. Otherwise, use Gold. */
-            --regime: {% if ratio > sma %}var(--equity-blue){% else %}var(--gold){% endif %};
+            /* Adaptive regime color with safety defaults */
+            --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
-        body { 
-            background: var(--bg); 
-            color: white; 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-            margin: 0; 
-            overflow-x: hidden;
-        }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; }
 
-        /* HEADER SECTION */
         header { 
             padding: 12px 40px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            background: #000; 
-            border-bottom: 2px solid var(--regime);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: flex; justify-content: space-between; align-items: center;
+            background: #000; border-bottom: 2px solid var(--regime);
         }
 
-        .brand-block { display: flex; align-items: center; gap: 18px; }
-
-        .logo-container {
-            width: 50px; 
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-container img { 
-            max-height: 100%; 
-            max-width: 100%; 
-            object-fit: contain;
-        }
+        .brand-block { display: flex; align-items: center; gap: 15px; }
+        .logo-container { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 100%; max-width: 100%; object-fit: contain; }
 
         .text-block { display: flex; flex-direction: column; }
-        .main-title { 
-            font-size: 1.4rem; 
-            font-weight: 900; 
-            letter-spacing: 1px; 
-            line-height: 1.1;
-        }
-        .live-indicator { 
-            font-size: 0.65rem; 
-            color: var(--bull); 
-            letter-spacing: 3px; 
-            margin-top: 4px;
-            font-weight: bold;
-        }
+        .main-title { font-size: 1.4rem; font-weight: 900; letter-spacing: 1px; line-height: 1.1; }
+        .live-indicator { font-size: 0.65rem; color: var(--bull); letter-spacing: 3px; margin-top: 4px; font-weight: bold; }
 
-        .status-block { text-align: right; }
-        .digital-clock { 
-            font-size: 2.2rem; 
-            font-weight: bold; 
-            font-family: 'Courier New', Courier, monospace; 
-            color: #fff;
-        }
-        
-        .city-row { 
-            display: flex; 
-            gap: 15px; 
-            font-size: 0.7rem; 
-            font-weight: bold; 
-            margin-top: 5px; 
-            color: var(--dim); 
-        }
+        .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: monospace; }
 
-        /* MACRO GRID SECTION */
-        .macro-grid { 
-            display
+        .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
+        .macro-card { 
+            background: var(--panel); padding: 30px; text-align: center; 
+            border-bottom: 4px solid #1f242b;
+        }
+        .active-card { border-bottom-color: var(--regime); }
+
+        .label { font-size: 0.7rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+        .value { font-size: 2.5rem; font-weight: 800; margin: 10px 0; line-height: 1; }
+        .sub-label { font-size: 0.6rem; font-weight: bold; color: #444; text-transform: uppercase; }
+
+        /* Maturity Colors */
+        .early { color: var(--bull); }
+        .mature { color: var(--regime); }
+        .end { color: var(--bear); animation: pulse 2s infinite; }
+        @keyframes pulse { 50% { opacity: 0.4; } }
+    </style>
+</head>
+<body onload="startClock()">
+
+    <header>
+        <div class="brand-block">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="S.H." onerror="this.style.display='none'; this.parentElement.innerHTML='SH';">
+            </div>
+            <div class="text-block">
+                <span class="main-title">SUTTON HOUSE</span>
+                <span class="live-indicator">● MARKET MONITOR</span>
+            </div>
+        </div>
+        <div class="digital-clock" id="clock">00:00:00</div>
+    </header>
+
+    <div class="macro-grid">
+        <div class="macro-card active-card">
+            <div class="label">Current Regime</div>
+            <div class="value" style="color: var(--regime);">
+                {% if ratio|default(0) > sma|default(1) %}COMMODITY{% else %}EQUITY{% endif %}
+            </div>
+            <div class="sub-label">GOLD / WILSHIRE 5000</div>
+        </div>
+
+        <div class="macro-card active-card">
+            <div class="label">Cycle Maturity</div>
+            <div class="value 
+                {% if count|default(0) <= 25 %}early
+                {% elif count|default(0) <= 75 %}mature
+                {% else %}end{% endif %}">
+                {% if count|default(0) <= 25 %}EARLY
+                {% elif count|default(0) <= 75 %}MATURE
+                {% else %}END CYCLE{% endif %}
+            </div>
+            <div class="sub-label">{{ count|default(0) }} DAY TREND</div>
+        </div>
+
+        <div class="macro-card">
+            <div class="label">Capital Flow</div>
+            <div class="value" style="color: {% if momentum|default('STABLE') == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
+                {{ momentum|default('STABLE') }}
+            </div>
+            <div class="sub-label">Distance Tracker</div>
+        </div>
+
+        <div class="macro-card" style="border-bottom-color: #00d2ff;">
+            <div class="label">Recession Radar</div>
+            <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
+            <div class="sub-label">Sahm Signal</div>
+        </div>
+    </div>
+
+    <script>
+        function startClock() {
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
