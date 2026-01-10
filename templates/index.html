@@ -14,6 +14,7 @@
             --lime: #32CD32; 
             --gold: #FFD700;
             --warning: #FF4500;
+            --vix: #00BFFF;
         }
 
         body {
@@ -27,7 +28,7 @@
             align-items: center;
         }
 
-        /* --- THE POLISHED HEADER --- */
+        /* --- THE MASTER HEADER --- */
         .header {
             display: flex;
             justify-content: space-between;
@@ -50,7 +51,7 @@
         #digital-clock { font-size: 58px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; }
 
         .city-grid { display: flex; gap: 25px; justify-content: center; }
-        .city-item { font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+        .city-item { font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
         .lime-dot { width: 8px; height: 8px; background-color: var(--lime); border-radius: 50%; box-shadow: 0 0 12px var(--lime); }
 
         /* --- MACRO DATA GRID --- */
@@ -60,12 +61,26 @@
         
         .data-value { font-size: 34px; font-weight: 800; color: var(--lime); }
 
-        /* GOLD LINES / MATURITY */
+        /* THE GOLD LINES (MATURITY BAR) */
         .maturity-track { height: 12px; background: #222; border-radius: 6px; margin: 25px 0; overflow: hidden; border: 1px solid #333; }
-        #mat-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500); box-shadow: 0 0 15px var(--gold); transition: 1.5s ease; }
+        #mat-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
         /* VOLATILITY PULSE */
-        .vol-pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #00BFFF; margin-right: 8px; box-shadow: 0 0 8px #00BFFF; }
+        .vol-pulse { 
+            display: inline-block; 
+            width: 10px; height: 10px; 
+            border-radius: 50%; 
+            background: var(--vix); 
+            margin-right: 10px; 
+            box-shadow: 0 0 8px var(--vix); 
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-blue {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 191, 255, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 191, 255, 0); }
+        }
     </style>
 </head>
 <body>
@@ -95,16 +110,16 @@
         <div class="card">
             <h3>Regime & Volatility</h3>
             <div id="regime-val" class="data-value">Awaiting...</div>
-            <div style="margin-top: 20px; display: flex; align-items: center;">
+            <div style="margin-top: 25px; display: flex; align-items: center;">
                 <div class="vol-pulse"></div>
-                <div id="vol-status" style="font-size: 14px; font-weight: bold; color: #00BFFF; letter-spacing: 1px;">VOLATILITY: STABLE</div>
+                <div id="vol-status" style="font-size: 14px; font-weight: bold; color: var(--vix); letter-spacing: 1px;">VOLATILITY: STABLE</div>
             </div>
         </div>
 
         <div class="card">
             <h3>Cycle Maturity</h3>
             <div class="maturity-track"><div id="mat-fill"></div></div>
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div id="mat-text" style="font-size: 14px; font-weight: bold; color: var(--gold);">0% MATURE</div>
                 <div style="font-size: 11px; color: var(--dim);">TARGET: 100%</div>
             </div>
@@ -113,7 +128,7 @@
         <div class="card">
             <h3>Recession Pulse</h3>
             <div id="pulse-val" class="data-value">EXPANSION</div>
-            <div id="sahm-rule" style="font-size: 11px; color: var(--dim); margin-top: 15px; font-family: monospace;">SAHM RULE: 0.00%</div>
+            <div id="sahm-rule" style="font-size: 11px; color: var(--dim); margin-top: 15px; font-family: monospace; letter-spacing: 1px;">SAHM RULE: 0.00%</div>
         </div>
     </div>
 
