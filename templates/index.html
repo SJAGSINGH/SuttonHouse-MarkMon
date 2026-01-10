@@ -15,7 +15,7 @@
         body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; display: flex; flex-direction: column; }
 
         /* --- THE MASTER HEADER --- */
-        .header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 40px; position: relative; }
+        .header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 40px; }
         .brand-left { display: flex; align-items: center; }
         .logo-img { height: 83px; width: auto; margin-right: 25px; }
         .vertical-divider { width: 1px; height: 75px; background: #333; margin-right: 25px; }
@@ -28,6 +28,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: shine 4s linear infinite;
+            display: inline-block;
         }
         @keyframes shine { to { background-position: 200% center; } }
 
@@ -56,3 +57,126 @@
         #mat-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500); box-shadow: 0 0 15px var(--gold); transition: 2s ease-in-out; }
 
         .pulse-ring { width: 12px; height: 12px; background: var(--lime); border-radius: 50%; display: inline-block; margin-right: 12px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(50, 205, 50, 0.4); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(50, 205, 50, 0); } 100% { transform: scale(0.9); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="brand-left">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo-img" alt="Sutton House">
+            <div class="vertical-divider"></div>
+            <div class="brand-titles">
+                <h1>Sutton House</h1>
+                <div class="live-feed-wrap"><div class="led-green"></div><p>> LIVE DATA FEED</p></div>
+            </div>
+        </div>
+        <div class="clock-right">
+            <div id="digital-clock">00:00:00</div>
+            <div class="city-grid">
+                <span class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</span>
+                <span class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</span>
+                <span class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</span>
+                <span class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="macro-divider"><div class="macro-label">Macro Indicators</div></div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Regime & Volatility</h3>
+            <div id="regime-val" class="data-value">Awaiting...</div>
+            <p id="vol-status" style="font-size: 11px; color: #00BFFF; margin-top: 15px; font-weight: bold; letter-spacing: 1px;">VOLATILITY: STABLE</p>
+        </div>
+        <div class="card">
+            <h3>Capital Rotation</h3>
+            <div id="flow-val" class="data-value" style="font-size: 16px; color: var(--gold);">INITIALIZING</div>
+            <p style="font-size: 10px; color: #555; margin-top: 10px; letter-spacing: 1px;">INSTITUTIONAL FLOW DIRECTION</p>
+        </div>
+        <div class="card">
+            <h3>Cycle Maturity</h3>
+            <div class="maturity-track"><div id="mat-fill"></div></div>
+            <div id="mat-text" style="font-size: 13px; font-weight: bold; color: var(--gold);">0% MATURE</div>
+        </div>
+        <div class="card">
+            <h3>Recession Pulse</h3>
+            <div style="display: flex; align-items: center;">
+                <div class="pulse-ring" id="pulse-dot"></div>
+                <div id="pulse-val" class="data-value">EXPANSION</div>
+            </div>
+            <p style="font-size: 10px; color: #555; margin-top: 15px; line-height: 1.5;">Monitoring global economic contraction thresholds.</p>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('digital-clock').innerText = now.toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const socket = io({ transports: ["websocket", "polling"] });
+
+        function triggerCityFlash() {
+            const items = document.querySelectorAll('.city-item');
+            const dots = document.querySelectorAll('.status-dot');
+            items.forEach(i => i.classList.add('city-active'));
+            dots.forEach(d => d.classList.add('dot-active'));
+            setTimeout(() => {
+                items.forEach(i => i.classList.remove('city-active'));
+                dots.forEach(d => d.classList.remove('dot-active'));
+            }, 5000);
+        }
+
+        socket.on("macro_update", (data) => {
+            triggerCityFlash();
+
+            // 1. Regime
+            if(data.cycle) {
+                const r = document.getElementById('regime-val');
+                r.innerText = data.cycle;
+                if(data.cycle.includes("Commodities")) {
+                    r.classList.add('gleam-text');
+                    r.style.color = "transparent";
+                } else {
+                    r.classList.remove('gleam-text');
+                    r.style.color = "var(--lime)";
+                }
+            }
+
+            // 2. Flow
+            if(data.flow) {
+                const f = document.getElementById('flow-val');
+                f.innerText = data.flow;
+                f.classList.add('gleam-text');
+                f.style.color = "transparent";
+            }
+
+            // 3. Maturity
+            if(data.count) {
+                const val = parseFloat(data.count);
+                document.getElementById('mat-fill').style.width = val + "%";
+                const mt = document.getElementById('mat-text');
+                mt.innerText = val <= 25 ? val + "% MATURE (EARLY)" : val + "% MATURE";
+                mt.style.color = val <= 25 ? "var(--lime)" : "var(--gold)";
+            }
+
+            // 4. Pulse
+            const p = document.getElementById('pulse-val');
+            const d = document.getElementById('pulse-dot');
+            const s = parseFloat(data.sahm);
+
+            if (s >= 0.5) {
+                p.innerText = "CONTRACTION"; p.style.color = "var(--warning)"; d.style.background = "var(--warning)"; d.style.animationDuration = "0.5s";
+            } else if (s >= 0.35) {
+                p.innerText = "EXPANSION (WATCH)"; p.style.color = "var(--amber)"; d.style.background = "var(--amber)"; d.style.animationDuration = "1s";
+            } else {
+                p.innerText = "EXPANSION"; p.style.color = "var(--lime)"; d.style.background = "var(--lime)"; d.style.animationDuration = "2s";
+            }
+        });
+    </script>
+</body>
+</html>
