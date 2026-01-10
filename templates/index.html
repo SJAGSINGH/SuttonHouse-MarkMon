@@ -22,39 +22,43 @@
             padding: 0 40px; 
             display: flex; justify-content: space-between; align-items: center;
             background: #000; border-bottom: 2px solid var(--regime);
-            height: 85px; 
+            height: 90px; 
         }
 
         .brand-block { display: flex; align-items: center; }
 
-        /* CIRCULAR BADGE FIX: Hides white borders and stops pixel blur */
+        /* THE ROSE FOCUS CONTAINER */
         .logo-container {
-            width: 55px; 
-            height: 55px;
-            background: #fff; /* Fills the circle behind the logo if needed */
-            border-radius: 50%; /* Makes it a clean circle */
-            border: 2px solid var(--regime); /* Accents the logo with the regime color */
+            width: 65px; /* Bigger overall badge */
+            height: 65px;
+            background: #fff; 
+            border-radius: 50%; 
+            border: 3px solid var(--regime); /* Thicker border for better definition */
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden; 
-            margin-right: 15px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            overflow: hidden; /* This is what crops the white space */
+            margin-right: 18px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
         }
+
         .logo-container img { 
-            width: 90%; /* Keeps it small enough to stay sharp */
-            height: 90%; 
-            object-fit: contain;
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            /* This zooms specifically on the center of the image to hide the 25% white border */
+            transform: scale(1.4); 
+            filter: contrast(1.1); /* Sharpens the rose details */
         }
 
         .text-block { 
             display: flex; 
             flex-direction: column; 
             border-left: 1px solid #333; 
-            padding-left: 15px;
+            padding-left: 18px;
         }
-        .main-title { font-size: 1.25rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #fff; }
-        .sub-title { font-size: 0.85rem; font-weight: 400; color: #888; letter-spacing: 1px; margin-top: 4px; }
+        .main-title { font-size: 1.3rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; color: #fff; }
+        .sub-title { font-size: 0.9rem; font-weight: 400; color: #888; letter-spacing: 1px; margin-top: 2px; }
         .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 3px; font-weight: bold; margin-top: 6px; }
 
         /* CLOCK & CITIES */
@@ -62,7 +66,7 @@
         .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: monospace; line-height: 1; }
         .city-row { display: flex; gap: 12px; font-size: 0.7rem; font-weight: 800; margin-top: 8px; color: #222; justify-content: flex-end; }
 
-        /* GRID */
+        /* MACRO GRID */
         .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
         .macro-card { background: var(--panel); padding: 30px; text-align: center; border-bottom: 4px solid var(--dim); }
         .active-card { border-bottom-color: var(--regime); }
