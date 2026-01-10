@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sutton House Market Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sutton House | Market Monitor</title>
     <style>
         :root {
             --bg: #05070a;
@@ -11,19 +12,30 @@
             --bull: #00ff88;
             --bear: #ff4444;
             --amber: #ffaa00;
-            --open-lime: #32CD32;
+            --open-lime: #32CD32; /* Your requested lime green */
             --panel: #0d1117;
             --dim: #1a1d23;
+            /* Dynamic Theme Color based on Ratio vs SMA */
             --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            overflow-x: hidden;
+        }
 
         header { 
             padding: 0 40px; 
-            display: flex; justify-content: space-between; align-items: center;
-            background: #000; border-bottom: 3px solid var(--regime);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: #000; 
+            border-bottom: 3px solid var(--regime);
             height: 120px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         .brand-block { display: flex; align-items: center; }
@@ -35,25 +47,49 @@
         .sub-title { font-size: 1rem; color: #888; letter-spacing: 2px; margin-top: 5px; }
         .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 4px; font-weight: bold; margin-top: 10px; }
 
-        .digital-clock { font-size: 2.6rem; font-weight: bold; font-family: monospace; }
+        .status-block { text-align: right; }
+        .digital-clock { font-size: 2.6rem; font-weight: bold; font-family: 'Courier New', monospace; color: #fff; }
         .city-row { display: flex; gap: 15px; font-size: 0.8rem; font-weight: 800; margin-top: 10px; justify-content: flex-end; color: #2a2f36; }
 
+        /* MACRO SECTION */
         .section-divider { padding: 40px 50px 0 50px; display: flex; align-items: center; gap: 20px; }
         .section-divider h2 { font-size: 0.9rem; color: #444; text-transform: uppercase; letter-spacing: 4px; margin: 0; white-space: nowrap; }
         .line { height: 1px; background: #1a1d23; width: 100%; }
 
-        .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; padding: 40px; }
-        .macro-card { background: var(--panel); padding: 40px 20px; text-align: center; border-bottom: 4px solid var(--dim); border-radius: 4px; }
-        .active-card { border-bottom-color: var(--regime); }
+        .macro-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 25px; 
+            padding: 40px; 
+        }
+
+        .macro-card { 
+            background: var(--panel); 
+            padding: 40px 20px; 
+            text-align: center; 
+            border-bottom: 4px solid var(--dim); 
+            border-radius: 4px; 
+            transition: all 0.3s ease;
+        }
+
+        .active-card { border-bottom-color: var(--regime); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
 
         .label { font-size: 0.75rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-        .value { font-size: 2.5rem; font-weight: 800; margin: 15px 0; }
+        .value { font-size: 2.2rem; font-weight: 800; margin: 15px 0; min-height: 2.5rem; }
         .sub-label { font-size: 0.65rem; color: #444; font-weight: bold; letter-spacing: 1px; }
 
+        /* LED STYLING */
         .led-container { height: 100px; display: flex; align-items: center; justify-content: center; }
-        .led-bulb { width: 45px; height: 45px; border-radius: 50%; border: 4px solid #0a0c10; box-shadow: inset 0 0 10px rgba(255,255,255,0.2); transition: all 0.5s ease; }
+        .led-bulb {
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%;
+            border: 4px solid #0a0c10;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
+            transition: all 0.5s ease;
+        }
 
-        /* RECALIBRATED PULSE LOGIC */
+        /* LED States */
         .led-green { background-color: var(--open-lime); box-shadow: 0 0 20px rgba(50, 205, 50, 0.4); animation: p-slow 3s infinite; }
         .led-amber { background-color: var(--amber); box-shadow: 0 0 25px rgba(255, 170, 0, 0.5); animation: p-med 1.5s infinite; }
         .led-red { background-color: var(--bear); box-shadow: 0 0 35px rgba(255, 68, 68, 0.8); animation: p-fast 0.6s infinite; }
@@ -61,6 +97,10 @@
         @keyframes p-slow { 0%, 100% { filter: brightness(0.8); } 50% { filter: brightness(1.1); } }
         @keyframes p-med { 0%, 100% { transform: scale(0.95); } 50% { transform: scale(1.05); filter: brightness(1.3); } }
         @keyframes p-fast { 0%, 100% { transform: scale(0.9); } 50% { transform: scale(1.1); filter: brightness(1.5); } }
+
+        /* Recession Over-ride Text */
+        .recession-text { color: var(--bear); animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body onload="init()">
@@ -73,13 +113,16 @@
             <div class="text-block">
                 <span class="main-title">Sutton House</span>
                 <span class="sub-title">Market Monitor</span>
-                <span class="live-tag">● Live Data Feed</span>
+                <span class="live-tag">● Live Webhook Feed</span>
             </div>
         </div>
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN">LDN</span> <span id="NY">NY</span> <span id="TOR">TOR</span> <span id="SYD">SYD</span>
+                <span id="LDN">LDN</span> 
+                <span id="NY">NY</span> 
+                <span id="TOR">TOR</span> 
+                <span id="SYD">SYD</span>
             </div>
         </div>
     </header>
@@ -93,23 +136,27 @@
         <div class="macro-card active-card">
             <div class="label">Current Regime</div>
             <div class="value" style="color: var(--regime);">
-                {% if ratio|default(0) > sma|default(1) %}COMMODITY{% else %}EQUITY{% endif %}
+                {{ regime_name|default("EQUITY MACRO")|upper }}
             </div>
             <div class="sub-label">GOLD / WILSHIRE 5000</div>
         </div>
 
         <div class="macro-card active-card">
             <div class="label">Cycle Maturity</div>
-            <div class="value {% if sahm|default(0) >= 0.50 %}led-red{% elif count|default(0) <= 25 %}early{% elif count|default(0) <= 75 %}mature{% else %}end{% endif %}">
-                {% if sahm|default(0) >= 0.50 %}RECESSION{% elif count|default(0) <= 25 %}EARLY{% elif count|default(0) <= 75 %}MATURE{% else %}END{% endif %}
+            <div class="value">
+                {% if sahm|default(0) >= 0.50 %}
+                    <span class="recession-text">RECESSION</span>
+                {% else %}
+                    {% if count|default(0) <= 25 %}EARLY{% elif count|default(0) <= 75 %}MATURE{% else %}END{% endif %}
+                {% endif %}
             </div>
-            <div class="sub-label">{{ count|default(0) }} DAY TREND</div>
+            <div class="sub-label">{{ count|default(0) }} MONTH LOOKBACK</div>
         </div>
 
         <div class="macro-card">
             <div class="label">Capital Flow</div>
             <div class="value" style="color: var(--bull);">STABLE</div>
-            <div class="sub-label">DISTANCE TRACKER</div>
+            <div class="sub-label">VOLATILITY ADJUSTED</div>
         </div>
 
         <div class="macro-card">
@@ -121,33 +168,46 @@
                     {% else %}led-red{% endif %}">
                 </div>
             </div>
-            <div class="sub-label">SAHM RULE SIGNAL</div>
+            <div class="sub-label">SAHM RULE: {{ sahm|default(0.35) }}</div>
         </div>
     </div>
 
     <script>
         function init() {
-            function update() {
+            function updateClock() {
                 const now = new Date();
-                document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
+                // Clock Display
+                document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+                
                 const hr = now.getUTCHours();
                 const day = now.getUTCDay();
                 const isWeekend = (day === 0 || day === 6);
 
-                const setLight = (id, start, end) => {
+                // Helper to set Lime Green if Market is Open
+                const setMarketLight = (id, start, end) => {
                     const el = document.getElementById(id);
-                    if (!isWeekend && hr >= start && hr < end) { el.style.color = "var(--open-lime)"; }
-                    else { el.style.color = "#2a2f36"; }
+                    // London 08:00 - 16:30 UTC | NY/TOR 13:30 - 20:00 UTC
+                    if (!isWeekend && hr >= start && hr < end) {
+                        el.style.color = "var(--open-lime)";
+                    } else {
+                        el.style.color = "#2a2f36";
+                    }
                 };
 
-                setLight('LDN', 8, 16);
-                setLight('NY', 13, 21);
-                setLight('TOR', 13, 21);
-                const sydOpen = !isWeekend && (hr >= 22 || hr < 6);
-                document.getElementById('SYD').style.color = sydOpen ? "var(--open-lime)" : "#2a2f36";
+                setMarketLight('LDN', 8, 17);
+                setMarketLight('NY', 13, 21);
+                setMarketLight('TOR', 13, 21);
+                
+                // Sydney (UTC 22:00 - 06:00 next day)
+                const isSydOpen = !isWeekend && (hr >= 22 || hr < 6);
+                document.getElementById('SYD').style.color = isSydOpen ? "var(--open-lime)" : "#2a2f36";
             }
-            update();
-            setInterval(update, 1000);
+
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Auto-refresh page every 5 mins to sync with Webhook Data
+            setTimeout(() => { location.reload(); }, 300000);
         }
     </script>
 </body>
