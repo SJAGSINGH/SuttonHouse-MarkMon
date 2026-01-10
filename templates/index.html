@@ -10,67 +10,62 @@
             --equity-blue: #0070f3;
             --bull: #00ff88;
             --bear: #ff4444;
+            --open-lime: #32CD32; /* Lime Green for Open Markets */
             --panel: #0d1117;
-            --dim: #2a2f36;
-            /* Safe logic for the header border color */
+            --dim: #1f242b;
             --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
         body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
 
         header { 
-            padding: 15px 40px; 
+            padding: 10px 40px; 
             display: flex; justify-content: space-between; align-items: center;
             background: #000; border-bottom: 2px solid var(--regime);
         }
 
-        .brand-block { display: flex; align-items: center; gap: 20px; }
+        .brand-block { display: flex; align-items: center; }
 
-        /* RE-ENGINEERED LOGO CONTAINER */
+        /* POLISHED LOGO FIX */
         .logo-container {
-            width: 55px; height: 55px;
+            width: 50px; height: 50px;
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
+            margin-right: 15px;
         }
         .logo-container img { 
             max-width: 100%; 
             max-height: 100%; 
-            object-fit: contain; /* Ensures logo doesn't stretch */
+            object-fit: contain;
         }
 
-        .text-block { display: flex; flex-direction: column; }
-        .main-title { font-size: 1.4rem; font-weight: 900; letter-spacing: 1px; line-height: 1; }
-        .live-tag { font-size: 0.65rem; color: var(--bull); letter-spacing: 3px; margin-top: 5px; font-weight: bold; }
+        .text-block { display: flex; flex-direction: column; border-left: 1px solid #333; padding-left: 15px; }
+        .main-title { font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 3px; font-weight: bold; margin-top: 2px; }
 
-        /* CITIES & CLOCK */
+        /* STATUS BLOCK */
         .status-block { text-align: right; }
-        .digital-clock { font-size: 2.2rem; font-weight: bold; font-family: monospace; line-height: 1; }
+        .digital-clock { font-size: 2rem; font-weight: bold; font-family: 'Courier New', monospace; color: #fff; }
         .city-row { 
-            display: flex; gap: 15px; font-size: 0.75rem; font-weight: bold; 
-            margin-top: 8px; color: var(--dim); justify-content: flex-end;
+            display: flex; gap: 15px; font-size: 0.65rem; font-weight: 800; 
+            margin-top: 5px; color: #444; justify-content: flex-end; letter-spacing: 1px;
         }
-        .active-city { color: white; border-bottom: 1px solid var(--regime); }
 
         /* MACRO GRID */
         .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
-        .macro-card { 
-            background: var(--panel); padding: 30px; text-align: center; 
-            border-bottom: 4px solid #1f242b;
-        }
+        .macro-card { background: var(--panel); padding: 30px; text-align: center; border-bottom: 4px solid var(--dim); }
         .active-card { border-bottom-color: var(--regime); }
 
         .label { font-size: 0.7rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-        .value { font-size: 2.5rem; font-weight: 800; margin: 10px 0; line-height: 1; }
-        .sub-label { font-size: 0.6rem; font-weight: bold; color: #444; text-transform: uppercase; }
+        .value { font-size: 2.3rem; font-weight: 800; margin: 10px 0; line-height: 1; }
+        .sub-label { font-size: 0.6rem; font-weight: bold; color: #444; }
 
-        /* CYCLE COLORS */
         .early { color: var(--bull); }
         .mature { color: var(--regime); }
         .end { color: var(--bear); animation: pulse 2s infinite; }
         @keyframes pulse { 50% { opacity: 0.4; } }
     </style>
 </head>
-<body onload="initDashboard()">
+<body onload="init()">
 
     <header>
         <div class="brand-block">
@@ -78,18 +73,15 @@
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="S.H." onerror="this.style.display='none'; this.parentElement.innerHTML='SH';">
             </div>
             <div class="text-block">
-                <span class="main-title">SUTTON HOUSE</span>
-                <span class="live-tag">● MARKET MONITOR</span>
+                <span class="main-title">Sutton House</span>
+                <span class="live-tag">● Market Monitor</span>
             </div>
         </div>
 
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN">LONDON</span>
-                <span id="NY">NEW YORK</span>
-                <span id="TOR">TORONTO</span>
-                <span id="SYD">SYDNEY</span>
+                <span id="LDN">LDN</span> <span id="NY">NY</span> <span id="TOR">TOR</span> <span id="SYD">SYD</span>
             </div>
         </div>
     </header>
@@ -116,29 +108,28 @@
             <div class="value" style="color: {% if momentum|default('STABLE') == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
                 {{ momentum|default('STABLE') }}
             </div>
-            <div class="sub-label">DISTANCE FROM SMA</div>
+            <div class="sub-label">DISTANCE TRACKER</div>
         </div>
 
         <div class="macro-card" style="border-bottom-color: #00d2ff;">
             <div class="label">Recession Radar</div>
             <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
-            <div class="sub-label">Sahm Signal</div>
+            <div class="sub-label">SAHM SIGNAL</div>
         </div>
     </div>
 
     <script>
-        function initDashboard() {
-            // Update Clock and City Highlighting
+        function init() {
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
                 
-                // Optional: Market Hour Logic
                 const hr = now.getUTCHours();
-                document.getElementById('LDN').style.color = (hr >= 8 && hr < 16) ? "white" : "#2a2f36";
-                document.getElementById('NY').style.color = (hr >= 13 && hr < 21) ? "white" : "#2a2f36";
-                document.getElementById('TOR').style.color = (hr >= 13 && hr < 21) ? "white" : "#2a2f36";
-                document.getElementById('SYD').style.color = (hr >= 22 || hr < 6) ? "white" : "#2a2f36";
+                // Lime Green for Open Markets, Dim for Closed
+                document.getElementById('LDN').style.color = (hr >= 8 && hr < 16) ? "var(--open-lime)" : "#2a2f36";
+                document.getElementById('NY').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
+                document.getElementById('TOR').style.color = (hr >= 13 && hr < 21) ? "var(--open-lime)" : "#2a2f36";
+                document.getElementById('SYD').style.color = (hr >= 22 || hr < 6) ? "var(--open-lime)" : "#2a2f36";
             }, 1000);
         }
     </script>
