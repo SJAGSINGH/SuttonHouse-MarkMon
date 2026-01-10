@@ -1,31 +1,32 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, render_template
 import os
 
 app = Flask(__name__)
 
-# This holds your "MarkMon" data in memory
-macro_data = {
-    "rise": "0",
-    "fall": "0",
-    "cycle": "Waiting for Signal...",
-    "ticker": "GOLD_STOCKS"
+# Initial system memory - Weekend V4.5
+data_storage = {
+    "rise": 0,
+    "fall": 0,
+    "cycle": "AWAITING DATA",
+    "ticker": "MARKMON-V4",
+    "regime": "EQUITY",
+    "sahm": 0.0
 }
 
 @app.route('/')
 def index():
-    # This sends the data to your webpage
-    return render_template('index.html', **macro_data)
+    return render_template('index.html', **data_storage)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    global macro_data
+    global data_storage
     data = request.json
     if data:
-        # Update the numbers and the cycle name from TradingView
-        macro_data.update(data)
-    return {"status": "success"}, 200
+        for key in data_storage:
+            if key in data:
+                data_storage[key] = data[key]
+    return "Data Received", 200
 
-if __name__ == "__main__":
-    # Render binds the app to 0.0.0.0 and a specific port
-    port = int(os.environ.get("PORT", 5000))
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080)) # Matches your log port
     app.run(host='0.0.0.0', port=port)
