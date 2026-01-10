@@ -22,10 +22,11 @@
             color: var(--text);
             font-family: 'Inter', -apple-system, sans-serif;
             margin: 0;
-            padding: 50px;
+            padding: 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
         /* --- THE MASTER HEADER --- */
@@ -34,53 +35,50 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 1400px;
-            margin-bottom: 80px;
+            max-width: 1600px; /* Wider for full-screen feel */
+            margin-bottom: 60px;
             position: relative;
         }
 
         .brand-section { display: flex; align-items: center; }
-        .logo-img { height: 75px; width: auto; margin-right: 25px; display: block; }
-        .vertical-divider { width: 1px; height: 70px; background: #333; margin-right: 25px; }
+        .logo-img { height: 80px; width: auto; margin-right: 25px; display: block; }
+        .vertical-divider { width: 1px; height: 75px; background: #333; margin-right: 25px; }
 
-        .brand-titles h1 { font-size: 26px; margin: 0; text-transform: uppercase; letter-spacing: 4px; font-weight: 800; }
+        .brand-titles h1 { font-size: 28px; margin: 0; text-transform: uppercase; letter-spacing: 4px; font-weight: 800; }
         .brand-titles p { font-size: 11px; margin: 5px 0 0 0; color: var(--dim); letter-spacing: 2px; font-family: monospace; }
 
-        /* --- CENTER STACK --- */
         .center-stack { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; }
-        #digital-clock { font-size: 58px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; }
+        #digital-clock { font-size: 64px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; }
 
-        .city-grid { display: flex; gap: 25px; justify-content: center; }
-        .city-item { font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
+        .city-grid { display: flex; gap: 30px; justify-content: center; }
+        .city-item { font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 8px; letter-spacing: 1.5px; }
         .lime-dot { width: 8px; height: 8px; background-color: var(--lime); border-radius: 50%; box-shadow: 0 0 12px var(--lime); }
 
-        /* --- MACRO DATA GRID --- */
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 35px; width: 100%; max-width: 1400px; }
-        .card { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid #1f1f1f; position: relative; }
-        .card h3 { font-size: 13px; color: var(--dim); text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; }
+        /* --- THE EXPANDED GRID --- */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); /* 4 Columns to fit Rotation */
+            gap: 25px; 
+            width: 100%; 
+            max-width: 1600px; 
+        }
+
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; position: relative; }
+        .card h3 { font-size: 12px; color: var(--dim); text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; }
         
-        .data-value { font-size: 34px; font-weight: 800; color: var(--lime); }
+        .data-value { font-size: 30px; font-weight: 800; color: var(--lime); }
 
         /* THE GOLD LINES (MATURITY BAR) */
-        .maturity-track { height: 12px; background: #222; border-radius: 6px; margin: 25px 0; overflow: hidden; border: 1px solid #333; }
-        #mat-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .maturity-track { height: 12px; background: #222; border-radius: 6px; margin: 20px 0; overflow: hidden; border: 1px solid #333; }
+        #mat-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); transition: 1.5s ease; }
+
+        /* ROTATION INDICATOR */
+        #rotation-val { color: #ffffff; }
+        .rotation-sub { font-size: 11px; color: var(--dim); margin-top: 10px; font-family: monospace; }
 
         /* VOLATILITY PULSE */
-        .vol-pulse { 
-            display: inline-block; 
-            width: 10px; height: 10px; 
-            border-radius: 50%; 
-            background: var(--vix); 
-            margin-right: 10px; 
-            box-shadow: 0 0 8px var(--vix); 
-            animation: pulse-blue 2s infinite;
-        }
-
-        @keyframes pulse-blue {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 191, 255, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 191, 255, 0); }
-        }
+        .vol-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--vix); margin-right: 10px; box-shadow: 0 0 10px var(--vix); animation: pulse-blue 2s infinite; }
+        @keyframes pulse-blue { 0% { transform: scale(0.9); opacity: 1; } 70% { transform: scale(1.2); opacity: 0.5; } 100% { transform: scale(0.9); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -108,27 +106,33 @@
 
     <div class="grid">
         <div class="card">
-            <h3>Regime & Volatility</h3>
+            <h3>Current Regime</h3>
             <div id="regime-val" class="data-value">Awaiting...</div>
             <div style="margin-top: 25px; display: flex; align-items: center;">
                 <div class="vol-pulse"></div>
-                <div id="vol-status" style="font-size: 14px; font-weight: bold; color: var(--vix); letter-spacing: 1px;">VOLATILITY: STABLE</div>
+                <div id="vol-status" style="font-size: 13px; font-weight: bold; color: var(--vix);">VOLATILITY: STABLE</div>
             </div>
+        </div>
+
+        <div class="card">
+            <h3>Capital Rotation</h3>
+            <div id="rotation-val" class="data-value" style="color: #FFD700;">OFFENSIVE</div>
+            <div class="rotation-sub">> FLOW: RISK-ON</div>
         </div>
 
         <div class="card">
             <h3>Cycle Maturity</h3>
             <div class="maturity-track"><div id="mat-fill"></div></div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div id="mat-text" style="font-size: 14px; font-weight: bold; color: var(--gold);">0% MATURE</div>
-                <div style="font-size: 11px; color: var(--dim);">TARGET: 100%</div>
+                <div id="mat-text" style="font-size: 13px; font-weight: bold; color: var(--gold);">0% MATURE</div>
+                <div style="font-size: 10px; color: var(--dim);">TARGET: 100%</div>
             </div>
         </div>
 
         <div class="card">
             <h3>Recession Pulse</h3>
             <div id="pulse-val" class="data-value">EXPANSION</div>
-            <div id="sahm-rule" style="font-size: 11px; color: var(--dim); margin-top: 15px; font-family: monospace; letter-spacing: 1px;">SAHM RULE: 0.00%</div>
+            <div id="sahm-rule" style="font-size: 11px; color: var(--dim); margin-top: 15px; font-family: monospace;">SAHM RULE: 0.00%</div>
         </div>
     </div>
 
@@ -145,6 +149,10 @@
             document.getElementById('regime-val').innerText = data.cycle;
             document.getElementById('mat-fill').style.width = data.count + "%";
             document.getElementById('mat-text').innerText = data.count + "% MATURE";
+            
+            // Logic for Capital Rotation based on data
+            const rot = document.getElementById('rotation-val');
+            rot.innerText = data.rotation || "OFFENSIVE";
             
             const pulse = document.getElementById('pulse-val');
             document.getElementById('sahm-rule').innerText = "SAHM RULE: " + data.sahm.toFixed(2) + "%";
