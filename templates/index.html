@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sutton House Market Monitor</title>
     <style>
         :root {
@@ -14,166 +13,72 @@
             --open-lime: #32CD32;
             --panel: #0d1117;
             --dim: #1a1d23;
-            /* Theme accent flips based on Gold vs Stocks ratio */
             --regime: {% if ratio|default(0) > sma|default(1) %}var(--gold){% else %}var(--equity-blue){% endif %};
         }
 
-        body { 
-            background: var(--bg); 
-            color: white; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            margin: 0; 
-            overflow-x: hidden;
-        }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; }
 
-        /* MASTER HEADER */
         header { 
-            padding: 0 50px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            background: #000; 
-            border-bottom: 3px solid var(--regime);
-            height: 120px; /* Tall header for the larger Rose logo */
+            padding: 0 40px; 
+            display: flex; justify-content: space-between; align-items: center;
+            background: #000; border-bottom: 3px solid var(--regime);
+            height: 120px; 
         }
 
         .brand-block { display: flex; align-items: center; }
 
-        /* MAXIMIZED LOGO CONTAINER */
         .logo-container {
-            width: 95px; 
-            height: 95px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 30px;
+            width: 90px; height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 25px;
         }
+        .logo-container img { width: 100%; height: 100%; object-fit: contain; }
 
-        .logo-container img { 
-            max-width: 100%; 
-            max-height: 100%; 
-            object-fit: contain;
-            /* Subtle glow to make the high-res rose pop */
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.05));
-        }
-
-        /* BRANDING TEXT */
         .text-block { 
-            display: flex; 
-            flex-direction: column; 
-            border-left: 2px solid #222; 
-            padding-left: 30px;
-            justify-content: center;
+            display: flex; flex-direction: column; 
+            border-left: 2px solid #222; padding-left: 25px;
         }
+        .main-title { font-size: 1.6rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+        .sub-title { font-size: 1rem; color: #888; letter-spacing: 2px; margin-top: 5px; }
+        .live-tag { font-size: 0.6rem; color: var(--bull); letter-spacing: 4px; font-weight: bold; margin-top: 10px; }
 
-        .main-title { 
-            font-size: 1.7rem; 
-            font-weight: 900; 
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            line-height: 1;
-            color: #fff;
-        }
-
-        .sub-title { 
-            font-size: 1.1rem; 
-            font-weight: 400; 
-            color: #888; 
-            letter-spacing: 3px; 
-            margin-top: 8px;
-            text-transform: uppercase;
-        }
-
-        .live-tag { 
-            font-size: 0.65rem; 
-            color: var(--bull); 
-            letter-spacing: 5px; 
-            font-weight: bold; 
-            margin-top: 12px;
-            text-transform: uppercase;
-        }
-
-        /* CLOCK & CITIES */
         .status-block { text-align: right; }
-        .digital-clock { 
-            font-size: 2.6rem; 
-            font-weight: bold; 
-            font-family: 'Courier New', monospace; 
-            line-height: 1;
-        }
-        
-        .city-row { 
-            display: flex; 
-            gap: 20px; 
-            font-size: 0.8rem; 
-            font-weight: 800; 
-            margin-top: 10px; 
-            color: #2a2f36; 
-            justify-content: flex-end;
-            letter-spacing: 2px;
-        }
+        .digital-clock { font-size: 2.6rem; font-weight: bold; font-family: monospace; }
+        .city-row { display: flex; gap: 15px; font-size: 0.8rem; font-weight: 800; margin-top: 10px; justify-content: flex-end; color: #2a2f36; }
 
-        /* MACRO GRID */
+        /* THE GRID - FIXED */
         .macro-grid { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
             gap: 25px; 
-            padding: 50px; 
+            padding: 40px; 
         }
 
         .macro-card { 
             background: var(--panel); 
             padding: 40px 20px; 
             text-align: center; 
-            border-bottom: 4px solid var(--dim);
+            border-bottom: 4px solid var(--dim); 
             border-radius: 4px;
-            transition: all 0.4s ease;
         }
+        .active-card { border-bottom-color: var(--regime); }
 
-        .active-card { 
-            border-bottom-color: var(--regime); 
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-        }
+        .label { font-size: 0.75rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+        .value { font-size: 2.5rem; font-weight: 800; margin: 15px 0; }
+        .sub-label { font-size: 0.65rem; color: #444; font-weight: bold; letter-spacing: 1px; }
 
-        .label { 
-            font-size: 0.75rem; 
-            color: #666; 
-            letter-spacing: 3px; 
-            text-transform: uppercase; 
-            margin-bottom: 15px;
-        }
-
-        .value { 
-            font-size: 2.8rem; 
-            font-weight: 800; 
-            margin: 15px 0; 
-            line-height: 1;
-        }
-
-        .sub-label {
-            font-size: 0.7rem;
-            font-weight: bold;
-            color: #444;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* DYNAMIC COLORS */
         .early { color: var(--bull); }
         .mature { color: var(--regime); }
-        .end { color: var(--bear); animation: pulse-alert 2s infinite; }
-
-        @keyframes pulse-alert {
-            50% { opacity: 0.3; }
-        }
+        .end { color: var(--bear); animation: pulse 2s infinite; }
+        @keyframes pulse { 50% { opacity: 0.3; } }
     </style>
 </head>
-<body onload="runMonitor()">
+<body onload="init()">
 
     <header>
         <div class="brand-block">
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="S.H." onerror="this.parentElement.innerHTML='SH';">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="S.H.">
             </div>
             <div class="text-block">
                 <span class="main-title">Sutton House</span>
@@ -181,14 +86,10 @@
                 <span class="live-tag">● Live Data Feed</span>
             </div>
         </div>
-
         <div class="status-block">
             <div class="digital-clock" id="clock">00:00:00</div>
             <div class="city-row">
-                <span id="LDN">LDN</span>
-                <span id="NY">NY</span>
-                <span id="TOR">TOR</span>
-                <span id="SYD">SYD</span>
+                <span id="LDN">LDN</span> <span id="NY">NY</span> <span id="TOR">TOR</span> <span id="SYD">SYD</span>
             </div>
         </div>
     </header>
@@ -199,4 +100,64 @@
             <div class="value" style="color: var(--regime);">
                 {% if ratio|default(0) > sma|default(1) %}COMMODITY{% else %}EQUITY{% endif %}
             </div>
-            <div class="sub-label">
+            <div class="sub-label">GOLD / WILSHIRE 5000</div>
+        </div>
+
+        <div class="macro-card active-card">
+            <div class="label">Cycle Maturity</div>
+            <div class="value {% if count|default(0) <= 25 %}early{% elif count|default(0) <= 75 %}mature{% else %}end{% endif %}">
+                {% if count|default(0) <= 25 %}EARLY{% elif count|default(0) <= 75 %}MATURE{% else %}END CYCLE{% endif %}
+            </div>
+            <div class="sub-label">{{ count|default(0) }} DAY TREND</div>
+        </div>
+
+        <div class="macro-card">
+            <div class="label">Capital Flow</div>
+            <div class="value" style="color: {% if momentum|default('STABLE') == 'GROWING' %}var(--bull){% else %}var(--bear){% endif %};">
+                {{ momentum|default('STABLE') }}
+            </div>
+            <div class="sub-label">DISTANCE TRACKER</div>
+        </div>
+
+        <div class="macro-card" style="border-bottom-color: #00d2ff;">
+            <div class="label">Recession Radar</div>
+            <div class="value" style="color: #00d2ff;">{{ sahm|default(0.0) }}%</div>
+            <div class="sub-label">SAHM SIGNAL</div>
+        </div>
+    </div>
+
+    <script>
+        function init() {
+            function update() {
+                const now = new Date();
+                // Clock Update
+                document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
+                
+                // City Highlight Update
+                const hr = now.getUTCHours();
+                const day = now.getUTCDay();
+                const isWeekend = (day === 0 || day === 6);
+
+                const setLight = (id, start, end) => {
+                    const el = document.getElementById(id);
+                    if (!isWeekend && hr >= start && hr < end) {
+                        el.style.color = "var(--open-lime)";
+                    } else {
+                        el.style.color = "#2a2f36";
+                    }
+                };
+
+                setLight('LDN', 8, 16);
+                setLight('NY', 13, 21);
+                setLight('TOR', 13, 21);
+                
+                const sydOpen = !isWeekend && (hr >= 22 || hr < 6);
+                document.getElementById('SYD').style.color = sydOpen ? "var(--open-lime)" : "#2a2f36";
+            }
+            
+            update(); // Run once immediately
+            setInterval(update, 1000); // Then every second
+        }
+    </script>
+</body>
+</html>
