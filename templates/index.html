@@ -102,13 +102,8 @@
 
     <script>
         const socket = io();
+        setInterval(() => { document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); }, 1000);
 
-        // 1. Digital Clock
-        setInterval(() => { 
-            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); 
-        }, 1000);
-
-        // 2. City Pulse Animation
         function flashCities() {
             const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
             items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
@@ -118,7 +113,6 @@
             }, 3000);
         }
 
-        // 3. Sutton Secret Logic
         function unlockSecret() {
             if (prompt("ENTER ACCESS KEY:") === "toffees") {
                 document.getElementById('private-layer').style.display = 'block';
@@ -126,40 +120,46 @@
             }
         }
 
-        // 4. THE DATA BRIDGE (Improved Parser)
-        function processInbound(rawData) {
-            let data = rawData;
-            
-            // Critical Fix: Parse if data arrives as string
-            if (typeof data === 'string') {
-                try { data = JSON.parse(rawData); } catch (e) { console.error("JSON Parse Error", e); return; }
-            }
-
-            console.log("Terminal Handshake:", data);
+        socket.on("macro_update", (data) => {
+            console.log("Terminal Mapping Incoming:", data);
             flashCities();
 
-            const cardNum = data.card || data.sec_card;
-            if (cardNum) {
-                const target = document.getElementById('val-' + cardNum);
-                if (target) {
-                    target.innerText = data.msg || "ACTIVE";
-                    
-                    // Handle Color Themes
-                    if (data.color === 'pink' || data.card) { 
-                        target.classList.add('pink-text'); 
-                    } 
-                    if (data.sec_card) {
-                        target.style.color = "var(--gold)";
-                        target.classList.remove('pink-text');
-                    }
-                }
+            // 1. Regime & Volatility
+            if (data.vol) {
+                const c1 = document.getElementById('val-1');
+                c1.innerText = data.vol;
+                c1.classList.add('pink-text');
             }
-        }
+            // 2. Capital Rotation
+            if (data.flow) {
+                const c2 = document.getElementById('val-2');
+                c2.innerText = data.flow;
+                c2.classList.add('pink-text');
+            }
+            // 3. Cycle Maturity
+            if (data.cycle) {
+                const c3 = document.getElementById('val-3');
+                c3.innerText = data.cycle;
+                c3.classList.add('pink-text');
+            }
+            // 4. Recession Pulse (Sahm Rule)
+            if (data.sahm !== undefined) {
+                const c4 = document.getElementById('val-4');
+                c4.innerText = "SAHM: " + data.sahm;
+                c4.classList.add('pink-text');
+            }
+        });
 
-        // 5. Socket Listeners
-        socket.on("macro_update", (data) => { processInbound(data); });
-        socket.on("secret_update", (data) => { processInbound(data); });
-
+        socket.on("secret_update", (data) => {
+            flashCities();
+            const cardId = data.sec_card || data.card;
+            const target = document.getElementById('val-' + cardId);
+            if (target) {
+                target.innerText = data.msg || "ACTIVE";
+                target.style.color = "var(--gold)";
+                target.classList.remove('pink-text');
+            }
+        });
     </script>
 </body>
 </html>
