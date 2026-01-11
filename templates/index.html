@@ -22,41 +22,45 @@
         @keyframes shine { to { background-position: 200% center; } }
 
         /* --- PILLAR WASH ENGINE --- */
-        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.6s ease; }
-        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; transition: 0.4s; }
-        .data-value { font-size: 24px; font-weight: 800; color: var(--lime); transition: 0.4s; }
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.6s ease; position: relative; }
+        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; }
+        .data-value { font-size: 24px; font-weight: 800; transition: 0.4s; color: var(--dim); } /* Default to Dim */
 
-        /* Color States */
+        /* Halo States */
         .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191, 149, 63, 0.3); }
         .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229, 228, 226, 0.3); }
         .halo-orange { border: 1px solid var(--amber) !important; box-shadow: 0 0 20px rgba(255, 191, 0, 0.3); }
         .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255, 69, 0, 0.4); }
 
-        /* Halo Content Styles */
-        .halo-gold h3, .halo-gold .data-value, .halo-gold #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(191, 149, 63, 0.8); }
-        .halo-silver h3, .halo-silver .data-value, .halo-silver #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(229, 228, 226, 0.8); }
-        .halo-orange h3, .halo-orange .data-value, .halo-orange #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(255, 191, 0, 0.8); }
-        .halo-red h3, .halo-red .data-value, .halo-red #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(255, 69, 0, 0.8); }
+        /* Sync text colors when Halo is active */
+        .halo-gold .data-value, .halo-gold h3 { color: #fff !important; text-shadow: 0 0 10px rgba(191, 149, 63, 0.5); }
+        .halo-silver .data-value, .halo-silver h3 { color: #fff !important; text-shadow: 0 0 10px rgba(229, 228, 226, 0.5); }
 
         /* Header & Clock */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 40px; border-bottom: 1px solid #222; }
         .logo-img { height: 83px; width: auto; margin-right: 25px; }
         #digital-clock { font-size: 52px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; }
+        
         .city-grid { display: flex; gap: 20px; justify-content: flex-end; margin-top: 12px; }
-        .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+        .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; cursor: pointer; }
         .status-dot { width: 6px; height: 6px; background-color: var(--dim); border-radius: 50%; transition: 0.3s; }
         .city-active { color: var(--text) !important; }
         .dot-active { background-color: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
+        /* LED Pulse for Recession */
+        .led-container { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
+        .led-bulb { width: 14px; height: 14px; border-radius: 50%; background: #222; transition: 0.5s; }
+        .pulse-lime { background: var(--lime); box-shadow: 0 0 15px var(--lime); animation: blink 2s infinite; }
+        .pulse-amber { background: var(--amber); box-shadow: 0 0 15px var(--amber); animation: blink 1s infinite; }
+        .pulse-red { background: var(--warning); box-shadow: 0 0 15px var(--warning); animation: blink 0.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Maturity Bar */
+        .maturity-track { height: 8px; background: #222; border-radius: 4px; margin: 20px 0; overflow: hidden; }
+        #mat-fill { height: 100%; width: 0%; transition: 2s ease-in-out; background: var(--dim); }
+
         .section-label { margin-top: 40px; font-size: 12px; letter-spacing: 3px; color: #444; font-weight: 700; text-transform: uppercase; border-left: 3px solid var(--gold); padding-left: 15px; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-top: 20px; }
-
-        /* Progress Bar */
-        .maturity-track { height: 8px; background: #222; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        #mat-fill { height: 100%; width: 0%; background: var(--gold); transition: 2s ease-in-out; }
-
-        @keyframes heartbeat { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .pulse-active { animation: heartbeat 2s infinite ease-in-out; }
     </style>
 </head>
 <body>
@@ -92,8 +96,8 @@
     <div class="grid">
         <div class="card" id="card-regime">
             <h3>Regime & Volatility</h3>
-            <div id="regime-val" class="data-value">Awaiting...</div>
-            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">N/A</span></div>
+            <div id="regime-val" class="data-value">INITIALIZING</div>
+            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">---</span></div>
         </div>
 
         <div class="card" id="card-rotation">
@@ -104,18 +108,20 @@
         <div class="card" id="card-maturity">
             <h3>Cycle Maturity</h3>
             <div class="maturity-track"><div id="mat-fill"></div></div>
-            <div id="mat-text" style="font-size: 14px; font-weight: 800; color: #444;">INITIALIZING</div>
+            <div id="mat-text" style="font-size: 12px; font-weight: 800; color: #444;">INITIALIZING</div>
         </div>
 
         <div class="card" id="card-recession">
-            <h3>Recession Pulse (Sahm Rule)</h3>
-            <div id="pulse-val" class="data-value">EXPANSION</div>
-            <p id="sahm-read" style="font-size: 10px; color: #444; margin-top: 10px; font-weight: 700;">SAHM RULE: 0.00</p>
+            <h3>Recession Pulse</h3>
+            <div class="led-container">
+                <div id="led-bulb" class="led-bulb"></div>
+                <div id="pulse-val" class="data-value">INITIALIZING</div>
+            </div>
+            <p id="pulse-desc" style="font-size: 10px; color: #444; margin-top: 15px; font-weight: 700;">AWAITING DATA...</p>
         </div>
     </div>
 
     <script>
-        // Clock Engine
         function updateClock() {
             const now = new Date();
             const clockEl = document.getElementById('digital-clock');
@@ -123,30 +129,30 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // Toronto Secret Trigger (Placeholder for next step)
         function triggerSuttonSecret() {
             const pw = prompt("Sutton Secret Access Required:");
-            if (pw === "sutton") alert("Private Indicators Layer Unlocked (Development Phase)");
+            if (pw === "sutton") alert("Private Indicators Layer Unlocked");
         }
 
         const socket = io();
         let currentRegime = ""; 
 
         socket.on("macro_update", (data) => {
-            // Flash city lights
             const dots = document.querySelectorAll('.status-dot');
             const items = document.querySelectorAll('.city-item');
             items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
             setTimeout(() => { items.forEach(i => i.classList.remove('city-active')); dots.forEach(d => d.classList.remove('dot-active')); }, 5000);
 
-            // --- CARD 1: REGIME ---
+            // C1 Regime Logic
             if(data.cycle) {
                 currentRegime = data.cycle;
                 const c1 = document.getElementById('card-regime');
-                document.getElementById('regime-val').innerText = data.cycle;
+                const v1 = document.getElementById('regime-val');
+                v1.innerText = data.cycle;
+                v1.style.color = "#fff";
                 c1.classList.remove('halo-gold', 'halo-silver');
                 if(data.cycle.includes("Commodities")) c1.classList.add('halo-gold');
-                if(data.cycle.includes("Equities")) c1.classList.add('halo-silver');
+                else if(data.cycle.includes("Equities")) c1.classList.add('halo-silver');
             }
             if(data.vol) {
                 const volEl = document.getElementById('vol-val');
@@ -154,58 +160,54 @@
                 volEl.style.color = data.vol.includes("ELEVATED") ? "var(--warning)" : "var(--lime)";
             }
 
-            // --- CARD 2: ROTATION ---
+            // C2 Rotation Logic (Halo Fix Integrated)
             if(data.flow) {
                 const c2 = document.getElementById('card-rotation');
-                document.getElementById('flow-val').innerText = data.flow;
-                document.getElementById('flow-val').style.color = "#fff";
+                const v2 = document.getElementById('flow-val');
+                v2.innerText = data.flow;
+                v2.style.color = "#fff";
                 c2.classList.remove('halo-gold', 'halo-silver');
                 if(data.flow.includes("Offensive") || data.flow.includes("Risk-On")) c2.classList.add('halo-gold');
-                if(data.flow.includes("Defensive") || data.flow.includes("Risk-Off")) c2.classList.add('halo-silver');
+                else if(data.flow.includes("Defensive") || data.flow.includes("Risk-Off")) c2.classList.add('halo-silver');
             }
 
-            // --- CARD 3: CYCLE MATURITY ---
+            // C3 Maturity Logic
             if(data.count !== undefined) {
                 const c = parseFloat(data.count);
                 const matCard = document.getElementById('card-maturity');
                 const matFill = document.getElementById('mat-fill');
                 const matText = document.getElementById('mat-text');
-                
                 matFill.style.width = c + "%";
                 matCard.classList.remove('halo-gold', 'halo-silver', 'halo-orange', 'halo-red');
-
-                if (c === 0) {
-                    matText.innerText = "INITIALIZING";
-                    matFill.style.background = "#333";
-                } else if (c <= 25) {
-                    matText.innerText = "EARLY EXPANSION (" + c + "%)";
-                    matFill.style.background = "var(--lime)";
-                    const haloClass = currentRegime.includes("Equities") ? 'halo-silver' : 'halo-gold';
-                    matCard.classList.add(haloClass);
-                } else if (c <= 60) {
-                    matText.innerText = "MATURE GROWTH (" + c + "%)";
-                    matFill.style.background = currentRegime.includes("Equities") ? "var(--silver)" : "var(--gold)";
-                    const haloClass = currentRegime.includes("Equities") ? 'halo-silver' : 'halo-gold';
-                    matCard.classList.add(haloClass);
-                } else if (c <= 85) {
-                    matText.innerText = "LATE CYCLE (" + c + "%)";
-                    matFill.style.background = "var(--amber)";
-                    matCard.classList.add('halo-orange');
-                } else {
-                    matText.innerText = "TERMINAL PHASE (" + c + "%)";
-                    matFill.style.background = "var(--warning)";
-                    matCard.classList.add('halo-red');
+                if (c > 0) {
+                    matText.innerText = (c <= 25 ? "EARLY EXPANSION" : c <= 60 ? "MATURE GROWTH" : c <= 85 ? "LATE CYCLE" : "TERMINAL PHASE") + " (" + c + "%)";
+                    matFill.style.background = c <= 25 ? "var(--lime)" : c <= 60 ? (currentRegime.includes("Equities") ? "var(--silver)" : "var(--gold)") : c <= 85 ? "var(--amber)" : "var(--warning)";
+                    if (c <= 60) matCard.classList.add(currentRegime.includes("Equities") ? 'halo-silver' : 'halo-gold');
+                    else if (c <= 85) matCard.classList.add('halo-orange');
+                    else matCard.classList.add('halo-red');
                 }
             }
 
-            // --- CARD 4: RECESION PULSE ---
+            // C4 Recession Logic
             if (data.sahm !== undefined) {
-                const p = document.getElementById('pulse-val');
                 const s = parseFloat(data.sahm);
-                document.getElementById('sahm-read').innerText = "SAHM RULE: " + s.toFixed(2);
-                if (s >= 0.5) { p.innerText = "CONTRACTION"; p.style.color = "var(--warning)"; p.classList.add('pulse-active'); }
-                else if (s >= 0.35) { p.innerText = "EXPANSION (WATCH)"; p.style.color = "var(--amber)"; p.classList.add('pulse-active'); }
-                else { p.innerText = "EXPANSION"; p.style.color = "var(--lime)"; p.classList.remove('pulse-active'); }
+                const pVal = document.getElementById('pulse-val');
+                const pDesc = document.getElementById('pulse-desc');
+                const led = document.getElementById('led-bulb');
+                const c4 = document.getElementById('card-recession');
+                c4.classList.remove('halo-orange', 'halo-red');
+                led.className = "led-bulb";
+
+                if (s >= 0.50) {
+                    pVal.innerText = "CONTRACTION"; pDesc.innerText = "CRITICAL ALERT: RECESSION TRIGGERED";
+                    led.classList.add('pulse-red'); c4.classList.add('halo-red'); pVal.style.color = "var(--warning)";
+                } else if (s >= 0.35) {
+                    pVal.innerText = "STALLING"; pDesc.innerText = "WARNING: MOMENTUM DECELERATION";
+                    led.classList.add('pulse-amber'); c4.classList.add('halo-orange'); pVal.style.color = "var(--amber)";
+                } else {
+                    pVal.innerText = "EXPANSION"; pDesc.innerText = "HEALTHY GROWTH ENVIRONMENT";
+                    led.classList.add('pulse-lime'); pVal.style.color = "var(--lime)";
+                }
             }
         });
     </script>
