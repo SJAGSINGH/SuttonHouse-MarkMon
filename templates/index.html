@@ -8,12 +8,12 @@
     <style>
         :root {
             --bg: #050505; --card: #111111; --text: #ffffff;
-            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --pink: #FF69B4;
+            --dim: #444444; --lime: #32CD32; --gold: #BF953F; --pink: #FF69B4;
         }
         body { 
-            background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
+            background-color: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
             margin: 0; padding: 40px; display: flex; flex-direction: column; gap: 40px; 
-            min-height: 100vh; box-sizing: border-box;
+            min-height: 100vh; box-sizing: border-box; letter-spacing: -0.02em;
         }
 
         /* --- HEADER & BRANDING --- */
@@ -38,23 +38,31 @@
         .active-tag { color: var(--lime); font-size: 10px; font-family: monospace; font-weight: bold; letter-spacing: 1px; }
 
         /* --- CLOCK & CITIES --- */
-        #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; text-align: right; }
+        #digital-clock { font-size: 52px; font-family: 'Inter', sans-serif; font-weight: 700; text-align: right; letter-spacing: -2px; }
         .city-grid { display: flex; gap: 18px; margin-top: 10px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; user-select: none; }
+        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; transition: color 0.2s; }
         .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
         
+        /* COMMS PULSE */
         .city-active { color: var(--lime) !important; }
-        .dot-active { background: var(--lime) !important; box-shadow: 0 0 15px var(--lime); }
+        .dot-active { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
+        .comms-flash { color: var(--pink) !important; }
 
-        /* --- GRIDS --- */
+        /* --- GRIDS & CARDS --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: 0.3s; }
-        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .data-value { font-size: 20px; font-weight: 800; color: var(--dim); line-height: 1.4; transition: all 0.3s; }
-        .pink-text { color: var(--pink) !important; text-shadow: 0 0 12px rgba(255, 105, 180, 0.4); }
+        .card { 
+            background: var(--card); padding: 35px; border-radius: 8px; 
+            border: 1px solid #1f1f1f; position: relative;
+        }
+        .card::before {
+            content: "SUTTON_INTEL_v1.0"; position: absolute; top: 12px; right: 15px;
+            font-size: 8px; font-family: monospace; color: #222;
+        }
+        .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
+        .data-value { font-size: 21px; font-weight: 600; color: var(--dim); line-height: 1.2; transition: color 0.3s; }
+        .data-active { color: #ffffff !important; }
 
-        #private-layer { display: none; border-top: 1px dashed #333; padding-top: 40px; margin-top: 20px; animation: fadeIn 1s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -85,18 +93,18 @@
 
     <main>
         <div class="grid">
-            <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
-            <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
-            <div class="card"><h3>Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING</div></div>
-            <div class="card"><h3>Recession Pulse</h3><div class="data-value" id="val-4">AWAITING</div></div>
+            <div class="card"><h3>Card 1: Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
+            <div class="card"><h3>Card 2: Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
+            <div class="card"><h3>Card 3: Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING</div></div>
+            <div class="card"><h3>Card 4: Recession Pulse</h3><div class="data-value" id="val-4">AWAITING</div></div>
         </div>
     </main>
 
     <section id="private-layer">
-        <div style="margin-bottom: 20px; color: var(--gold); font-size: 12px; font-weight: bold; letter-spacing: 2px;">> PRIVATE INDICATORS UNLOCKED</div>
+        <div style="margin-bottom: 20px; color: var(--gold); font-size: 11px; font-weight: bold; letter-spacing: 2px;">> PRIVATE INDICATORS UNLOCKED</div>
         <div class="grid">
-            <div class="card" style="border-color: var(--gold);"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">LOCKED</div></div>
-            <div class="card" style="border-color: var(--gold);"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">LOCKED</div></div>
+            <div class="card" style="border-color: #332811;"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">LOCKED</div></div>
+            <div class="card" style="border-color: #332811;"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">LOCKED</div></div>
         </div>
     </section>
 
@@ -104,12 +112,19 @@
         const socket = io();
         setInterval(() => { document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); }, 1000);
 
-        function flashCities() {
+        function triggerPulse() {
             const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
-            items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
-            setTimeout(() => { 
-                items.forEach(i => i.classList.remove('city-active')); 
-                dots.forEach(d => d.classList.remove('dot-active')); 
+            // Step 1: Comms Pulse (Pink)
+            items.forEach(i => i.classList.add('comms-flash'));
+            // Step 2: Connection Active (Lime)
+            setTimeout(() => {
+                items.forEach(i => { i.classList.remove('comms-flash'); i.classList.add('city-active'); });
+                dots.forEach(d => d.classList.add('dot-active'));
+            }, 400);
+            // Step 3: Fade out to Neutral
+            setTimeout(() => {
+                items.forEach(i => i.classList.remove('city-active'));
+                dots.forEach(d => d.classList.remove('dot-active'));
             }, 3000);
         }
 
@@ -121,43 +136,29 @@
         }
 
         socket.on("macro_update", (data) => {
-            console.log("Terminal Mapping Incoming:", data);
-            flashCities();
-
-            // 1. Regime & Volatility
-            if (data.vol) {
-                const c1 = document.getElementById('val-1');
-                c1.innerText = data.vol;
-                c1.classList.add('pink-text');
-            }
-            // 2. Capital Rotation
-            if (data.flow) {
-                const c2 = document.getElementById('val-2');
-                c2.innerText = data.flow;
-                c2.classList.add('pink-text');
-            }
-            // 3. Cycle Maturity
-            if (data.cycle) {
-                const c3 = document.getElementById('val-3');
-                c3.innerText = data.cycle;
-                c3.classList.add('pink-text');
-            }
-            // 4. Recession Pulse (Sahm Rule)
-            if (data.sahm !== undefined) {
-                const c4 = document.getElementById('val-4');
-                c4.innerText = "SAHM: " + data.sahm;
-                c4.classList.add('pink-text');
-            }
+            console.log("Sutton Macro Update:", data);
+            triggerPulse();
+            if (data.vol) { updateCard('val-1', data.vol); }
+            if (data.flow) { updateCard('val-2', data.flow); }
+            if (data.cycle) { updateCard('val-3', data.cycle); }
+            if (data.sahm !== undefined) { updateCard('val-4', "SAHM: " + data.sahm); }
         });
 
+        function updateCard(id, text) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerText = text;
+                el.classList.add('data-active');
+            }
+        }
+
         socket.on("secret_update", (data) => {
-            flashCities();
+            triggerPulse();
             const cardId = data.sec_card || data.card;
             const target = document.getElementById('val-' + cardId);
             if (target) {
                 target.innerText = data.msg || "ACTIVE";
                 target.style.color = "var(--gold)";
-                target.classList.remove('pink-text');
             }
         });
     </script>
