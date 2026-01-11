@@ -56,7 +56,7 @@
         .city-active { color: var(--text) !important; }
         .dot-active { background-color: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
-        /* --- MACRO SECTION HEADER --- */
+        /* --- SECTION LABELS --- */
         .section-label {
             margin-top: 40px;
             font-size: 12px;
@@ -88,5 +88,76 @@
         .maturity-track { height: 8px; background: #222; border-radius: 4px; margin: 20px 0; overflow: hidden; }
         #mat-fill { height: 100%; width: 0%; background: #BF953F; transition: 2s ease-in-out; }
 
-        /* Recession Heartbeat Pulse */
-        @keyframes heartbeat {
+        @keyframes heartbeat { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .pulse-active { animation: heartbeat 2s infinite ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <img src="/static/logo.png" class="logo-img">
+            <div style="height: 60px; width: 1px; background-color: #333; margin-right: 25px;"></div>
+            <div>
+                <div style="display: flex; align-items: baseline; gap: 15px;">
+                    <h1 class="gleam" style="margin: 0; font-size: 32px; letter-spacing: 4px;">SUTTON HOUSE</h1>
+                    <span style="color: #ffffff; font-size: 14px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase;">Market Analytics</span>
+                </div>
+                <p style="margin: 8px 0 0 0; font-size: 10px; font-family: monospace; letter-spacing: 1px;">
+                    <span style="color: #666;">MARKET MONITOR</span> 
+                    <span style="color: var(--lime); margin-left: 10px;">> TERMINAL_ACTIVE</span>
+                </p>
+            </div>
+        </div>
+        <div class="clock-right">
+            <div id="digital-clock">00:00:00</div>
+            <div class="city-grid">
+                <span class="city-item" id="lon"><div class="status-dot"></div> LONDON</span>
+                <span class="city-item" id="ny"><div class="status-dot"></div> NEW YORK</span>
+                <span class="city-item" id="tor"><div class="status-dot"></div> TORONTO</span>
+                <span class="city-item" id="syd"><div class="status-dot"></div> SYDNEY</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-label">Macro Analysis Dashboard</div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Regime & Volatility</h3>
+            <div id="regime-val" class="data-value">Awaiting...</div>
+            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">
+                VOLATILITY: <span id="vol-val">N/A</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Capital Rotation</h3>
+            <div id="flow-val" class="data-value gleam">INITIALIZING</div>
+        </div>
+
+        <div class="card">
+            <h3>Cycle Maturity</h3>
+            <div class="maturity-track"><div id="mat-fill"></div></div>
+            <div id="mat-text" style="font-size: 12px; color: #BF953F; font-weight: 700;">0% MATURE</div>
+        </div>
+
+        <div class="card">
+            <h3>Recession Pulse (Sahm Rule)</h3>
+            <div id="pulse-val" class="data-value">EXPANSION</div>
+            <p id="sahm-read" style="font-size: 10px; color: #444; margin-top: 10px; font-weight: 700;">
+                SAHM RULE: 0.00
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const clockEl = document.getElementById('digital-clock');
+            if (clockEl) {
+                clockEl.innerText = now.toLocaleTimeString('en-GB', { 
+                    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
+                });
+            }
+        }
