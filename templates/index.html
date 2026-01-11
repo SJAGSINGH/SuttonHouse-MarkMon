@@ -16,7 +16,7 @@
             min-height: 100vh; box-sizing: border-box;
         }
 
-        /* --- HEADER --- */
+        /* --- HEADER & BRANDING --- */
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
         .logo-area { display: flex; align-items: center; gap: 15px; }
         .logo-img { height: 75px; width: auto; }
@@ -117,28 +117,26 @@
             }
         }
 
-        // PUBLIC MACRO LISTENER
+        function updateDisplay(cardNum, msg, color) {
+            const target = document.getElementById('val-' + cardNum);
+            if (target) {
+                target.innerText = msg || "ACTIVE";
+                if (color === 'pink') { target.classList.add('pink-text'); }
+                else if (color === 'gold') { target.style.color = "var(--gold)"; }
+                else { target.classList.remove('pink-text'); }
+            }
+        }
+
         socket.on("macro_update", (data) => {
             flashCities();
-            if (data && data.card) {
-                const target = document.getElementById('val-' + data.card);
-                if (target) {
-                    target.innerText = data.msg;
-                    if (data.color === 'pink') target.classList.add('pink-text');
-                }
-            }
+            console.log("Macro Inbound:", data);
+            if (data) { updateDisplay(data.card || data.sec_card, data.msg, data.color); }
         });
 
-        // PRIVATE SECRET LISTENER (Matches app.py socketio.emit('secret_update'))
         socket.on("secret_update", (data) => {
             flashCities();
-            if (data && data.sec_card) {
-                const target = document.getElementById('val-' + data.sec_card);
-                if (target) {
-                    target.innerText = data.msg;
-                    target.style.color = "var(--gold)";
-                }
-            }
+            console.log("Secret Inbound:", data);
+            if (data) { updateDisplay(data.sec_card || data.card, data.msg, 'gold'); }
         });
     </script>
 </body>
