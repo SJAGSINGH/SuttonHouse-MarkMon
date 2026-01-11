@@ -46,20 +46,14 @@
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 15px var(--lime); }
 
-        /* --- GRID & PRIVATE LAYER --- */
+        /* --- GRIDS --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: 0.3s; }
         .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
         .data-value { font-size: 20px; font-weight: 800; color: var(--dim); line-height: 1.4; transition: all 0.3s; }
         .pink-text { color: var(--pink) !important; text-shadow: 0 0 12px rgba(255, 105, 180, 0.4); }
 
-        #private-layer { 
-            display: none; 
-            border-top: 1px dashed #333; 
-            padding-top: 40px; 
-            margin-top: 20px;
-            animation: fadeIn 1s ease;
-        }
+        #private-layer { display: none; border-top: 1px dashed #333; padding-top: 40px; margin-top: 20px; animation: fadeIn 1s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -70,10 +64,7 @@
             <img src="/static/logo.png" class="logo-img">
             <div class="divider"></div>
             <div class="brand-container">
-                <div class="brand-top">
-                    <h1 class="gleam">SUTTON HOUSE</h1>
-                    <span class="analytics-tag">Market Analytics</span>
-                </div>
+                <div class="brand-top"><h1 class="gleam">SUTTON HOUSE</h1><span class="analytics-tag">Market Analytics</span></div>
                 <div class="brand-bottom">
                     <div class="monitor-tag">Market Monitor</div>
                     <div style="width: 4px; height: 4px; background: #444; border-radius: 50%;"></div>
@@ -92,7 +83,7 @@
         </div>
     </header>
 
-    <main id="public-grid">
+    <main>
         <div class="grid">
             <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
             <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
@@ -104,59 +95,48 @@
     <section id="private-layer">
         <div style="margin-bottom: 20px; color: var(--gold); font-size: 12px; font-weight: bold; letter-spacing: 2px;">> PRIVATE INDICATORS UNLOCKED</div>
         <div class="grid">
-            <div class="card" style="border-color: var(--gold);"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">SECURED</div></div>
-            <div class="card" style="border-color: var(--gold);"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">SECURED</div></div>
+            <div class="card" style="border-color: var(--gold);"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">LOCKED</div></div>
+            <div class="card" style="border-color: var(--gold);"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">LOCKED</div></div>
         </div>
     </section>
 
     <script>
         const socket = io();
+        setInterval(() => { document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); }, 1000);
 
-        // 1. Clock Logic
-        setInterval(() => {
-            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
-        }, 1000);
-
-        // 2. Pulse Logic
         function flashCities() {
-            const items = document.querySelectorAll('.city-item');
-            const dots = document.querySelectorAll('.status-dot');
-            items.forEach(i => i.classList.add('city-active'));
-            dots.forEach(d => d.classList.add('dot-active'));
-            setTimeout(() => {
-                items.forEach(i => i.classList.remove('city-active'));
-                dots.forEach(d => d.classList.remove('dot-active'));
-            }, 3000);
+            const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
+            items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
+            setTimeout(() => { items.forEach(i => i.classList.remove('city-active')); dots.forEach(d => d.classList.remove('dot-active')); }, 3000);
         }
 
-        // 3. Sutton Secret Logic
         function unlockSecret() {
-            const pw = prompt("ENTER ACCESS KEY:");
-            if (pw === "toffees") {
+            if (prompt("ENTER ACCESS KEY:") === "toffees") {
                 document.getElementById('private-layer').style.display = 'block';
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            } else {
-                alert("ACCESS DENIED");
             }
         }
 
-        // 4. Macro Update Bridge
+        // PUBLIC MACRO LISTENER
         socket.on("macro_update", (data) => {
             flashCities();
-            console.log("Sutton Inbound:", data);
-            
             if (data && data.card) {
-                // Ensure ID matches exactly "val-1", "val-2", etc.
                 const target = document.getElementById('val-' + data.card);
                 if (target) {
-                    target.innerText = data.msg || "ACTIVE";
-                    
-                    // Handle Color Branding
-                    if (data.color === 'pink') {
-                        target.classList.add('pink-text');
-                    } else {
-                        target.classList.remove('pink-text');
-                    }
+                    target.innerText = data.msg;
+                    if (data.color === 'pink') target.classList.add('pink-text');
+                }
+            }
+        });
+
+        // PRIVATE SECRET LISTENER (Matches app.py socketio.emit('secret_update'))
+        socket.on("secret_update", (data) => {
+            flashCities();
+            if (data && data.sec_card) {
+                const target = document.getElementById('val-' + data.sec_card);
+                if (target) {
+                    target.innerText = data.msg;
+                    target.style.color = "var(--gold)";
                 }
             }
         });
