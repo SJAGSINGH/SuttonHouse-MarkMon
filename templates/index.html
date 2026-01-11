@@ -26,7 +26,6 @@
         .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 2px; font-weight: 700; transition: 0.4s; }
         .data-value { font-size: 24px; font-weight: 800; transition: 0.4s; color: var(--dim); }
 
-        /* Halo States & Sync Logic */
         .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 25px rgba(191, 149, 63, 0.4) !important; background: linear-gradient(145deg, #111, #1a160d) !important; animation: pillar-glow 3s infinite alternate; }
         .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 25px rgba(229, 228, 226, 0.4) !important; background: linear-gradient(145deg, #111, #161616) !important; animation: pillar-glow 3s infinite alternate; }
         .halo-orange { border: 1px solid var(--amber) !important; box-shadow: 0 0 25px rgba(255, 191, 0, 0.3) !important; }
@@ -34,7 +33,6 @@
 
         @keyframes pillar-glow { from { box-shadow: 0 0 15px rgba(191, 149, 63, 0.2); } to { box-shadow: 0 0 30px rgba(191, 149, 63, 0.5); } }
 
-        /* Synchronized Text for Halo Cards */
         .halo-gold .data-value, .halo-gold h3, .halo-silver .data-value, .halo-silver h3,
         .halo-orange .data-value, .halo-orange h3, .halo-red .data-value, .halo-red h3 { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
@@ -43,14 +41,14 @@
         .modal-content { background:#111; padding:40px; border:1px solid var(--gold); border-radius:12px; text-align:center; }
         .pw-input { background:#000; border:1px solid #333; color:white; padding:12px; text-align:center; letter-spacing:4px; margin-bottom:20px; outline:none; font-family: monospace; }
 
-        /* Header & Rest */
+        /* Header Components */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 40px; border-bottom: 1px solid #222; }
         .logo-img { height: 83px; width: auto; margin-right: 25px; }
         #digital-clock { font-size: 52px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; }
         .city-grid { display: flex; gap: 20px; justify-content: flex-end; margin-top: 12px; }
         .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.3s; }
         .status-dot { width: 6px; height: 6px; background-color: var(--dim); border-radius: 50%; transition: 0.3s; }
-        .city-active { color: var(--text) !important; }
+        .city-active { color: var(--lime) !important; } /* Lime green as requested */
         .dot-active { background-color: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
         .led-container { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
@@ -97,4 +95,47 @@
             </div>
         </div>
         <div class="clock-right">
-            <div id="digital-clock">00
+            <div id="digital-clock">00:00:00</div>
+            <div class="city-grid">
+                <span class="city-item" id="lon"><div class="status-dot"></div> LONDON</span>
+                <span class="city-item" id="ny"><div class="status-dot"></div> NEW YORK</span>
+                <span class="city-item" id="tor" ondblclick="triggerSuttonSecret()"><div class="status-dot"></div> TORONTO</span>
+                <span class="city-item" id="syd"><div class="status-dot"></div> SYDNEY</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-view">
+        <div class="section-label">Macro Analysis Dashboard</div>
+        <div class="grid">
+            <div class="card" id="card-regime">
+                <h3>Regime & Volatility</h3>
+                <div id="regime-val" class="data-value">INITIALIZING</div>
+                <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">---</span></div>
+            </div>
+            <div class="card" id="card-rotation">
+                <h3>Capital Rotation</h3>
+                <div id="flow-val" class="data-value">INITIALIZING</div>
+            </div>
+            <div class="card" id="card-maturity">
+                <h3>Cycle Maturity</h3>
+                <div class="maturity-track"><div id="mat-fill"></div></div>
+                <div id="mat-text" style="font-size: 12px; font-weight: 800; color: #444;">INITIALIZING</div>
+            </div>
+            <div class="card" id="card-recession">
+                <h3>Recession Pulse</h3>
+                <div class="led-container">
+                    <div id="led-bulb" class="led-bulb"></div>
+                    <div id="pulse-val" class="data-value">INITIALIZING</div>
+                </div>
+                <p id="pulse-desc" style="font-size: 10px; color: #444; margin-top: 15px; font-weight: 700;">AWAITING DATA...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="secret-layer">
+        <div class="section-label" style="border-left-color: #fff;">Private Indicators Layer</div>
+        <div class="grid">
+            <div class="card secret-card" id="sec-card-1"><h3>Tactical Momentum</h3><div class="data-value" id="sec-val-1" style="color:#fff;">SECURE_01</div></div>
+            <div class="card secret-card" id="sec-card-2"><h3>Liquidity Pulse</h3><div class="data-value" id="sec-val-2" style="color:#fff;">SECURE_02</div></div>
+            <div class="card secret-card" id="sec-card-3"><h3>Execution Zone</h3><div class="data
