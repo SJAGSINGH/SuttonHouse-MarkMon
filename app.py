@@ -3,9 +3,9 @@ from flask_socketio import SocketIO
 import os
 
 app = Flask(__name__, static_folder='static')
-app.config['SECRET_KEY'] = 'sutton'
 
-# Use threading mode: much more stable for Render/Python 3.13
+# 'threading' is the only mode that works with gthread on Render
+# allow_unsafe_werkzeug=True is needed for the latest Flask versions
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 @app.route('/')
@@ -20,15 +20,16 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
-        if data and 'sec_card' in data:
-            socketio.emit('secret_update', data)
-        else:
-            socketio.emit('macro_update', data)
+        print(f"Incoming Webhook: {data}") # This helps us see it in the logs
+        
+        # We use namespace='/' and broadcast=True to ensure the screen updates
+        socketio.emit('macro_update', data, namespace='/', broadcast=True)
+        
         return "SUCCESS", 200
     except Exception as e:
-        print(f"WEBHOOK ERROR: {e}")
+        print(f"Error: {e}")
         return str(e), 400
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     socketio.run(app, host='0.0.0.0', port=port)
