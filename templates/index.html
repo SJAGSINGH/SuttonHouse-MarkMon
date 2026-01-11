@@ -25,17 +25,22 @@
             background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             animation: shine 5s linear infinite; font-weight: 800; font-size: 32px; letter-spacing: 3px; margin: 0;
         }
+        .sub-brand { color: #fff; font-size: 16px; font-weight: 300; letter-spacing: 1px; margin-left: 10px; text-transform: uppercase; }
         @keyframes shine { to { background-position: 200% center; } }
+        
         .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 300; }
         .status-dot-active { width: 5px; height: 5px; background: var(--lime); border-radius: 50%; box-shadow: 0 0 10px var(--lime); animation: pulse-lime 2s infinite; }
+        @keyframes pulse-lime { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* --- CLOCK & CITIES --- */
         #digital-clock { font-size: 52px; font-weight: 700; text-align: right; letter-spacing: -2px; line-height: 1; }
         .city-grid { display: flex; gap: 18px; margin-top: 12px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
-        .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
-        .city-active { color: var(--lime) !important; }
-        .dot-active { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
+        .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
+        .status-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        
+        /* City Open State (Apply via JS when markets open) */
+        .city-open { color: var(--lime) !important; }
+        .city-open .status-dot { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
 
         /* --- MAIN GRID --- */
@@ -76,8 +81,11 @@
             <img src="/static/logo.png" class="logo-img">
             <div style="width: 1px; height: 55px; background: #222; margin: 0 20px;"></div>
             <div class="brand-container">
-                <div class="brand-top"><h1 class="gleam">SUTTON HOUSE</h1></div>
-                <div class="brand-bottom">MARKET ANALYTICS <div class="status-dot-active"></div> <span style="color: var(--lime); font-family: monospace; font-weight: bold;">TERMINAL ACTIVE</span></div>
+                <div style="display:flex; align-items:baseline;">
+                    <h1 class="gleam">SUTTON HOUSE</h1>
+                    <span class="sub-brand">Market Analytics</span>
+                </div>
+                <div class="brand-bottom">MARKET MONITOR <div class="status-dot-active"></div> <span style="color: var(--lime); font-family: monospace; font-weight: bold;">TERMINAL ACTIVE</span></div>
             </div>
         </div>
         <div>
@@ -109,7 +117,6 @@
     <script>
         const socket = io();
 
-        // --- FIXED CLOCK ENGINE ---
         function tick() {
             document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
         }
@@ -120,11 +127,10 @@
         function verifyKey() { if (document.getElementById('pw-input').value === "toffees") { document.getElementById('pw-overlay').style.display = 'none'; document.getElementById('private-layer').style.display = 'block'; } }
 
         function triggerPulse() {
-            const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
+            const items = document.querySelectorAll('.city-item');
             items.forEach(i => i.classList.add('comms-flash'));
             setTimeout(() => {
-                items.forEach(i => { i.classList.remove('comms-flash'); i.classList.add('city-active'); });
-                dots.forEach(d => d.classList.add('dot-active'));
+                items.forEach(i => i.classList.remove('comms-flash'));
             }, 400);
         }
 
@@ -152,12 +158,14 @@
             sub2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
 
             // CARD 3
-            document.getElementById('val-3').innerText = cycleText || "PHASE ACTIVE";
-            const prog = data.cycle_progress || 50;
+            document.getElementById('val-3').innerText = cycleText || "EARLY CYCLE";
+            const prog = data.cycle_progress || 12; // Default to 12%
             const sub3 = document.getElementById('sub-3'); sub3.innerText = prog + "% MATURE";
             const fill = document.getElementById('fill-3'); document.getElementById('track-3').style.display = 'block';
             fill.style.width = prog + "%";
-            let col = prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)"));
+            
+            // Color Logic
+            let col = prog < 25 ? "var(--lime)" : (prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
             fill.style.background = col; sub3.style.color = col;
 
             // CARD 4
