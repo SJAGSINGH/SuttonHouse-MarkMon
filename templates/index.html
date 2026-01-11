@@ -20,8 +20,6 @@
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
         .logo-area { display: flex; align-items: center; gap: 15px; }
         .logo-img { height: 75px; width: auto; }
-        
-        /* The Divider Line */
         .divider { width: 1px; height: 55px; background: #333; margin: 0 10px; }
         
         .brand-container { display: flex; flex-direction: column; }
@@ -42,19 +40,27 @@
         /* --- CLOCK & CITIES --- */
         #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; text-align: right; }
         .city-grid { display: flex; gap: 18px; margin-top: 10px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; }
+        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; user-select: none; }
         .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
         
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 15px var(--lime); }
 
-        /* --- GRID --- */
+        /* --- GRID & PRIVATE LAYER --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; }
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: 0.3s; }
         .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
         .data-value { font-size: 20px; font-weight: 800; color: var(--dim); line-height: 1.4; transition: all 0.3s; }
-        
         .pink-text { color: var(--pink) !important; text-shadow: 0 0 12px rgba(255, 105, 180, 0.4); }
+
+        #private-layer { 
+            display: none; 
+            border-top: 1px dashed #333; 
+            padding-top: 40px; 
+            margin-top: 20px;
+            animation: fadeIn 1s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -80,13 +86,13 @@
             <div class="city-grid">
                 <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
                 <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
+                <div class="city-item" id="city-tor" ondblclick="unlockSecret()"><div class="status-dot"></div> TORONTO</div>
                 <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
             </div>
         </div>
     </header>
 
-    <main>
+    <main id="public-grid">
         <div class="grid">
             <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
             <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
@@ -95,13 +101,23 @@
         </div>
     </main>
 
+    <section id="private-layer">
+        <div style="margin-bottom: 20px; color: var(--gold); font-size: 12px; font-weight: bold; letter-spacing: 2px;">> PRIVATE INDICATORS UNLOCKED</div>
+        <div class="grid">
+            <div class="card" style="border-color: var(--gold);"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">SECURED</div></div>
+            <div class="card" style="border-color: var(--gold);"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">SECURED</div></div>
+        </div>
+    </section>
+
     <script>
         const socket = io();
 
+        // 1. Clock Logic
         setInterval(() => {
             document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
         }, 1000);
 
+        // 2. Pulse Logic
         function flashCities() {
             const items = document.querySelectorAll('.city-item');
             const dots = document.querySelectorAll('.status-dot');
@@ -113,14 +129,29 @@
             }, 3000);
         }
 
+        // 3. Sutton Secret Logic
+        function unlockSecret() {
+            const pw = prompt("ENTER ACCESS KEY:");
+            if (pw === "toffees") {
+                document.getElementById('private-layer').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else {
+                alert("ACCESS DENIED");
+            }
+        }
+
+        // 4. Macro Update Bridge
         socket.on("macro_update", (data) => {
             flashCities();
             console.log("Sutton Inbound:", data);
             
             if (data && data.card) {
+                // Ensure ID matches exactly "val-1", "val-2", etc.
                 const target = document.getElementById('val-' + data.card);
                 if (target) {
                     target.innerText = data.msg || "ACTIVE";
+                    
+                    // Handle Color Branding
                     if (data.color === 'pink') {
                         target.classList.add('pink-text');
                     } else {
