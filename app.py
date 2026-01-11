@@ -8,7 +8,7 @@ import os
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'sutton_macro_secret'
 
-# Crucial: Setting async_mode and removing loggers for speed
+# Optimized for Render: explicit async_mode and minimal logging
 socketio = SocketIO(app, 
                    cors_allowed_origins="*", 
                    async_mode='eventlet', 
@@ -27,16 +27,12 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
-        
-        # Check for Secret vs Macro datum
-        # We broadcast=True to ensure every open browser tab gets the lock
+        # Direct broadcast ensures immediate delivery to the terminal
         if data and 'sec_card' in data:
             socketio.emit('secret_update', data, broadcast=True)
         else:
             socketio.emit('macro_update', data, broadcast=True)
-        
         return "SUCCESS", 200
-
     except Exception as e:
         print(f"WEBHOOK ERROR: {e}")
         return str(e), 400
