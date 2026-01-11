@@ -29,7 +29,6 @@
         
         .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 300; }
         .status-dot-active { width: 5px; height: 5px; background: var(--lime); border-radius: 50%; box-shadow: 0 0 10px var(--lime); animation: pulse-lime 2s infinite; }
-        @keyframes pulse-lime { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* --- CLOCK & CITIES --- */
         #digital-clock { font-size: 52px; font-weight: 700; text-align: right; letter-spacing: -2px; line-height: 1; }
@@ -40,28 +39,36 @@
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
 
-        /* --- MAIN GRID --- */
+        /* --- GRID & CARD DESIGN --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; }
+        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; display: flex; flex-direction: column; transition: all 0.6s ease; }
         .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .data-value { font-size: 19px; font-weight: 600; color: var(--dim); line-height: 1.4; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
         
-        /* HALOS & SPECIAL STATES */
-        .halo-gold { color: var(--gold) !important; text-shadow: 0 0 20px rgba(191, 149, 63, 0.4); }
-        .halo-silver { color: var(--silver) !important; text-shadow: 0 0 20px rgba(192, 192, 192, 0.3); }
-        .text-red { color: var(--red) !important; text-shadow: 0 0 30px rgba(255, 68, 68, 0.7); font-weight: 800; }
+        /* CARD HIERARCHY */
+        .primary-text { font-size: 20px; font-weight: 800; color: #ffffff; text-transform: uppercase; margin-bottom: 4px; }
+        .secondary-text { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* REGIME HALO BACKGROUNDS (Cards 1 & 2) */
+        .halo-bg-gold { background: linear-gradient(145deg, #111 30%, #BF953F 220%) !important; border-color: var(--gold) !important; box-shadow: 0 0 20px rgba(191, 149, 63, 0.15); }
+        .halo-bg-silver { background: linear-gradient(145deg, #111 30%, #C0C0C0 220%) !important; border-color: var(--silver) !important; box-shadow: 0 0 20px rgba(192, 192, 192, 0.1); }
+
+        /* LED PULSE RED (Card 4) */
+        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; }
+        @keyframes led-red { 
+            0% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); background: #111; } 
+            100% { box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); background: #330000; } 
+        }
 
         /* PROGRESS BARS */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; }
         .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
 
-        /* VAULT OVERLAY */
+        /* VAULT */
         #pw-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; justify-content: center; align-items: center; }
         .pw-box { background: #0a0a0a; padding: 40px; border: 1px solid var(--gold); text-align: center; border-radius: 4px; }
-        .pw-box input { background: #000; border: 1px solid #222; color: var(--gold); padding: 12px; text-align: center; font-size: 24px; outline: none; font-family: monospace; }
-        #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; animation: fadeIn 0.8s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; transition: 0.2s; }
+        .pw-box input { background: #000; border: 1px solid #222; color: var(--gold); padding: 12px; text-align: center; font-size: 24px; outline: none; }
+        #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
+        .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; }
     </style>
 </head>
 <body>
@@ -77,9 +84,7 @@
             <div style="width: 1px; height: 55px; background: #222; margin: 0 20px;"></div>
             <div class="brand-container">
                 <div class="brand-top"><h1 class="gleam">SUTTON HOUSE</h1></div>
-                <div class="brand-bottom">
-                    MARKET ANALYTICS <div class="status-dot-active"></div> <span style="color: var(--lime); font-family: monospace; font-weight: bold;">TERMINAL ACTIVE</span>
-                </div>
+                <div class="brand-bottom">MARKET ANALYTICS <div class="status-dot-active"></div> <span style="color: var(--lime); font-family: monospace; font-weight: bold;">TERMINAL ACTIVE</span></div>
             </div>
         </div>
         <div>
@@ -94,83 +99,8 @@
     </header>
 
     <main class="grid">
-        <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING DATUM</div></div>
-        <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING DATUM</div></div>
-        <div class="card"><h3>Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING DATUM</div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
-        <div class="card"><h3>Recession Pulse</h3><div class="data-value" id="val-4">AWAITING DATUM</div></div>
+        <div class="card" id="card-1"><h3>Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
+        <div class="card" id="card-2"><h3>Capital Rotation</h3><div class="primary-text" id="val-2">AWAITING</div><div class="secondary-text" id="sub-2"></div></div>
+        <div class="card" id="card-3"><h3>Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
+        <div class="card" id="card-4"><h3>Recession Pulse</h3><div class="primary-text" id="val-4">AWAITING</div><div class="secondary-text" id="sub-4"></div></div>
     </main>
-
-    <section id="private-layer">
-        <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
-        <div class="grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">SECURE</div></div>
-            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">SECURE</div></div>
-        </div>
-    </section>
-
-    <script>
-        const socket = io();
-        setInterval(() => { document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); }, 1000);
-
-        function openVault() { document.getElementById('pw-overlay').style.display = 'flex'; document.getElementById('pw-input').focus(); }
-        function closeVault() { document.getElementById('private-layer').style.display = 'none'; document.getElementById('pw-input').value = ""; window.scrollTo({top:0, behavior:'smooth'}); }
-        function verifyKey() { if (document.getElementById('pw-input').value === "toffees") { document.getElementById('pw-overlay').style.display = 'none'; document.getElementById('private-layer').style.display = 'block'; } }
-
-        function triggerPulse() {
-            const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
-            items.forEach(i => i.classList.add('comms-flash'));
-            setTimeout(() => {
-                items.forEach(i => { i.classList.remove('comms-flash'); i.classList.add('city-active'); });
-                dots.forEach(d => d.classList.add('dot-active'));
-            }, 400);
-            setTimeout(() => {
-                items.forEach(i => i.classList.remove('city-active'));
-                dots.forEach(d => d.classList.remove('dot-active'));
-            }, 6000); 
-        }
-
-        socket.on("macro_update", (data) => {
-            triggerPulse();
-            
-            const cycleText = (data.cycle || "").toUpperCase();
-            const ticker = (data.ticker || "").toUpperCase();
-            const isCommod = cycleText.includes("COMMOD") || ticker.includes("COMMOD");
-            const currentHalo = isCommod ? "halo-gold" : "halo-silver";
-
-            document.querySelectorAll('.data-value').forEach(v => {
-                v.classList.remove('halo-gold', 'halo-silver', 'text-red');
-                v.classList.add(currentHalo);
-            });
-
-            document.getElementById('val-1').innerText = `${isCommod ? 'COMMODITIES' : 'EQUITIES'} / ${data.vol || 'ACTIVE'}`;
-            if (data.flow) document.getElementById('val-2').innerText = data.flow.toUpperCase();
-
-            const progress = data.cycle_progress !== undefined ? data.cycle_progress : 50;
-            const fill = document.getElementById('fill-3');
-            document.getElementById('val-3').innerText = cycleText || "PHASE ACTIVE";
-            document.getElementById('track-3').style.display = 'block';
-            fill.style.width = progress + "%";
-            
-            if (progress <= 25) fill.style.background = "var(--lime)";
-            else if (progress <= 75) fill.style.background = isCommod ? "var(--gold)" : "var(--silver)";
-            else if (progress <= 90) fill.style.background = "orange";
-            else fill.style.background = "var(--red)";
-
-            const sahm = parseFloat(data.sahm || 0);
-            const c4 = document.getElementById('val-4');
-            if (sahm >= 0.5) {
-                c4.innerText = "CONTRACTION";
-                c4.classList.remove(currentHalo);
-                c4.classList.add('text-red');
-            } else {
-                c4.innerText = "EXPANSION";
-            }
-        });
-
-        socket.on("secret_update", (data) => {
-            const target = document.getElementById('val-' + (data.sec_card || data.card));
-            if (target) { target.innerText = (data.msg || "ACTIVE").toUpperCase(); target.style.color = "var(--gold)"; }
-        });
-    </script>
-</body>
-</html>
