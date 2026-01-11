@@ -38,7 +38,7 @@
         .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
         .status-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; transition: 0.3s; }
         
-        /* City Open State (Apply via JS when markets open) */
+        /* City Open State (Lime Fix) */
         .city-open { color: var(--lime) !important; }
         .city-open .status-dot { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
@@ -58,8 +58,8 @@
         @keyframes led-red { 0% { background: #111; } 100% { background: #330000; box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); } }
 
         /* PROGRESS BARS */
-        .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; }
-        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
+        .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
+        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; }
 
         /* VAULT OVERLAY */
         #pw-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; justify-content: center; align-items: center; }
@@ -129,9 +129,7 @@
         function triggerPulse() {
             const items = document.querySelectorAll('.city-item');
             items.forEach(i => i.classList.add('comms-flash'));
-            setTimeout(() => {
-                items.forEach(i => i.classList.remove('comms-flash'));
-            }, 400);
+            setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
         socket.on("macro_update", (data) => {
@@ -141,34 +139,56 @@
             const cycleText = (data.cycle || "").toUpperCase();
             const ticker = (data.ticker || "").toUpperCase();
             const isCommod = cycleText.includes("COMMOD") || ticker.includes("COMMOD");
-            const haloClass = isCommod ? "halo-bg-gold" : "halo-bg-silver";
+            const slope = (data.slope || "").toUpperCase();
+            const isBelowSMA = data.ratio_state === "BELOW_SMA";
 
-            // CARD 1
-            const c1 = document.getElementById('card-1'); c1.className = "card " + haloClass;
-            document.getElementById('val-1').innerText = isCommod ? "COMMODITIES" : "EQUITIES";
+            // CARD 1 - REGIME Logic (Rising Commodities vs Falling Equities)
+            const c1 = document.getElementById('card-1');
+            const val1 = document.getElementById('val-1');
+            if (isCommod && slope === "RISING") {
+                val1.innerText = "STRONG COMMODITIES";
+                c1.className = "card halo-bg-gold";
+            } else if (!isCommod && slope === "FALLING") {
+                val1.innerText = "STRONG EQUITIES";
+                c1.className = "card halo-bg-silver";
+            } else {
+                val1.innerText = isCommod ? "COMMODITIES" : "EQUITIES";
+                c1.className = "card " + (isCommod ? "halo-bg-gold" : "halo-bg-silver");
+            }
             const vol = (data.vol || "STABLE").toUpperCase();
             const sub1 = document.getElementById('sub-1'); sub1.innerText = vol;
             sub1.style.color = vol.includes("ELEVATED") ? "orange" : (vol.includes("HIGH") ? "var(--red)" : "var(--lime)");
 
-            // CARD 2
-            const c2 = document.getElementById('card-2'); c2.className = "card " + haloClass;
+            // CARD 2 - ROTATION
+            const c2 = document.getElementById('card-2');
+            c2.className = "card " + (isCommod ? "halo-bg-gold" : "halo-bg-silver");
             document.getElementById('val-2').innerText = (data.flow || "STABLE").toUpperCase();
             const sub2 = document.getElementById('sub-2'); 
             sub2.innerText = isCommod ? "OFFENSIVE / RISK-ON" : "DEFENSIVE / RISK-OFF";
             sub2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
 
-            // CARD 3
-            document.getElementById('val-3').innerText = cycleText || "EARLY CYCLE";
-            const prog = data.cycle_progress || 12; // Default to 12%
-            const sub3 = document.getElementById('sub-3'); sub3.innerText = prog + "% MATURE";
-            const fill = document.getElementById('fill-3'); document.getElementById('track-3').style.display = 'block';
-            fill.style.width = prog + "%";
+            // CARD 3 - UP/DOWN COUNT DATA
+            const val3 = document.getElementById('val-3');
+            val3.innerText = isBelowSMA ? "DOWN COUNT" : "UP COUNT";
             
-            // Color Logic
-            let col = prog < 25 ? "var(--lime)" : (prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
-            fill.style.background = col; sub3.style.color = col;
+            const prog = data.cycle_progress || 0;
+            const sub3 = document.getElementById('sub-3');
+            sub3.innerText = Math.abs(prog) + "% " + (isBelowSMA ? "DEVIATION" : "MATURE");
+            
+            const track = document.getElementById('track-3'); track.style.display = 'block';
+            const fill = document.getElementById('fill-3');
+            fill.style.width = Math.abs(prog) + "%";
+            
+            if (isBelowSMA) {
+                fill.style.right = "0"; fill.style.left = "auto";
+                fill.style.background = "var(--pink)"; sub3.style.color = "var(--pink)";
+            } else {
+                fill.style.left = "0"; fill.style.right = "auto";
+                let col = prog < 25 ? "var(--lime)" : (prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
+                fill.style.background = col; sub3.style.color = col;
+            }
 
-            // CARD 4
+            // CARD 4 - RECESSION LED PULSE
             const sahm = parseFloat(data.sahm || 0);
             const c4 = document.getElementById('card-4'); const sub4 = document.getElementById('sub-4');
             c4.classList.remove('led-pulse-red');
@@ -180,11 +200,6 @@
                 sub4.innerText = sahm > 0.35 ? "STALLING / MONITORING" : "STABLE";
                 sub4.style.color = sahm > 0.35 ? "orange" : "var(--dim)";
             }
-        });
-
-        socket.on("secret_update", (data) => {
-            const target = document.getElementById('val-' + (data.sec_card || data.card));
-            if (target) { target.innerText = (data.msg || "ACTIVE").toUpperCase(); target.style.color = "var(--gold)"; }
         });
     </script>
 </body>
