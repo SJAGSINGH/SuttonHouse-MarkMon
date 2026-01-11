@@ -32,6 +32,20 @@
         }
         @keyframes shine { to { background-position: 200% center; } }
 
+        /* --- DYNAMIC HALO STYLES --- */
+        .halo-gold {
+            color: #ffffff !important;
+            text-shadow: 0 0 15px rgba(191, 149, 63, 0.8), 0 0 30px rgba(191, 149, 63, 0.4);
+            animation: gold-glow 4s infinite ease-in-out;
+        }
+        .halo-silver {
+            color: #ffffff !important;
+            text-shadow: 0 0 15px rgba(229, 228, 226, 0.8), 0 0 30px rgba(229, 228, 226, 0.4);
+            animation: silver-glow 4s infinite ease-in-out;
+        }
+        @keyframes gold-glow { 0%, 100% { text-shadow: 0 0 10px rgba(191, 149, 63, 0.5); } 50% { text-shadow: 0 0 25px rgba(191, 149, 63, 0.9); } }
+        @keyframes silver-glow { 0%, 100% { text-shadow: 0 0 10px rgba(200, 200, 200, 0.5); } 50% { text-shadow: 0 0 25px rgba(255, 255, 255, 0.9); } }
+
         .header { 
             display: flex; 
             justify-content: space-between; 
@@ -155,7 +169,6 @@
                 });
             }
         }
-        // Start the clock engine immediately
         updateClock();
         setInterval(updateClock, 1000);
 
@@ -170,12 +183,24 @@
                 dots.forEach(d => d.classList.remove('dot-active'));
             }, 5000);
 
-            if(data.cycle) document.getElementById('regime-val').innerText = data.cycle;
+            // LOGIC FOR CARD 1: REGIME & VOLATILITY
+            if(data.cycle) {
+                const regimeEl = document.getElementById('regime-val');
+                regimeEl.innerText = data.cycle;
+                regimeEl.classList.remove('halo-gold', 'halo-silver');
+                if (data.cycle.includes("Commodities")) {
+                    regimeEl.classList.add('halo-gold');
+                } else if (data.cycle.includes("Equities")) {
+                    regimeEl.classList.add('halo-silver');
+                }
+            }
             if(data.vol) {
                 const v = document.getElementById('vol-val');
                 v.innerText = data.vol;
-                v.style.color = data.vol === "ELEVATED" ? "var(--warning)" : "var(--lime)";
+                // Specifically detect ELEVATED for Red color
+                v.style.color = data.vol.includes("ELEVATED") ? "var(--warning)" : "var(--lime)";
             }
+
             if(data.flow) document.getElementById('flow-val').innerText = data.flow;
             if(data.count) {
                 const c = parseFloat(data.count);
