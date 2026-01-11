@@ -8,12 +8,11 @@ import os
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'sutton_macro_secret'
 
-# Keep loggers False to save resources on Render's free tier
 socketio = SocketIO(app, 
-                   cors_allowed_origins="*", 
-                   async_mode='eventlet', 
-                   logger=False, 
-                   engineio_logger=False)
+                    cors_allowed_origins="*", 
+                    async_mode='eventlet', 
+                    logger=False, 
+                    engineio_logger=False)
 
 @app.route('/')
 def index():
@@ -27,16 +26,16 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
+        print(f"--- DATUM RECEIVED: {data} ---")
         
-        # Define the emission task
-        def emit_task(payload):
-            if payload and 'sec_card' in payload:
-                socketio.emit('secret_update', payload)
-            else:
-                socketio.emit('macro_update', payload)
+        if not data:
+            return "EMPTY_PAYLOAD", 400
 
-        # Start the task in a non-blocking green thread
-        socketio.start_background_task(emit_task, data)
+        # Direct emission for maximum reliability on Render
+        if 'sec_card' in data:
+            socketio.emit('secret_update', data)
+        else:
+            socketio.emit('macro_update', data)
         
         return "SUCCESS", 200
 
