@@ -13,7 +13,6 @@
         }
         body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; overflow-x: hidden; }
         
-        /* Typography */
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
             background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -21,7 +20,6 @@
         }
         @keyframes shine { to { background-position: 200% center; } }
 
-        /* Pillar Glows */
         .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.5s ease; position: relative; }
         .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
         .data-value { font-size: 24px; font-weight: 800; color: var(--dim); transition: color 0.3s; }
@@ -30,7 +28,6 @@
         .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229,228,226,0.2); }
         .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255,69,0,0.3); }
 
-        /* Header */
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; margin-bottom: 30px; }
         #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; }
         .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; transition: 0.3s; }
@@ -38,10 +35,139 @@
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
-        /* Layout */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         #main-view, #secret-layer { transition: opacity 0.6s ease; }
         #secret-layer { display: none; opacity: 0; }
         
-        /* Modal */
-        #password-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z
+        #password-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:999; justify-content:center; align-items:center; }
+        .modal-box { background:#111; padding:40px; border:1px solid var(--gold); border-radius:12px; text-align:center; }
+        input { background:#000; border:1px solid #333; color:#fff; padding:12px; text-align:center; margin-bottom:20px; outline:none; font-family: monospace; letter-spacing: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="password-modal">
+        <div class="modal-box">
+            <h2 class="gleam" style="font-size:18px; margin-bottom:20px;">SECURITY GATE</h2>
+            <input type="password" id="pw" placeholder="••••">
+            <br>
+            <button onclick="checkPw()" style="background:var(--gold); border:none; padding:12px 25px; cursor:pointer; font-weight:800; letter-spacing:1px;">UNLOCK TERMINAL</button>
+            <p onclick="closeModal()" style="color:#444; font-size:10px; margin-top:15px; cursor:pointer;">CANCEL</p>
+        </div>
+    </div>
+
+    <div class="header">
+        <div>
+            <h1 class="gleam" style="margin:0; font-size: 32px; letter-spacing:4px;">SUTTON HOUSE</h1>
+            <p style="color:var(--lime); font-size:10px; font-family:monospace; margin:8px 0;">> TERMINAL_ACTIVE</p>
+        </div>
+        <div style="text-align:right;">
+            <div id="digital-clock">00:00:00</div>
+            <div style="display:flex; gap:15px; margin-top:12px; justify-content: flex-end;">
+                <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
+                <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
+                <div class="city-item" id="city-tor" ondblclick="openSecret()"><div class="status-dot"></div> TORONTO</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-view">
+        <div style="border-left: 3px solid var(--gold); padding-left: 15px; margin-bottom: 25px;">
+            <h2 style="font-size:12px; color:#444; letter-spacing:3px; text-transform: uppercase; margin:0;">Macro Analysis Dashboard</h2>
+        </div>
+        <div class="grid">
+            <div class="card" id="m-card-1"><h3>Regime & Volatility</h3><div class="data-value" id="m-val-1">INITIALIZING</div></div>
+            <div class="card" id="m-card-2"><h3>Capital Rotation</h3><div class="data-value" id="m-val-2">INITIALIZING</div></div>
+            <div class="card" id="m-card-3"><h3>Cycle Maturity</h3><div class="data-value" id="m-val-3">INITIALIZING</div></div>
+            <div class="card" id="m-card-4"><h3>Recession Pulse</h3><div class="data-value" id="m-val-4">INITIALIZING</div></div>
+        </div>
+    </div>
+
+    <div id="secret-layer">
+        <div style="border-left: 3px solid #fff; padding-left: 15px; margin-bottom: 25px;">
+            <h2 style="font-size:12px; color:var(--gold); letter-spacing:3px; text-transform: uppercase; margin:0;">Private Indicators Layer</h2>
+        </div>
+        <div class="grid">
+            <div class="card" id="s-card-1"><h3>Card 1: Regime & Volatility</h3><div class="data-value" id="s-val-1" style="color:#fff;">SECURE_01</div></div>
+            <div class="card" id="s-card-2"><h3>Card 2: Capital Rotation</h3><div class="data-value" id="s-val-2" style="color:#fff;">SECURE_02</div></div>
+            <div class="card" id="s-card-3"><h3>Card 3: Cycle Maturity</h3><div class="data-value" id="s-val-3" style="color:#fff;">SECURE_03</div></div>
+            <div class="card" id="s-card-4"><h3>Card 4: Recession Pulse</h3><div class="data-value" id="s-val-4" style="color:#fff;">SECURE_04</div></div>
+        </div>
+        <div style="margin-top:40px; text-align:center;">
+            <button onclick="closeSecret()" style="background:transparent; border:1px solid #333; color:#666; padding:10px 20px; border-radius:30px; cursor:pointer; font-size:10px; letter-spacing:2px;">RETURN TO PUBLIC TERMINAL</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io({ reconnection: true });
+
+        function updateClock() {
+            const el = document.getElementById('digital-clock');
+            if (el) el.innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function openSecret() { document.getElementById('password-modal').style.display = 'flex'; document.getElementById('pw').focus(); }
+        function closeModal() { document.getElementById('password-modal').style.display = 'none'; document.getElementById('pw').value = ''; }
+        
+        function checkPw() {
+            if(document.getElementById('pw').value === 'toffees') {
+                closeModal();
+                document.getElementById('main-view').style.display = 'none';
+                const secret = document.getElementById('secret-layer');
+                secret.style.display = 'block';
+                setTimeout(() => secret.style.opacity = '1', 50);
+            } else { alert('ACCESS DENIED'); closeModal(); }
+        }
+
+        function closeSecret() {
+            document.getElementById('secret-layer').style.display = 'none';
+            document.getElementById('main-view').style.display = 'block';
+        }
+
+        function flashCities() {
+            const items = document.querySelectorAll('.city-item');
+            const dots = document.querySelectorAll('.status-dot');
+            items.forEach(i => i.classList.add('city-active'));
+            dots.forEach(d => d.classList.add('dot-active'));
+            setTimeout(() => {
+                items.forEach(i => i.classList.remove('city-active'));
+                dots.forEach(d => d.classList.remove('dot-active'));
+            }, 4000);
+        }
+
+        socket.on("macro_update", (data) => {
+            try {
+                flashCities();
+                if(data.cycle) document.getElementById('m-val-1').innerText = data.cycle;
+                if(data.flow) {
+                    const v2 = document.getElementById('m-val-2');
+                    const c2 = document.getElementById('m-card-2');
+                    v2.innerText = data.flow;
+                    v2.style.color = "#fff";
+                    c2.classList.remove('halo-gold', 'halo-silver');
+                    c2.classList.add(data.flow.includes('Offensive') || data.flow.includes('Risk-On') ? 'halo-gold' : 'halo-silver');
+                }
+            } catch(e) { console.log("Macro update error."); }
+        });
+
+        socket.on("secret_update", (data) => {
+            try {
+                if(data.sec_card) {
+                    const card = document.getElementById('s-card-' + data.sec_card);
+                    const val = document.getElementById('s-val-' + data.sec_card);
+                    if(val) val.innerText = data.status;
+                    if(val) val.style.color = "#fff";
+                    if(card) {
+                        card.classList.remove('halo-gold', 'halo-red', 'halo-silver', 'halo-orange');
+                        if(data.val <= -10) card.classList.add('halo-gold');
+                        else if(data.val >= 30) card.classList.add('halo-red');
+                        else card.classList.add('halo-silver');
+                    }
+                }
+            } catch(e) { console.log("Secret update error."); }
+        });
+    </script>
+</body>
+</html>
