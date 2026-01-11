@@ -26,7 +26,6 @@
             animation: shine 5s linear infinite; font-weight: 800; font-size: 32px; letter-spacing: 3px; margin: 0;
         }
         @keyframes shine { to { background-position: 200% center; } }
-        
         .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 300; }
         .status-dot-active { width: 5px; height: 5px; background: var(--lime); border-radius: 50%; box-shadow: 0 0 10px var(--lime); animation: pulse-lime 2s infinite; }
 
@@ -39,31 +38,25 @@
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
 
-        /* --- GRID & CARD DESIGN --- */
+        /* --- MAIN GRID --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; display: flex; flex-direction: column; transition: all 0.6s ease; }
+        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; transition: all 0.6s ease; display: flex; flex-direction: column; }
         .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
         
-        /* CARD HIERARCHY */
-        .primary-text { font-size: 20px; font-weight: 800; color: #ffffff; text-transform: uppercase; margin-bottom: 4px; }
-        .secondary-text { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; }
+        .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* REGIME HALO BACKGROUNDS (Cards 1 & 2) */
-        .halo-bg-gold { background: linear-gradient(145deg, #111 30%, #BF953F 220%) !important; border-color: var(--gold) !important; box-shadow: 0 0 20px rgba(191, 149, 63, 0.15); }
-        .halo-bg-silver { background: linear-gradient(145deg, #111 30%, #C0C0C0 220%) !important; border-color: var(--silver) !important; box-shadow: 0 0 20px rgba(192, 192, 192, 0.1); }
-
-        /* LED PULSE RED (Card 4) */
+        /* SPECIAL STATES */
+        .halo-bg-gold { background: linear-gradient(145deg, #111 30%, #BF953F 220%) !important; border-color: var(--gold) !important; }
+        .halo-bg-silver { background: linear-gradient(145deg, #111 30%, #C0C0C0 220%) !important; border-color: var(--silver) !important; }
         .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; }
-        @keyframes led-red { 
-            0% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); background: #111; } 
-            100% { box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); background: #330000; } 
-        }
+        @keyframes led-red { 0% { background: #111; } 100% { background: #330000; box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); } }
 
         /* PROGRESS BARS */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; }
         .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
 
-        /* VAULT */
+        /* VAULT OVERLAY */
         #pw-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; justify-content: center; align-items: center; }
         .pw-box { background: #0a0a0a; padding: 40px; border: 1px solid var(--gold); text-align: center; border-radius: 4px; }
         .pw-box input { background: #000; border: 1px solid #222; color: var(--gold); padding: 12px; text-align: center; font-size: 24px; outline: none; }
@@ -104,3 +97,87 @@
         <div class="card" id="card-3"><h3>Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
         <div class="card" id="card-4"><h3>Recession Pulse</h3><div class="primary-text" id="val-4">AWAITING</div><div class="secondary-text" id="sub-4"></div></div>
     </main>
+
+    <section id="private-layer">
+        <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
+        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" id="val-5" style="color: var(--gold);">SECURE</div></div>
+            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" id="val-6" style="color: var(--gold);">SECURE</div></div>
+        </div>
+    </section>
+
+    <script>
+        const socket = io();
+
+        // --- FIXED CLOCK ENGINE ---
+        function tick() {
+            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        }
+        setInterval(tick, 1000); tick();
+
+        function openVault() { document.getElementById('pw-overlay').style.display = 'flex'; document.getElementById('pw-input').focus(); }
+        function closeVault() { document.getElementById('private-layer').style.display = 'none'; document.getElementById('pw-input').value = ""; }
+        function verifyKey() { if (document.getElementById('pw-input').value === "toffees") { document.getElementById('pw-overlay').style.display = 'none'; document.getElementById('private-layer').style.display = 'block'; } }
+
+        function triggerPulse() {
+            const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
+            items.forEach(i => i.classList.add('comms-flash'));
+            setTimeout(() => {
+                items.forEach(i => { i.classList.remove('comms-flash'); i.classList.add('city-active'); });
+                dots.forEach(d => d.classList.add('dot-active'));
+            }, 400);
+        }
+
+        socket.on("macro_update", (data) => {
+            console.log("Data Received:", data);
+            triggerPulse();
+            
+            const cycleText = (data.cycle || "").toUpperCase();
+            const ticker = (data.ticker || "").toUpperCase();
+            const isCommod = cycleText.includes("COMMOD") || ticker.includes("COMMOD");
+            const haloClass = isCommod ? "halo-bg-gold" : "halo-bg-silver";
+
+            // CARD 1
+            const c1 = document.getElementById('card-1'); c1.className = "card " + haloClass;
+            document.getElementById('val-1').innerText = isCommod ? "COMMODITIES" : "EQUITIES";
+            const vol = (data.vol || "STABLE").toUpperCase();
+            const sub1 = document.getElementById('sub-1'); sub1.innerText = vol;
+            sub1.style.color = vol.includes("ELEVATED") ? "orange" : (vol.includes("HIGH") ? "var(--red)" : "var(--lime)");
+
+            // CARD 2
+            const c2 = document.getElementById('card-2'); c2.className = "card " + haloClass;
+            document.getElementById('val-2').innerText = (data.flow || "STABLE").toUpperCase();
+            const sub2 = document.getElementById('sub-2'); 
+            sub2.innerText = isCommod ? "OFFENSIVE / RISK-ON" : "DEFENSIVE / RISK-OFF";
+            sub2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
+
+            // CARD 3
+            document.getElementById('val-3').innerText = cycleText || "PHASE ACTIVE";
+            const prog = data.cycle_progress || 50;
+            const sub3 = document.getElementById('sub-3'); sub3.innerText = prog + "% MATURE";
+            const fill = document.getElementById('fill-3'); document.getElementById('track-3').style.display = 'block';
+            fill.style.width = prog + "%";
+            let col = prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)"));
+            fill.style.background = col; sub3.style.color = col;
+
+            // CARD 4
+            const sahm = parseFloat(data.sahm || 0);
+            const c4 = document.getElementById('card-4'); const sub4 = document.getElementById('sub-4');
+            c4.classList.remove('led-pulse-red');
+            if (sahm >= 0.5) {
+                document.getElementById('val-4').innerText = "CONTRACTION";
+                c4.classList.add('led-pulse-red'); sub4.innerText = "SIGNAL TRIGGERED"; sub4.style.color = "var(--red)";
+            } else {
+                document.getElementById('val-4').innerText = "EXPANSION";
+                sub4.innerText = sahm > 0.35 ? "STALLING / MONITORING" : "STABLE";
+                sub4.style.color = sahm > 0.35 ? "orange" : "var(--dim)";
+            }
+        });
+
+        socket.on("secret_update", (data) => {
+            const target = document.getElementById('val-' + (data.sec_card || data.card));
+            if (target) { target.innerText = (data.msg || "ACTIVE").toUpperCase(); target.style.color = "var(--gold)"; }
+        });
+    </script>
+</body>
+</html>
