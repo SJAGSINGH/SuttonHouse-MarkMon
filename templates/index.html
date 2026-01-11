@@ -12,7 +12,7 @@
             --gold: #BF953F; --silver: #E5E4E2;
         }
 
-        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; display: flex; flex-direction: column; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; display: flex; flex-direction: column; overflow-x: hidden; }
 
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
@@ -23,18 +23,26 @@
 
         /* --- PILLAR WASH ENGINE --- */
         .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.6s ease; position: relative; }
-        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; }
-        .data-value { font-size: 24px; font-weight: 800; transition: 0.4s; color: var(--dim); } /* Default to Dim */
+        
+        /* Mirrored & Standardized Titles */
+        .card h3 { 
+            font-size: 10px; color: #666; text-transform: uppercase; 
+            margin: 0 0 25px 0; letter-spacing: 2px; font-weight: 700; transition: 0.4s;
+        }
+        
+        .data-value { font-size: 24px; font-weight: 800; transition: 0.4s; color: var(--dim); }
 
         /* Halo States */
-        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191, 149, 63, 0.3); }
-        .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229, 228, 226, 0.3); }
-        .halo-orange { border: 1px solid var(--amber) !important; box-shadow: 0 0 20px rgba(255, 191, 0, 0.3); }
-        .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255, 69, 0, 0.4); }
+        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 25px rgba(191, 149, 63, 0.4) !important; background: linear-gradient(145deg, #111, #1a160d) !important; }
+        .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 25px rgba(229, 228, 226, 0.4) !important; background: linear-gradient(145deg, #111, #161616) !important; }
+        .halo-orange { border: 1px solid var(--amber) !important; box-shadow: 0 0 25px rgba(255, 191, 0, 0.3) !important; }
+        .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 25px rgba(255, 69, 0, 0.4) !important; }
 
         /* Sync text colors when Halo is active */
-        .halo-gold .data-value, .halo-gold h3 { color: #fff !important; text-shadow: 0 0 10px rgba(191, 149, 63, 0.5); }
-        .halo-silver .data-value, .halo-silver h3 { color: #fff !important; text-shadow: 0 0 10px rgba(229, 228, 226, 0.5); }
+        .halo-gold .data-value, .halo-gold h3, 
+        .halo-silver .data-value, .halo-silver h3,
+        .halo-orange .data-value, .halo-orange h3,
+        .halo-red .data-value, .halo-red h3 { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
         /* Header & Clock */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 40px; border-bottom: 1px solid #222; }
@@ -42,12 +50,12 @@
         #digital-clock { font-size: 52px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; }
         
         .city-grid { display: flex; gap: 20px; justify-content: flex-end; margin-top: 12px; }
-        .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.3s; }
         .status-dot { width: 6px; height: 6px; background-color: var(--dim); border-radius: 50%; transition: 0.3s; }
         .city-active { color: var(--text) !important; }
         .dot-active { background-color: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
-        /* LED Pulse for Recession */
+        /* LED Pulse Engine */
         .led-container { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
         .led-bulb { width: 14px; height: 14px; border-radius: 50%; background: #222; transition: 0.5s; }
         .pulse-lime { background: var(--lime); box-shadow: 0 0 15px var(--lime); animation: blink 2s infinite; }
@@ -59,8 +67,20 @@
         .maturity-track { height: 8px; background: #222; border-radius: 4px; margin: 20px 0; overflow: hidden; }
         #mat-fill { height: 100%; width: 0%; transition: 2s ease-in-out; background: var(--dim); }
 
-        .section-label { margin-top: 40px; font-size: 12px; letter-spacing: 3px; color: #444; font-weight: 700; text-transform: uppercase; border-left: 3px solid var(--gold); padding-left: 15px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-top: 20px; }
+        .section-label { margin-top: 40px; font-size: 12px; letter-spacing: 3px; color: #444; font-weight: 700; text-transform: uppercase; border-left: 3px solid var(--gold); padding-left: 15px; transition: 0.5s; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-top: 20px; transition: all 0.8s ease; }
+
+        /* --- SECRET LAYER & CHAT CONNECTIONS --- */
+        #secret-layer { display: none; opacity: 0; transform: translateY(20px); transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .secret-card { border: 1px dashed rgba(255,255,255,0.1) !important; }
+        
+        .connection-grid { position: relative; }
+        .secret-card::after {
+            content: ''; position: absolute; top: 50%; right: -25px; width: 25px; height: 1px;
+            background: linear-gradient(90deg, var(--gold), transparent);
+            box-shadow: 0 0 8px var(--gold); display: none;
+        }
+        #secret-layer .grid .card:not(:last-child)::after { display: block; }
     </style>
 </head>
 <body>
@@ -91,37 +111,63 @@
         </div>
     </div>
 
-    <div class="section-label">Macro Analysis Dashboard</div>
-
-    <div class="grid">
-        <div class="card" id="card-regime">
-            <h3>Regime & Volatility</h3>
-            <div id="regime-val" class="data-value">INITIALIZING</div>
-            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">---</span></div>
-        </div>
-
-        <div class="card" id="card-rotation">
-            <h3>Capital Rotation</h3>
-            <div id="flow-val" class="data-value">INITIALIZING</div>
-        </div>
-
-        <div class="card" id="card-maturity">
-            <h3>Cycle Maturity</h3>
-            <div class="maturity-track"><div id="mat-fill"></div></div>
-            <div id="mat-text" style="font-size: 12px; font-weight: 800; color: #444;">INITIALIZING</div>
-        </div>
-
-        <div class="card" id="card-recession">
-            <h3>Recession Pulse</h3>
-            <div class="led-container">
-                <div id="led-bulb" class="led-bulb"></div>
-                <div id="pulse-val" class="data-value">INITIALIZING</div>
+    <div id="main-view">
+        <div class="section-label">Macro Analysis Dashboard</div>
+        <div class="grid">
+            <div class="card" id="card-regime">
+                <h3>Regime & Volatility</h3>
+                <div id="regime-val" class="data-value">INITIALIZING</div>
+                <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">---</span></div>
             </div>
-            <p id="pulse-desc" style="font-size: 10px; color: #444; margin-top: 15px; font-weight: 700;">AWAITING DATA...</p>
+
+            <div class="card" id="card-rotation">
+                <h3>Capital Rotation</h3>
+                <div id="flow-val" class="data-value">INITIALIZING</div>
+            </div>
+
+            <div class="card" id="card-maturity">
+                <h3>Cycle Maturity</h3>
+                <div class="maturity-track"><div id="mat-fill"></div></div>
+                <div id="mat-text" style="font-size: 12px; font-weight: 800; color: #444;">INITIALIZING</div>
+            </div>
+
+            <div class="card" id="card-recession">
+                <h3>Recession Pulse</h3>
+                <div class="led-container">
+                    <div id="led-bulb" class="led-bulb"></div>
+                    <div id="pulse-val" class="data-value">INITIALIZING</div>
+                </div>
+                <p id="pulse-desc" style="font-size: 10px; color: #444; margin-top: 15px; font-weight: 700;">AWAITING DATA...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="secret-layer">
+        <div class="section-label" style="border-left-color: #fff;">Private Indicators Layer</div>
+        <div class="grid connection-grid">
+            <div class="card secret-card">
+                <h3>Regime & Volatility</h3>
+                <div class="data-value" style="color: #fff;">SECURE_DATA_01</div>
+            </div>
+            <div class="card secret-card">
+                <h3>Capital Rotation</h3>
+                <div class="data-value" style="color: #fff;">SECURE_DATA_02</div>
+            </div>
+            <div class="card secret-card">
+                <h3>Cycle Maturity</h3>
+                <div class="data-value" style="color: #fff;">SECURE_DATA_03</div>
+            </div>
+            <div class="card secret-card">
+                <h3>Recession Pulse</h3>
+                <div class="data-value" style="color: #fff;">SECURE_DATA_04</div>
+            </div>
         </div>
     </div>
 
     <script>
+        // CONFIG
+        const SUTTON_PASS = "toffees";
+
         function updateClock() {
             const now = new Date();
             const clockEl = document.getElementById('digital-clock');
@@ -131,7 +177,24 @@
 
         function triggerSuttonSecret() {
             const pw = prompt("Sutton Secret Access Required:");
-            if (pw === "sutton") alert("Private Indicators Layer Unlocked");
+            if (pw === SUTTON_PASS) {
+                const main = document.getElementById('main-view');
+                const secret = document.getElementById('secret-layer');
+                
+                main.style.opacity = "0";
+                main.style.transform = "scale(0.98)";
+                
+                setTimeout(() => {
+                    main.style.display = "none";
+                    secret.style.display = "block";
+                    setTimeout(() => {
+                        secret.style.opacity = "1";
+                        secret.style.transform = "translateY(0)";
+                    }, 50);
+                }, 800);
+            } else if (pw !== null) {
+                alert("Unauthorized Access.");
+            }
         }
 
         const socket = io();
@@ -143,7 +206,7 @@
             items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
             setTimeout(() => { items.forEach(i => i.classList.remove('city-active')); dots.forEach(d => d.classList.remove('dot-active')); }, 5000);
 
-            // C1 Regime Logic
+            // C1 Regime & Volatility
             if(data.cycle) {
                 currentRegime = data.cycle;
                 const c1 = document.getElementById('card-regime');
@@ -160,7 +223,7 @@
                 volEl.style.color = data.vol.includes("ELEVATED") ? "var(--warning)" : "var(--lime)";
             }
 
-            // C2 Rotation Logic (Halo Fix Integrated)
+            // C2 Rotation (Pillar Wash Sync)
             if(data.flow) {
                 const c2 = document.getElementById('card-rotation');
                 const v2 = document.getElementById('flow-val');
