@@ -6,14 +6,9 @@ from flask_socketio import SocketIO
 import os
 
 app = Flask(__name__, static_folder='static')
-app.config['SECRET_KEY'] = 'sutton_macro_secret'
+app.config['SECRET_KEY'] = 'sutton'
 
-# Optimized for Render: SocketIO emits to all connected clients by default
-socketio = SocketIO(app, 
-                   cors_allowed_origins="*", 
-                   async_mode='eventlet', 
-                   logger=False, 
-                   engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 @app.route('/')
 def index():
@@ -27,21 +22,16 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
-        
-        # We removed 'broadcast=True' because socketio.emit() 
-        # handles broadcasting to all clients automatically here.
+        # FIX: Removed broadcast=True to stop the 400 error
         if data and 'sec_card' in data:
             socketio.emit('secret_update', data)
         else:
             socketio.emit('macro_update', data)
-            
         return "SUCCESS", 200
     except Exception as e:
-        # This will show up in your Render logs if something fails
-        print(f"WEBHOOK ERROR: {e}")
+        print(f"ERROR: {e}")
         return str(e), 400
 
 if __name__ == '__main__':
-    # Render provides the PORT environment variable
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
