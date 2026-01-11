@@ -11,7 +11,20 @@
             --dim: #333333; --lime: #32CD32; --amber: #FFBF00; --warning: #FF4500;
             --gold: #BF953F; --silver: #E5E4E2;
         }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; overflow-x: hidden; }
+        
+        body { 
+            background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
+            margin: 0; padding: 40px; display: flex; flex-direction: column; gap: 50px; 
+            min-height: 100vh; overflow-x: hidden; box-sizing: border-box;
+        }
+
+        /* --- HEADER BLOCK --- */
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid #222; padding-bottom: 30px; width: 100%;
+        }
+        .logo-area { display: flex; align-items: center; gap: 25px; }
+        .logo-img { height: 83px; width: auto; }
         
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
@@ -20,28 +33,39 @@
         }
         @keyframes shine { to { background-position: 200% center; } }
 
-        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.5s ease; position: relative; }
-        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .data-value { font-size: 24px; font-weight: 800; color: var(--dim); transition: color 0.3s; }
-        
-        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191,149,63,0.3); background: linear-gradient(145deg, #111, #1a160d) !important; }
-        .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229,228,226,0.2); }
-        .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255,69,0,0.3); }
-
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; margin-bottom: 30px; }
-        #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; }
+        #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; text-align: right; letter-spacing: 2px; }
+        .city-grid { display: flex; gap: 20px; margin-top: 12px; justify-content: flex-end; }
         .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; transition: 0.3s; }
         .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
+        
+        /* User Preference: Lime Green for Open */
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        #main-view, #secret-layer { transition: opacity 0.6s ease; }
-        #secret-layer { display: none; opacity: 0; }
+        /* --- DASHBOARD CONTAINERS --- */
+        .section-container { width: 100%; transition: opacity 0.6s ease; }
+        .section-label { border-left: 3px solid var(--gold); padding-left: 15px; margin-bottom: 25px; }
+        .section-label h2 { font-size: 12px; color: #444; letter-spacing: 3px; text-transform: uppercase; margin: 0; }
         
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 100%; }
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.5s ease; }
+        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
+        .data-value { font-size: 24px; font-weight: 800; color: var(--dim); }
+
+        /* --- HALO STYLES --- */
+        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191,149,63,0.3); background: linear-gradient(145deg, #111, #1a160d) !important; }
+        .halo-gold .data-value { color: #fff; }
+        .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229,228,226,0.2); }
+        .halo-silver .data-value { color: #fff; }
+        .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255,69,0,0.3); }
+
+        #secret-layer { display: none; opacity: 0; }
+
+        /* --- SECURITY MODAL --- */
         #password-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:999; justify-content:center; align-items:center; }
         .modal-box { background:#111; padding:40px; border:1px solid var(--gold); border-radius:12px; text-align:center; }
         input { background:#000; border:1px solid #333; color:#fff; padding:12px; text-align:center; margin-bottom:20px; outline:none; font-family: monospace; letter-spacing: 4px; }
+        button { background:var(--gold); border:none; padding:12px 25px; cursor:pointer; font-weight:800; letter-spacing:1px; }
     </style>
 </head>
 <body>
@@ -51,52 +75,57 @@
             <h2 class="gleam" style="font-size:18px; margin-bottom:20px;">SECURITY GATE</h2>
             <input type="password" id="pw" placeholder="••••">
             <br>
-            <button onclick="checkPw()" style="background:var(--gold); border:none; padding:12px 25px; cursor:pointer; font-weight:800; letter-spacing:1px;">UNLOCK TERMINAL</button>
+            <button onclick="checkPw()">UNLOCK TERMINAL</button>
             <p onclick="closeModal()" style="color:#444; font-size:10px; margin-top:15px; cursor:pointer;">CANCEL</p>
         </div>
     </div>
 
-    <div class="header">
-        <div>
-            <h1 class="gleam" style="margin:0; font-size: 32px; letter-spacing:4px;">SUTTON HOUSE</h1>
-            <p style="color:var(--lime); font-size:10px; font-family:monospace; margin:8px 0;">> TERMINAL_ACTIVE</p>
-        </div>
-        <div style="text-align:right;">
-            <div id="digital-clock">00:00:00</div>
-            <div style="display:flex; gap:15px; margin-top:12px; justify-content: flex-end;">
-                <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
-                <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor" ondblclick="openSecret()"><div class="status-dot"></div> TORONTO</span>
+    <header class="header">
+        <div class="logo-area">
+            <img src="/static/logo.png" class="logo-img">
+            <div style="height: 60px; width: 1px; background-color: #333;"></div>
+            <div>
+                <h1 class="gleam" style="margin:0; font-size: 32px; letter-spacing:4px;">SUTTON HOUSE</h1>
+                <p style="color:var(--lime); font-size:10px; font-family:monospace; margin:8px 0;">> TERMINAL_ACTIVE</p>
             </div>
         </div>
-    </div>
+        <div class="clock-area">
+            <div id="digital-clock">00:00:00</div>
+            <div class="city-grid">
+                <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
+                <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
+                <div class="city-item" id="city-tor" ondblclick="openSecret()"><div class="status-dot"></div> TORONTO</div>
+                <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
+            </div>
+        </div>
+    </header>
 
-    <div id="main-view">
-        <div style="border-left: 3px solid var(--gold); padding-left: 15px; margin-bottom: 25px;">
-            <h2 style="font-size:12px; color:#444; letter-spacing:3px; text-transform: uppercase; margin:0;">Macro Analysis Dashboard</h2>
+    <main id="main-view" class="section-container">
+        <div class="section-label">
+            <h2>Macro Analysis Dashboard</h2>
         </div>
         <div class="grid">
-            <div class="card" id="m-card-1"><h3>Regime & Volatility</h3><div class="data-value" id="m-val-1">INITIALIZING</div></div>
-            <div class="card" id="m-card-2"><h3>Capital Rotation</h3><div class="data-value" id="m-val-2">INITIALIZING</div></div>
-            <div class="card" id="m-card-3"><h3>Cycle Maturity</h3><div class="data-value" id="m-val-3">INITIALIZING</div></div>
-            <div class="card" id="m-card-4"><h3>Recession Pulse</h3><div class="data-value" id="m-val-4">INITIALIZING</div></div>
+            <div class="card" id="m-card-1"><h3>Regime & Volatility</h3><div class="data-value" id="m-val-1">AWAITING_LINK</div></div>
+            <div class="card" id="m-card-2"><h3>Capital Rotation</h3><div class="data-value" id="m-val-2">AWAITING_LINK</div></div>
+            <div class="card" id="m-card-3"><h3>Cycle Maturity</h3><div class="data-value" id="m-val-3">AWAITING_LINK</div></div>
+            <div class="card" id="m-card-4"><h3>Recession Pulse</h3><div class="data-value" id="m-val-4">AWAITING_LINK</div></div>
         </div>
-    </div>
+    </main>
 
-    <div id="secret-layer">
-        <div style="border-left: 3px solid #fff; padding-left: 15px; margin-bottom: 25px;">
-            <h2 style="font-size:12px; color:var(--gold); letter-spacing:3px; text-transform: uppercase; margin:0;">Private Indicators Layer</h2>
+    <section id="secret-layer" class="section-container">
+        <div class="section-label" style="border-left-color: #fff;">
+            <h2 style="color:var(--gold);">Private Indicators Layer</h2>
         </div>
         <div class="grid">
-            <div class="card" id="s-card-1"><h3>Card 1: Regime & Volatility</h3><div class="data-value" id="s-val-1" style="color:#fff;">SECURE_01</div></div>
-            <div class="card" id="s-card-2"><h3>Card 2: Capital Rotation</h3><div class="data-value" id="s-val-2" style="color:#fff;">SECURE_02</div></div>
-            <div class="card" id="s-card-3"><h3>Card 3: Cycle Maturity</h3><div class="data-value" id="s-val-3" style="color:#fff;">SECURE_03</div></div>
-            <div class="card" id="s-card-4"><h3>Card 4: Recession Pulse</h3><div class="data-value" id="s-val-4" style="color:#fff;">SECURE_04</div></div>
+            <div class="card" id="s-card-1"><h3>Card 1: Regime & Volatility</h3><div class="data-value" id="s-val-1">SECURE_01</div></div>
+            <div class="card" id="s-card-2"><h3>Card 2: Capital Rotation</h3><div class="data-value" id="s-val-2">SECURE_02</div></div>
+            <div class="card" id="s-card-3"><h3>Card 3: Cycle Maturity</h3><div class="data-value" id="s-val-3">SECURE_03</div></div>
+            <div class="card" id="s-card-4"><h3>Card 4: Redundancy</h3><div class="data-value" id="s-val-4">SPARE_CAPACITY</div></div>
         </div>
         <div style="margin-top:40px; text-align:center;">
-            <button onclick="closeSecret()" style="background:transparent; border:1px solid #333; color:#666; padding:10px 20px; border-radius:30px; cursor:pointer; font-size:10px; letter-spacing:2px;">RETURN TO PUBLIC TERMINAL</button>
+            <button onclick="closeSecret()" style="background:transparent; border:1px solid #333; color:#666; padding:10px 20px; border-radius:30px; cursor:pointer; font-size:10px; letter-spacing:2px;">EXIT PRIVATE LAYER</button>
         </div>
-    </div>
+    </section>
 
     <script>
         const socket = io({ reconnection: true });
@@ -158,7 +187,6 @@
                     const card = document.getElementById('s-card-' + data.sec_card);
                     const val = document.getElementById('s-val-' + data.sec_card);
                     if(val) val.innerText = data.status;
-                    if(val) val.style.color = "#fff";
                     if(card) {
                         card.classList.remove('halo-gold', 'halo-red', 'halo-silver', 'halo-orange');
                         if(data.val <= -10) card.classList.add('halo-gold');
