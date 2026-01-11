@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg: #050505; --card: #111111; --text: #ffffff;
-            --dim: #444444; --lime: #32CD32; --gold: #BF953F; --pink: #FF69B4;
+            --dim: #444444; --lime: #32CD32; --gold: #BF953F; --silver: #C0C0C0; --pink: #FF69B4;
         }
         body { 
             background-color: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
@@ -16,16 +16,10 @@
             min-height: 100vh; box-sizing: border-box; letter-spacing: -0.02em;
         }
 
-        /* --- HEADER & BRANDING --- */
+        /* --- BRANDING --- */
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
         .logo-area { display: flex; align-items: center; gap: 15px; }
         .logo-img { height: 75px; width: auto; }
-        .divider { width: 1px; height: 55px; background: #333; margin: 0 10px; }
-        
-        .brand-container { display: flex; flex-direction: column; }
-        .brand-top { display: flex; align-items: baseline; gap: 12px; }
-        .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
-        
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
             background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -33,50 +27,52 @@
         }
         @keyframes shine { to { background-position: 200% center; } }
 
-        .analytics-tag { color: #fff; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; font-weight: 300; }
-        .monitor-tag { color: #fff; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 400; }
-        .active-tag { color: var(--lime); font-size: 10px; font-family: monospace; font-weight: bold; letter-spacing: 1px; }
-
-        /* --- CLOCK & CITIES --- */
+        /* --- CITIES & PULSE --- */
         #digital-clock { font-size: 52px; font-family: 'Inter', sans-serif; font-weight: 700; text-align: right; letter-spacing: -2px; }
         .city-grid { display: flex; gap: 18px; margin-top: 10px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; transition: color 0.2s; }
+        .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; }
         .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
-        
-        /* COMMS PULSE */
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
 
-        /* --- GRIDS & CARDS --- */
+        /* --- CARDS --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { 
-            background: var(--card); padding: 35px; border-radius: 8px; 
-            border: 1px solid #1f1f1f; position: relative;
-        }
-        .card::before {
-            content: "SUTTON_INTEL_v1.0"; position: absolute; top: 12px; right: 15px;
-            font-size: 8px; font-family: monospace; color: #222;
-        }
+        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; }
         .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .data-value { font-size: 21px; font-weight: 600; color: var(--dim); line-height: 1.2; transition: color 0.3s; }
+        .data-value { font-size: 21px; font-weight: 600; color: var(--dim); line-height: 1.2; transition: all 0.5s ease; }
         .data-active { color: #ffffff !important; }
 
+        /* REGIME HALOS */
+        .halo-gold { color: var(--gold) !important; text-shadow: 0 0 15px rgba(191, 149, 63, 0.6); font-weight: 800; }
+        .halo-silver { color: var(--silver) !important; text-shadow: 0 0 15px rgba(192, 192, 192, 0.5); font-weight: 800; }
+
         #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
+        
+        /* PASSWORD MODAL OVERLAY */
+        #pw-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .pw-box { background: #111; padding: 30px; border: 1px solid var(--gold); text-align: center; border-radius: 8px; }
+        .pw-box input { background: #000; border: 1px solid #333; color: var(--gold); padding: 10px; text-align: center; font-size: 20px; outline: none; }
     </style>
 </head>
 <body>
 
+    <div id="pw-overlay"><div class="pw-box">
+        <h3 style="color: var(--gold); margin-bottom: 15px; font-size: 12px; letter-spacing: 2px;">ENTER ACCESS KEY</h3>
+        <input type="password" id="pw-input" onkeydown="if(event.key==='Enter') verifyKey()">
+    </div></div>
+
     <header class="header">
         <div class="logo-area">
             <img src="/static/logo.png" class="logo-img">
-            <div class="divider"></div>
+            <div class="divider" style="width: 1px; height: 55px; background: #333; margin: 0 10px;"></div>
             <div class="brand-container">
-                <div class="brand-top"><h1 class="gleam">SUTTON HOUSE</h1><span class="analytics-tag">Market Analytics</span></div>
-                <div class="brand-bottom">
-                    <div class="monitor-tag">Market Monitor</div>
-                    <div style="width: 4px; height: 4px; background: #444; border-radius: 50%;"></div>
-                    <div class="active-tag">> TERMINAL ACTIVE</div>
+                <div class="brand-top"><h1 class="gleam">SUTTON HOUSE</h1></div>
+                <div class="brand-bottom" style="display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 12px; text-transform: uppercase;">
+                    Market Monitor <div style="width: 4px; height: 4px; background: var(--lime); border-radius: 50%;"></div> <span style="color: var(--lime); font-family: monospace;">TERMINAL ACTIVE</span>
                 </div>
             </div>
         </div>
@@ -85,7 +81,7 @@
             <div class="city-grid">
                 <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
                 <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor" ondblclick="unlockSecret()"><div class="status-dot"></div> TORONTO</div>
+                <div class="city-item" id="city-tor" ondblclick="openVault()"><div class="status-dot"></div> TORONTO</div>
                 <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
             </div>
         </div>
@@ -93,16 +89,16 @@
 
     <main>
         <div class="grid">
-            <div class="card"><h3>Card 1: Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
-            <div class="card"><h3>Card 2: Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
-            <div class="card"><h3>Card 3: Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING</div></div>
-            <div class="card"><h3>Card 4: Recession Pulse</h3><div class="data-value" id="val-4">AWAITING</div></div>
+            <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
+            <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
+            <div class="card"><h3>Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING</div></div>
+            <div class="card"><h3>Recession Pulse</h3><div class="data-value" id="val-4">AWAITING</div></div>
         </div>
     </main>
 
     <section id="private-layer">
         <div style="margin-bottom: 20px; color: var(--gold); font-size: 11px; font-weight: bold; letter-spacing: 2px;">> PRIVATE INDICATORS UNLOCKED</div>
-        <div class="grid">
+        <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
             <div class="card" style="border-color: #332811;"><h3>Institutional Alpha</h3><div class="data-value" id="val-5" style="color: var(--gold);">LOCKED</div></div>
             <div class="card" style="border-color: #332811;"><h3>Order Flow</h3><div class="data-value" id="val-6" style="color: var(--gold);">LOCKED</div></div>
         </div>
@@ -112,54 +108,56 @@
         const socket = io();
         setInterval(() => { document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }); }, 1000);
 
+        function openVault() { document.getElementById('pw-overlay').style.display = 'flex'; document.getElementById('pw-input').focus(); }
+        function verifyKey() {
+            if (document.getElementById('pw-input').value === "toffees") {
+                document.getElementById('pw-overlay').style.display = 'none';
+                document.getElementById('private-layer').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else { alert("ACCESS DENIED"); document.getElementById('pw-input').value = ""; }
+        }
+
         function triggerPulse() {
             const items = document.querySelectorAll('.city-item'), dots = document.querySelectorAll('.status-dot');
-            // Step 1: Comms Pulse (Pink)
             items.forEach(i => i.classList.add('comms-flash'));
-            // Step 2: Connection Active (Lime)
             setTimeout(() => {
                 items.forEach(i => { i.classList.remove('comms-flash'); i.classList.add('city-active'); });
                 dots.forEach(d => d.classList.add('dot-active'));
             }, 400);
-            // Step 3: Fade out to Neutral
             setTimeout(() => {
                 items.forEach(i => i.classList.remove('city-active'));
                 dots.forEach(d => d.classList.remove('dot-active'));
             }, 3000);
         }
 
-        function unlockSecret() {
-            if (prompt("ENTER ACCESS KEY:") === "toffees") {
-                document.getElementById('private-layer').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }
-        }
-
         socket.on("macro_update", (data) => {
-            console.log("Sutton Macro Update:", data);
             triggerPulse();
-            if (data.vol) { updateCard('val-1', data.vol); }
-            if (data.flow) { updateCard('val-2', data.flow); }
-            if (data.cycle) { updateCard('val-3', data.cycle); }
-            if (data.sahm !== undefined) { updateCard('val-4', "SAHM: " + data.sahm); }
+            
+            // CARD 1: Regime & Volatility with Halo
+            if (data.regime || data.vol) {
+                const c1 = document.getElementById('val-1');
+                const reg = data.regime ? data.regime.toUpperCase() : "ACTIVE";
+                c1.innerText = reg + (data.vol ? " / VOL: " + data.vol : "");
+                c1.classList.remove('halo-gold', 'halo-silver', 'data-active');
+                if (reg.includes("BULL") || reg.includes("EXPANSION")) c1.classList.add('halo-gold');
+                else if (reg.includes("BEAR") || reg.includes("CONTRACTION")) c1.classList.add('halo-silver');
+                else c1.classList.add('data-active');
+            }
+
+            if (data.flow) updateCard('val-2', data.flow);
+            if (data.cycle) updateCard('val-3', data.cycle);
+            if (data.sahm !== undefined) updateCard('val-4', "SAHM: " + data.sahm);
         });
 
         function updateCard(id, text) {
             const el = document.getElementById(id);
-            if (el) {
-                el.innerText = text;
-                el.classList.add('data-active');
-            }
+            if (el) { el.innerText = text; el.classList.add('data-active'); }
         }
 
         socket.on("secret_update", (data) => {
             triggerPulse();
-            const cardId = data.sec_card || data.card;
-            const target = document.getElementById('val-' + cardId);
-            if (target) {
-                target.innerText = data.msg || "ACTIVE";
-                target.style.color = "var(--gold)";
-            }
+            const target = document.getElementById('val-' + (data.sec_card || data.card));
+            if (target) { target.innerText = data.msg || "ACTIVE"; target.style.color = "var(--gold)"; }
         });
     </script>
 </body>
