@@ -8,35 +8,33 @@ import os
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'sutton_macro_secret'
 
+# Note: explicitly setting async_mode to 'eventlet' is critical for Render
 socketio = SocketIO(app, 
-                    cors_allowed_origins="*", 
-                    async_mode='eventlet', 
-                    logger=False, 
-                    engineio_logger=False)
+                   cors_allowed_origins="*", 
+                   async_mode='eventlet', 
+                   logger=False, 
+                   engineio_logger=False)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(app.static_folder, filename)
-
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
         data = request.get_json()
-        print(f"--- DATUM RECEIVED: {data} ---")
+        print(f"DEBUG: Datum Received -> {data}") # Check your Render logs for this!
         
-        if not data:
-            return "EMPTY_PAYLOAD", 400
+        def emit_task(payload):
+            # A tiny sleep ensures the eventlet loop is ready to broadcast
+            eventlet.sleep(0.1) 
+            if payload and 'sec_card' in payload:
+                socketio.emit('secret_update', payload)
+            else:
+                socketio.emit('macro_update', payload)
+            print("DEBUG: Datum Emitted to Socket")
 
-        # Direct emission for maximum reliability on Render
-        if 'sec_card' in data:
-            socketio.emit('secret_update', data)
-        else:
-            socketio.emit('macro_update', data)
-        
+        socketio.start_background_task(emit_task, data)
         return "SUCCESS", 200
 
     except Exception as e:
