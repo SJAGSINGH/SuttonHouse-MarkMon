@@ -9,100 +9,51 @@
         :root {
             --bg: #050505; --card: #111111; --text: #ffffff;
             --dim: #333333; --lime: #32CD32; --amber: #FFBF00; --warning: #FF4500;
+            --gold: #BF953F; --silver: #E5E4E2;
         }
 
-        body { 
-            background-color: var(--bg); 
-            color: var(--text); 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 40px; 
-            display: flex; 
-            flex-direction: column; 
-        }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px; display: flex; flex-direction: column; }
 
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 5s linear infinite;
-            display: inline-block;
-            font-weight: 800;
+            background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: shine 5s linear infinite; display: inline-block; font-weight: 800;
         }
         @keyframes shine { to { background-position: 200% center; } }
 
-        /* --- HALO & PILLAR WASH ENGINE --- */
-        .halo-gold {
-            border: 1px solid #BF953F !important;
-            box-shadow: 0 0 20px rgba(191, 149, 63, 0.3);
-        }
-        .halo-silver {
-            border: 1px solid #E5E4E2 !important;
-            box-shadow: 0 0 20px rgba(229, 228, 226, 0.3);
-        }
+        /* --- PILLAR WASH ENGINE --- */
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.6s ease; }
+        .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 2px; transition: 0.4s; }
+        .data-value { font-size: 24px; font-weight: 800; color: var(--lime); transition: 0.4s; }
 
-        .halo-gold h3, .halo-gold .data-value {
-            color: #ffffff !important;
-            text-shadow: 0 0 15px rgba(191, 149, 63, 0.8);
-        }
-        .halo-silver h3, .halo-silver .data-value {
-            color: #ffffff !important;
-            text-shadow: 0 0 15px rgba(229, 228, 226, 0.8);
-        }
+        /* Color States */
+        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191, 149, 63, 0.3); }
+        .halo-silver { border: 1px solid var(--silver) !important; box-shadow: 0 0 20px rgba(229, 228, 226, 0.3); }
+        .halo-orange { border: 1px solid var(--amber) !important; box-shadow: 0 0 20px rgba(255, 191, 0, 0.3); }
+        .halo-red { border: 1px solid var(--warning) !important; box-shadow: 0 0 20px rgba(255, 69, 0, 0.4); }
 
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding-bottom: 40px; 
-            border-bottom: 1px solid #222; 
-        }
+        /* Halo Content Styles */
+        .halo-gold h3, .halo-gold .data-value, .halo-gold #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(191, 149, 63, 0.8); }
+        .halo-silver h3, .halo-silver .data-value, .halo-silver #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(229, 228, 226, 0.8); }
+        .halo-orange h3, .halo-orange .data-value, .halo-orange #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(255, 191, 0, 0.8); }
+        .halo-red h3, .halo-red .data-value, .halo-red #mat-text { color: #ffffff !important; text-shadow: 0 0 15px rgba(255, 69, 0, 0.8); }
+
+        /* Header & Clock */
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 40px; border-bottom: 1px solid #222; }
         .logo-img { height: 83px; width: auto; margin-right: 25px; }
-        
-        #digital-clock { 
-            font-size: 52px; 
-            font-family: 'Courier New', monospace; 
-            font-weight: 700; 
-            letter-spacing: 2px; 
-        }
+        #digital-clock { font-size: 52px; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 2px; }
         .city-grid { display: flex; gap: 20px; justify-content: flex-end; margin-top: 12px; }
         .city-item { font-size: 10px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 6px; height: 6px; background-color: var(--dim); border-radius: 50%; transition: 0.3s; }
-        
         .city-active { color: var(--text) !important; }
         .dot-active { background-color: var(--lime) !important; box-shadow: 0 0 10px var(--lime); }
 
-        .section-label {
-            margin-top: 40px;
-            font-size: 12px;
-            letter-spacing: 3px;
-            color: #444;
-            font-weight: 700;
-            text-transform: uppercase;
-            border-left: 3px solid #BF953F;
-            padding-left: 15px;
-        }
-
+        .section-label { margin-top: 40px; font-size: 12px; letter-spacing: 3px; color: #444; font-weight: 700; text-transform: uppercase; border-left: 3px solid var(--gold); padding-left: 15px; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-top: 20px; }
-        .card { 
-            background: var(--card); 
-            padding: 35px; 
-            border-radius: 12px; 
-            border: 1px solid #1f1f1f; 
-            transition: all 0.5s ease;
-        }
-        .card h3 { 
-            font-size: 10px; 
-            color: #666; 
-            text-transform: uppercase; 
-            margin-bottom: 25px; 
-            letter-spacing: 2px; 
-        }
-        .data-value { font-size: 24px; font-weight: 800; color: var(--lime); transition: all 0.5s ease; }
 
+        /* Progress Bar */
         .maturity-track { height: 8px; background: #222; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        #mat-fill { height: 100%; width: 0%; background: #BF953F; transition: 2s ease-in-out; }
+        #mat-fill { height: 100%; width: 0%; background: var(--gold); transition: 2s ease-in-out; }
 
         @keyframes heartbeat { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .pulse-active { animation: heartbeat 2s infinite ease-in-out; }
@@ -130,7 +81,7 @@
             <div class="city-grid">
                 <span class="city-item" id="lon"><div class="status-dot"></div> LONDON</span>
                 <span class="city-item" id="ny"><div class="status-dot"></div> NEW YORK</span>
-                <span class="city-item" id="tor"><div class="status-dot"></div> TORONTO</span>
+                <span class="city-item" id="tor" ondblclick="triggerSuttonSecret()"><div class="status-dot"></div> TORONTO</span>
                 <span class="city-item" id="syd"><div class="status-dot"></div> SYDNEY</span>
             </div>
         </div>
@@ -142,20 +93,18 @@
         <div class="card" id="card-regime">
             <h3>Regime & Volatility</h3>
             <div id="regime-val" class="data-value">Awaiting...</div>
-            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">
-                VOLATILITY: <span id="vol-val">N/A</span>
-            </div>
+            <div style="font-size: 10px; margin-top: 10px; color: #444; font-weight: 700;">VOLATILITY: <span id="vol-val">N/A</span></div>
         </div>
 
         <div class="card" id="card-rotation">
-            <h3>Capital Rotation (Offensive vs Defensive)</h3>
+            <h3>Capital Rotation</h3>
             <div id="flow-val" class="data-value">INITIALIZING</div>
         </div>
 
         <div class="card" id="card-maturity">
-            <h3>Cycle Maturity (The Gold Lines)</h3>
+            <h3>Cycle Maturity</h3>
             <div class="maturity-track"><div id="mat-fill"></div></div>
-            <div id="mat-text" style="font-size: 12px; color: #BF953F; font-weight: 700;">0% MATURE</div>
+            <div id="mat-text" style="font-size: 14px; font-weight: 800; color: #444;">INITIALIZING</div>
         </div>
 
         <div class="card" id="card-recession">
@@ -166,35 +115,35 @@
     </div>
 
     <script>
+        // Clock Engine
         function updateClock() {
             const now = new Date();
             const clockEl = document.getElementById('digital-clock');
-            if (clockEl) {
-                clockEl.innerText = now.toLocaleTimeString('en-GB', { 
-                    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                });
-            }
+            if (clockEl) clockEl.innerText = now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateClock, 1000); updateClock();
+
+        // Toronto Secret Trigger (Placeholder for next step)
+        function triggerSuttonSecret() {
+            const pw = prompt("Sutton Secret Access Required:");
+            if (pw === "sutton") alert("Private Indicators Layer Unlocked (Development Phase)");
+        }
 
         const socket = io();
+        let currentRegime = ""; 
+
         socket.on("macro_update", (data) => {
             // Flash city lights
             const dots = document.querySelectorAll('.status-dot');
             const items = document.querySelectorAll('.city-item');
-            items.forEach(i => i.classList.add('city-active'));
-            dots.forEach(d => d.classList.add('dot-active'));
-            setTimeout(() => {
-                items.forEach(i => i.classList.remove('city-active'));
-                dots.forEach(d => d.classList.remove('dot-active'));
-            }, 5000);
+            items.forEach(i => i.classList.add('city-active')); dots.forEach(d => d.classList.add('dot-active'));
+            setTimeout(() => { items.forEach(i => i.classList.remove('city-active')); dots.forEach(d => d.classList.remove('dot-active')); }, 5000);
 
-            // CARD 1 Logic
+            // --- CARD 1: REGIME ---
             if(data.cycle) {
+                currentRegime = data.cycle;
                 const c1 = document.getElementById('card-regime');
-                const v1 = document.getElementById('regime-val');
-                v1.innerText = data.cycle;
+                document.getElementById('regime-val').innerText = data.cycle;
                 c1.classList.remove('halo-gold', 'halo-silver');
                 if(data.cycle.includes("Commodities")) c1.classList.add('halo-gold');
                 if(data.cycle.includes("Equities")) c1.classList.add('halo-silver');
@@ -205,36 +154,58 @@
                 volEl.style.color = data.vol.includes("ELEVATED") ? "var(--warning)" : "var(--lime)";
             }
 
-            // CARD 2 Logic
+            // --- CARD 2: ROTATION ---
             if(data.flow) {
                 const c2 = document.getElementById('card-rotation');
-                const v2 = document.getElementById('flow-val');
-                v2.innerText = data.flow;
-                v2.style.color = "#ffffff";
+                document.getElementById('flow-val').innerText = data.flow;
+                document.getElementById('flow-val').style.color = "#fff";
                 c2.classList.remove('halo-gold', 'halo-silver');
                 if(data.flow.includes("Offensive") || data.flow.includes("Risk-On")) c2.classList.add('halo-gold');
                 if(data.flow.includes("Defensive") || data.flow.includes("Risk-Off")) c2.classList.add('halo-silver');
             }
 
-            // CARD 3 Logic
-            if(data.count) {
+            // --- CARD 3: CYCLE MATURITY ---
+            if(data.count !== undefined) {
                 const c = parseFloat(data.count);
-                document.getElementById('mat-fill').style.width = c + "%";
-                document.getElementById('mat-text').innerText = c + "% MATURE";
+                const matCard = document.getElementById('card-maturity');
+                const matFill = document.getElementById('mat-fill');
+                const matText = document.getElementById('mat-text');
+                
+                matFill.style.width = c + "%";
+                matCard.classList.remove('halo-gold', 'halo-silver', 'halo-orange', 'halo-red');
+
+                if (c === 0) {
+                    matText.innerText = "INITIALIZING";
+                    matFill.style.background = "#333";
+                } else if (c <= 25) {
+                    matText.innerText = "EARLY EXPANSION (" + c + "%)";
+                    matFill.style.background = "var(--lime)";
+                    const haloClass = currentRegime.includes("Equities") ? 'halo-silver' : 'halo-gold';
+                    matCard.classList.add(haloClass);
+                } else if (c <= 60) {
+                    matText.innerText = "MATURE GROWTH (" + c + "%)";
+                    matFill.style.background = currentRegime.includes("Equities") ? "var(--silver)" : "var(--gold)";
+                    const haloClass = currentRegime.includes("Equities") ? 'halo-silver' : 'halo-gold';
+                    matCard.classList.add(haloClass);
+                } else if (c <= 85) {
+                    matText.innerText = "LATE CYCLE (" + c + "%)";
+                    matFill.style.background = "var(--amber)";
+                    matCard.classList.add('halo-orange');
+                } else {
+                    matText.innerText = "TERMINAL PHASE (" + c + "%)";
+                    matFill.style.background = "var(--warning)";
+                    matCard.classList.add('halo-red');
+                }
             }
 
-            // CARD 4 Logic
+            // --- CARD 4: RECESION PULSE ---
             if (data.sahm !== undefined) {
                 const p = document.getElementById('pulse-val');
                 const s = parseFloat(data.sahm);
                 document.getElementById('sahm-read').innerText = "SAHM RULE: " + s.toFixed(2);
-                if (s >= 0.5) { 
-                    p.innerText = "CONTRACTION"; p.style.color = "var(--warning)"; p.classList.add('pulse-active');
-                } else if (s >= 0.35) { 
-                    p.innerText = "EXPANSION (WATCH)"; p.style.color = "var(--amber)"; p.classList.add('pulse-active');
-                } else { 
-                    p.innerText = "EXPANSION"; p.style.color = "var(--lime)"; p.classList.remove('pulse-active');
-                }
+                if (s >= 0.5) { p.innerText = "CONTRACTION"; p.style.color = "var(--warning)"; p.classList.add('pulse-active'); }
+                else if (s >= 0.35) { p.innerText = "EXPANSION (WATCH)"; p.style.color = "var(--amber)"; p.classList.add('pulse-active'); }
+                else { p.innerText = "EXPANSION"; p.style.color = "var(--lime)"; p.classList.remove('pulse-active'); }
             }
         });
     </script>
