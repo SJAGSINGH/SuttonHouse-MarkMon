@@ -105,8 +105,8 @@
     <section id="private-layer">
         <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
         <div class="grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
-            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
+            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" id="sec-val-1" style="color: var(--gold);">SECURE</div></div>
+            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" id="sec-val-2" style="color: var(--gold);">SECURE</div></div>
         </div>
     </section>
 
@@ -134,13 +134,13 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
+        // LISTENER 1: MACRO UPDATES
         socket.on("macro_update", (data) => {
             console.log("PINE ALERT:", data);
             triggerPulse();
             const cardNum = data.card;
             const message = (data.msg || "").toUpperCase();
 
-            // CARD 1
             if (cardNum === 1) {
                 const v1 = document.getElementById('val-1');
                 const s1 = document.getElementById('sub-1');
@@ -157,7 +157,6 @@
                 s1.style.color = vol === "ELEVATED" ? "var(--red)" : "var(--lime)";
             }
 
-            // CARD 2
             if (cardNum === 2) {
                 const s2 = document.getElementById('sub-2');
                 const c2 = document.getElementById('card-2');
@@ -168,7 +167,6 @@
                 c2.className = "card " + (isCommodFlow ? "halo-bg-gold" : "halo-bg-silver");
             }
 
-            // CARD 3
             if (cardNum === 3) {
                 const v3 = document.getElementById('val-3');
                 const s3 = document.getElementById('sub-3');
@@ -189,7 +187,6 @@
                 }
             }
 
-            // CARD 4
             if (cardNum === 4) {
                 const sahmValue = parseFloat(message.split(":")[1]) || 0;
                 const c4 = document.getElementById('card-4');
@@ -206,6 +203,18 @@
                     s4.innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
                     s4.style.color = "var(--dim)";
                 }
+            }
+        });
+
+        // LISTENER 2: SECRET UPDATES (Sutton Secret Logic)
+        socket.on("secret_update", (data) => {
+            console.log("SECRET DATA:", data);
+            triggerPulse();
+            if (data.sec_card === 1) {
+                document.getElementById('sec-val-1').innerText = data.msg || "ACTIVE";
+            }
+            if (data.sec_card === 2) {
+                document.getElementById('sec-val-2').innerText = data.msg || "ACTIVE";
             }
         });
     </script>
