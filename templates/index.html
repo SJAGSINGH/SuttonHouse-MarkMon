@@ -8,118 +8,89 @@
     <style>
         :root {
             --bg: #050505; --card: #111111; --text: #ffffff;
-            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --silver: #E5E4E2;
-            --pink: #FF69B4;
+            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --pink: #FF69B4;
         }
-        
         body { 
             background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
             margin: 0; padding: 40px; display: flex; flex-direction: column; gap: 40px; 
-            min-height: 100vh; box-sizing: border-box;
         }
 
-        /* --- HEADER --- */
+        /* --- HEADER RESTORATION --- */
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
-        .logo-area { display: flex; align-items: center; gap: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 25px; }
         .logo-img { height: 75px; width: auto; }
+        
+        .brand-container { display: flex; flex-direction: column; }
+        .brand-top { display: flex; align-items: baseline; gap: 12px; }
+        .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
             background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: shine 5s linear infinite; font-weight: 800; display: inline-block;
+            animation: shine 5s linear infinite; font-weight: 800; font-size: 32px; letter-spacing: 3px; margin: 0;
         }
         @keyframes shine { to { background-position: 200% center; } }
 
-        .market-tag { font-size: 14px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; font-weight: 300; display: block; margin-top: -5px; }
-        
-        #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; letter-spacing: 2px; }
+        .analytics-tag { color: #fff; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; font-weight: 300; }
+        .monitor-tag { color: #fff; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 400; }
+        .active-tag { color: var(--lime); font-size: 10px; font-family: monospace; font-weight: bold; letter-spacing: 1px; }
+
+        /* --- CLOCK & CITIES --- */
+        #digital-clock { font-size: 52px; font-family: monospace; font-weight: 700; text-align: right; }
         .city-grid { display: flex; gap: 18px; margin-top: 10px; justify-content: flex-end; }
         .city-item { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; }
-        .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; transition: 0.3s; }
+        .status-dot { width: 6px; height: 6px; background: #222; border-radius: 50%; }
         
-        /* Pulse Effects */
         .city-active { color: var(--lime) !important; }
         .dot-active { background: var(--lime) !important; box-shadow: 0 0 15px var(--lime); }
 
-        /* --- DASHBOARD --- */
-        .section-label { border-left: 3px solid var(--gold); padding-left: 15px; margin-bottom: 25px; }
-        .section-label h2 { font-size: 12px; color: #555; letter-spacing: 3px; text-transform: uppercase; margin: 0; }
-        .monitor-text { color: var(--lime); font-size: 10px; font-family: monospace; margin-top: 8px; letter-spacing: 1px; }
-
+        /* --- GRID --- */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: all 0.4s ease; position: relative; }
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid #1f1f1f; transition: 0.4s; }
         .card h3 { font-size: 10px; color: #666; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .data-value { font-size: 24px; font-weight: 800; color: var(--dim); transition: color 0.3s; }
-
+        .data-value { font-size: 20px; font-weight: 800; color: var(--dim); line-height: 1.4; }
         .pink-text { color: var(--pink) !important; text-shadow: 0 0 10px rgba(255, 105, 180, 0.3); }
-        .halo-gold { border: 1px solid var(--gold) !important; box-shadow: 0 0 20px rgba(191,149,63,0.2); }
 
-        #secret-layer { display: none; opacity: 0; transition: opacity 0.5s; }
-
-        /* --- PASSWORD MODAL --- */
-        #password-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.96); z-index:999; justify-content:center; align-items:center; }
-        .modal-box { background:#111; padding:40px; border:1px solid var(--gold); border-radius:15px; text-align:center; }
-        input { background:#000; border:1px solid #333; color:#fff; padding:15px; text-align:center; margin-bottom:20px; outline:none; font-family: monospace; font-size: 20px; letter-spacing: 5px; width: 200px; }
+        /* Secret Indicator Layout Hidden */
+        #secret-layer { display: none; margin-top: 20px; border-top: 1px dashed #333; padding-top: 40px; }
     </style>
 </head>
 <body>
 
-    <div id="password-modal">
-        <div class="modal-box">
-            <h2 class="gleam" style="font-size:20px; margin-bottom:20px;">ACCESS REQUIRED</h2>
-            <input type="password" id="pw" placeholder="••••">
-            <br>
-            <button onclick="checkPw()" style="background:var(--gold); border:none; padding:12px 30px; cursor:pointer; font-weight:800; color:#000;">UNLOCK</button>
-            <p onclick="closeModal()" style="color:#444; font-size:10px; margin-top:20px; cursor:pointer;">CANCEL</p>
-        </div>
-    </div>
-
     <header class="header">
         <div class="logo-area">
             <img src="/static/logo.png" class="logo-img">
-            <div style="height: 60px; width: 1px; background: #333;"></div>
-            <div>
-                <h1 class="gleam" style="margin:0; font-size: 32px; letter-spacing:4px;">SUTTON HOUSE</h1>
-                <span class="market-tag">Market Analytics</span>
+            <div class="brand-container">
+                <div class="brand-top">
+                    <h1 class="gleam">SUTTON HOUSE</h1>
+                    <span class="analytics-tag">Market Analytics</span>
+                </div>
+                <div class="brand-bottom">
+                    <div class="monitor-tag">Market Monitor</div>
+                    <div style="width: 4px; height: 4px; background: #444; border-radius: 50%;"></div>
+                    <div class="active-tag">> TERMINAL ACTIVE</div>
+                </div>
             </div>
         </div>
-        <div style="text-align:right;">
+        <div class="clock-area">
             <div id="digital-clock">00:00:00</div>
             <div class="city-grid">
                 <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
                 <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor" ondblclick="openSecret()"><div class="status-dot"></div> TORONTO</div>
+                <div class="city-item" id="city-tor" ondblclick="handleSecret()"><div class="status-dot"></div> TORONTO</div>
                 <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
             </div>
         </div>
     </header>
 
     <main id="main-view">
-        <div class="section-label">
-            <h2>Macro Analysis Dashboard</h2>
-            <div class="monitor-text">> MARKET MONITOR ACTIVE</div>
-        </div>
         <div class="grid">
-            <div class="card" id="m-card-1"><h3>Regime & Volatility</h3><div class="data-value" id="m-val-1">AWAITING</div></div>
-            <div class="card" id="m-card-2"><h3>Capital Rotation</h3><div class="data-value" id="m-val-2">AWAITING</div></div>
-            <div class="card" id="m-card-3"><h3>Cycle Maturity</h3><div class="data-value" id="m-val-3">AWAITING</div></div>
-            <div class="card" id="m-card-4"><h3>Recession Pulse</h3><div class="data-value" id="m-val-4">AWAITING</div></div>
+            <div class="card"><h3>Regime & Volatility</h3><div class="data-value" id="val-1">AWAITING</div></div>
+            <div class="card"><h3>Capital Rotation</h3><div class="data-value" id="val-2">AWAITING</div></div>
+            <div class="card"><h3>Cycle Maturity</h3><div class="data-value" id="val-3">AWAITING</div></div>
+            <div class="card"><h3>Recession Pulse</h3><div class="data-value" id="val-4">AWAITING</div></div>
         </div>
     </main>
-
-    <section id="secret-layer">
-        <div class="section-label" style="border-left-color: #fff;">
-            <h2 style="color:var(--gold);">Private Indicators Layer</h2>
-            <div class="monitor-text" style="color:var(--gold);">> SECURE DATASTREAM ACTIVE</div>
-        </div>
-        <div class="grid">
-            <div class="card" id="s-card-1"><h3>Indicator 1</h3><div class="data-value" id="s-val-1">SECURE</div></div>
-            <div class="card" id="s-card-2"><h3>Indicator 2</h3><div class="data-value" id="s-val-2">SECURE</div></div>
-            <div class="card" id="s-card-3"><h3>Indicator 3</h3><div class="data-value" id="s-val-3">SECURE</div></div>
-            <div class="card" id="s-card-4"><h3>Redundancy</h3><div class="data-value" id="s-val-4">SPARE</div></div>
-        </div>
-        <button onclick="closeSecret()" style="margin-top:40px; background:none; border:1px solid #333; color:#555; padding:10px 20px; cursor:pointer; border-radius:5px;">EXIT SECURE LAYER</button>
-    </section>
 
     <script>
         const socket = io();
@@ -128,56 +99,41 @@
             document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
         }, 1000);
 
-        function openSecret() { document.getElementById('password-modal').style.display = 'flex'; document.getElementById('pw').focus(); }
-        function closeModal() { document.getElementById('password-modal').style.display = 'none'; document.getElementById('pw').value = ''; }
-        
-        function checkPw() {
-            if(document.getElementById('pw').value === 'toffees') {
-                closeModal();
-                document.getElementById('main-view').style.display = 'none';
-                const s = document.getElementById('secret-layer');
-                s.style.display = 'block';
-                setTimeout(() => s.style.opacity = '1', 50);
-            } else { alert('DENIED'); closeModal(); }
-        }
-
-        function closeSecret() {
-            document.getElementById('secret-layer').style.display = 'none';
-            document.getElementById('main-view').style.display = 'block';
-        }
-
         function flashCities() {
-            const cities = document.querySelectorAll('.city-item');
+            const items = document.querySelectorAll('.city-item');
             const dots = document.querySelectorAll('.status-dot');
-            cities.forEach(c => c.classList.add('city-active'));
+            items.forEach(i => i.classList.add('city-active'));
             dots.forEach(d => d.classList.add('dot-active'));
             setTimeout(() => {
-                cities.forEach(c => c.classList.remove('city-active'));
+                items.forEach(i => i.classList.remove('city-active'));
                 dots.forEach(d => d.classList.remove('dot-active'));
             }, 3000);
         }
 
         socket.on("macro_update", (data) => {
             flashCities();
+            console.log("Macro Packet Received:", data);
+            
             if(data.card) {
-                const valEl = document.getElementById('m-val-' + data.card);
-                if(valEl) {
-                    valEl.innerText = data.msg || "UPDATE";
+                const target = document.getElementById('val-' + data.card);
+                if(target) {
+                    target.innerText = data.msg;
                     if(data.color === 'pink') {
-                        valEl.classList.add('pink-text');
+                        target.classList.add('pink-text');
                     } else {
-                        valEl.classList.remove('pink-text');
+                        target.classList.remove('pink-text');
                     }
                 }
             }
         });
 
-        socket.on("secret_update", (data) => {
-            if(data.sec_card) {
-                const valEl = document.getElementById('s-val-' + data.sec_card);
-                if(valEl) valEl.innerText = data.status || "SECURE";
+        // Toronto Double-Click Placeholder
+        function handleSecret() {
+            const pw = prompt("Enter Access Key:");
+            if(pw === "toffees") {
+                alert("Private Layer Unlocked (Awaiting Indicator Hook)");
             }
-        });
+        }
     </script>
 </body>
 </html>
