@@ -1,6 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
-
 from flask import Flask, request, render_template, send_from_directory
 from flask_socketio import SocketIO
 import os
@@ -8,7 +5,8 @@ import os
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'sutton'
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# Using threaded mode which is more stable on Render
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 @app.route('/')
 def index():
@@ -22,14 +20,13 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
-        # FIX: Removed broadcast=True to stop the 400 error
         if data and 'sec_card' in data:
             socketio.emit('secret_update', data)
         else:
             socketio.emit('macro_update', data)
         return "SUCCESS", 200
     except Exception as e:
-        print(f"ERROR: {e}")
+        print(f"WEBHOOK ERROR: {e}")
         return str(e), 400
 
 if __name__ == '__main__':
