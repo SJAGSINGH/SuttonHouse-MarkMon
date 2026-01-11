@@ -5,7 +5,7 @@ import os
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'sutton'
 
-# Using threaded mode which is more stable on Render
+# Use threading mode: much more stable for Render/Python 3.13
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 @app.route('/')
