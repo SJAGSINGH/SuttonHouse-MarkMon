@@ -38,7 +38,7 @@
         .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
         .status-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; transition: 0.3s; }
         
-        /* City Open State (Lime Fix) */
+        /* City Open State (Lime Green) */
         .city-open { color: var(--lime) !important; }
         .city-open .status-dot { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
         .comms-flash { color: var(--pink) !important; }
@@ -48,7 +48,7 @@
         .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; transition: all 0.6s ease; display: flex; flex-direction: column; }
         .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
         
-        .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; }
+        .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
         /* SPECIAL STATES */
@@ -109,8 +109,8 @@
     <section id="private-layer">
         <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
         <div class="grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" id="val-5" style="color: var(--gold);">SECURE</div></div>
-            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" id="val-6" style="color: var(--gold);">SECURE</div></div>
+            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
+            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
         </div>
     </section>
 
@@ -118,7 +118,15 @@
         const socket = io();
 
         function tick() {
-            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const now = new Date();
+            document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+            
+            // City Open Logic - Lime Green
+            const hrs = now.getUTCHours();
+            document.getElementById('city-lon').className = (hrs >= 8 && hrs < 16) ? 'city-item city-open' : 'city-item';
+            document.getElementById('city-ny').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
+            document.getElementById('city-tor').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
+            document.getElementById('city-syd').className = (hrs >= 22 || hrs < 6) ? 'city-item city-open' : 'city-item';
         }
         setInterval(tick, 1000); tick();
 
@@ -133,23 +141,25 @@
         }
 
         socket.on("macro_update", (data) => {
-            console.log("Data Received:", data);
+            console.log("DATUM RECEIVED:", data);
             triggerPulse();
             
-            const cycleText = (data.cycle || "").toUpperCase();
             const ticker = (data.ticker || "").toUpperCase();
-            const isCommod = cycleText.includes("COMMOD") || ticker.includes("COMMOD");
+            const cycleText = (data.cycle || "").toUpperCase();
             const slope = (data.slope || "").toUpperCase();
             const isBelowSMA = data.ratio_state === "BELOW_SMA";
 
-            // CARD 1 - REGIME Logic (Rising Commodities vs Falling Equities)
+            // DATUM LOCK: BTC & Commodities go Gold
+            const isCommod = ticker.includes("BTC") || ticker.includes("COMMOD") || cycleText.includes("COMMOD");
+
+            // CARD 1 - REGIME
             const c1 = document.getElementById('card-1');
             const val1 = document.getElementById('val-1');
             if (isCommod && slope === "RISING") {
-                val1.innerText = "STRONG COMMODITIES";
+                val1.innerHTML = 'STRONG COMMODITIES <span style="color:var(--gold)">▲</span>';
                 c1.className = "card halo-bg-gold";
             } else if (!isCommod && slope === "FALLING") {
-                val1.innerText = "STRONG EQUITIES";
+                val1.innerHTML = 'STRONG EQUITIES <span style="color:var(--silver)">▼</span>';
                 c1.className = "card halo-bg-silver";
             } else {
                 val1.innerText = isCommod ? "COMMODITIES" : "EQUITIES";
@@ -167,28 +177,31 @@
             sub2.innerText = isCommod ? "OFFENSIVE / RISK-ON" : "DEFENSIVE / RISK-OFF";
             sub2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
 
-            // CARD 3 - UP/DOWN COUNT DATA
+            // CARD 3 - UP/DOWN COUNT
             const val3 = document.getElementById('val-3');
             val3.innerText = isBelowSMA ? "DOWN COUNT" : "UP COUNT";
             
-            const prog = data.cycle_progress || 0;
+            const rawProg = parseFloat(data.cycle_progress) || 0;
             const sub3 = document.getElementById('sub-3');
-            sub3.innerText = Math.abs(prog) + "% " + (isBelowSMA ? "DEVIATION" : "MATURE");
+            sub3.innerText = Math.abs(rawProg).toFixed(1) + "% " + (isBelowSMA ? "DEVIATION" : "MATURE");
             
             const track = document.getElementById('track-3'); track.style.display = 'block';
             const fill = document.getElementById('fill-3');
-            fill.style.width = Math.abs(prog) + "%";
+            
+            // Ensure bar is visible even at low values
+            const displayWidth = Math.max(Math.abs(rawProg), 1.5);
+            fill.style.width = displayWidth + "%";
             
             if (isBelowSMA) {
                 fill.style.right = "0"; fill.style.left = "auto";
                 fill.style.background = "var(--pink)"; sub3.style.color = "var(--pink)";
             } else {
                 fill.style.left = "0"; fill.style.right = "auto";
-                let col = prog < 25 ? "var(--lime)" : (prog > 90 ? "var(--red)" : (prog > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
+                let col = rawProg < 25 ? "var(--lime)" : (rawProg > 90 ? "var(--red)" : (rawProg > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
                 fill.style.background = col; sub3.style.color = col;
             }
 
-            // CARD 4 - RECESSION LED PULSE
+            // CARD 4 - RECESSION
             const sahm = parseFloat(data.sahm || 0);
             const c4 = document.getElementById('card-4'); const sub4 = document.getElementById('sub-4');
             c4.classList.remove('led-pulse-red');
