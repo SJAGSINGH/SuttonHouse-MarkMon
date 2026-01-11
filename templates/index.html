@@ -1,127 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sutton House | Master Terminal</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-        :root {
-            --bg: #050505; --card: #111111; --text: #ffffff;
-            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --silver: #C0C0C0; --pink: #FF69B4; --red: #ff4444;
-        }
-        body { 
-            background-color: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
-            margin: 0; padding: 40px; display: flex; flex-direction: column; gap: 40px; 
-            min-height: 100vh; box-sizing: border-box; letter-spacing: -0.02em; overflow-x: hidden;
-        }
-
-        /* --- BRANDING --- */
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
-        .logo-area { display: flex; align-items: center; gap: 15px; }
-        .logo-img { height: 75px; width: auto; }
-        .gleam {
-            background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
-            background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: shine 5s linear infinite; font-weight: 800; font-size: 32px; letter-spacing: 3px; margin: 0;
-        }
-        .sub-brand { color: #fff; font-size: 16px; font-weight: 300; letter-spacing: 1px; margin-left: 10px; text-transform: uppercase; }
-        @keyframes shine { to { background-position: 200% center; } }
-        
-        .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 300; }
-        .status-dot-active { width: 5px; height: 5px; background: var(--lime); border-radius: 50%; box-shadow: 0 0 10px var(--lime); animation: pulse-lime 2s infinite; }
-        @keyframes pulse-lime { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        /* --- CLOCK & CITIES --- */
-        #digital-clock { font-size: 52px; font-weight: 700; text-align: right; letter-spacing: -2px; line-height: 1; }
-        .city-grid { display: flex; gap: 18px; margin-top: 12px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
-        .status-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; transition: 0.3s; }
-        
-        /* City Open State (Lime Green) */
-        .city-open { color: var(--lime) !important; }
-        .city-open .status-dot { background: var(--lime) !important; box-shadow: 0 0 12px var(--lime); }
-        .comms-flash { color: var(--pink) !important; }
-
-        /* --- MAIN GRID --- */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 35px; border-radius: 8px; border: 1px solid #1f1f1f; position: relative; transition: all 0.6s ease; display: flex; flex-direction: column; }
-        .card h3 { font-size: 10px; color: #555; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 2px; }
-        
-        .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
-        .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* SPECIAL STATES */
-        .halo-bg-gold { background: linear-gradient(145deg, #111 30%, #BF953F 220%) !important; border-color: var(--gold) !important; }
-        .halo-bg-silver { background: linear-gradient(145deg, #111 30%, #C0C0C0 220%) !important; border-color: var(--silver) !important; }
-        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; }
-        @keyframes led-red { 0% { background: #111; } 100% { background: #330000; box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); } }
-
-        /* PROGRESS BARS */
-        .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
-        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; }
-
-        /* VAULT OVERLAY */
-        #pw-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; justify-content: center; align-items: center; }
-        .pw-box { background: #0a0a0a; padding: 40px; border: 1px solid var(--gold); text-align: center; border-radius: 4px; }
-        .pw-box input { background: #000; border: 1px solid #222; color: var(--gold); padding: 12px; text-align: center; font-size: 24px; outline: none; }
-        #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
-        .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; }
-    </style>
-</head>
-<body>
-
-    <div id="pw-overlay"><div class="pw-box">
-        <h3 style="color: var(--gold); margin-bottom: 20px; font-size: 11px; letter-spacing: 3px;">SYSTEM ACCESS KEY REQUIRED</h3>
-        <input type="password" id="pw-input" onkeydown="if(event.key==='Enter') verifyKey()">
-    </div></div>
-
-    <header class="header">
-        <div class="logo-area">
-            <img src="/static/logo.png" class="logo-img">
-            <div style="width: 1px; height: 55px; background: #222; margin: 0 20px;"></div>
-            <div class="brand-container">
-                <div style="display:flex; align-items:baseline;">
-                    <h1 class="gleam">SUTTON HOUSE</h1>
-                    <span class="sub-brand">Market Analytics</span>
-                </div>
-                <div class="brand-bottom">MARKET MONITOR <div class="status-dot-active"></div> <span style="color: var(--lime); font-family: monospace; font-weight: bold;">TERMINAL ACTIVE</span></div>
-            </div>
-        </div>
-        <div>
-            <div id="digital-clock">00:00:00</div>
-            <div class="city-grid">
-                <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
-                <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor" ondblclick="openVault()"><div class="status-dot"></div> TORONTO</div>
-                <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
-            </div>
-        </div>
-    </header>
-
-    <main class="grid">
-        <div class="card" id="card-1"><h3>Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
-        <div class="card" id="card-2"><h3>Capital Rotation</h3><div class="primary-text" id="val-2">AWAITING</div><div class="secondary-text" id="sub-2"></div></div>
-        <div class="card" id="card-3"><h3>Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
-        <div class="card" id="card-4"><h3>Recession Pulse</h3><div class="primary-text" id="val-4">AWAITING</div><div class="secondary-text" id="sub-4"></div></div>
-    </main>
-
-    <section id="private-layer">
-        <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
-        <div class="grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="card" style="border-color: #2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
-            <div class="card" style="border-color: #2a2210;"><h3>Order Flow</h3><div class="primary-text" style="color: var(--gold);">SECURE</div></div>
-        </div>
-    </section>
-
-    <script>
+<script>
         const socket = io();
 
         function tick() {
             const now = new Date();
             document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
             
-            // City Open Logic - Lime Green
             const hrs = now.getUTCHours();
             document.getElementById('city-lon').className = (hrs >= 8 && hrs < 16) ? 'city-item city-open' : 'city-item';
             document.getElementById('city-ny').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
@@ -141,79 +24,86 @@
         }
 
         socket.on("macro_update", (data) => {
-            console.log("DATUM RECEIVED:", data);
+            console.log("PINE ALERT RECEIVED:", data);
             triggerPulse();
-            
-            const ticker = (data.ticker || "").toUpperCase();
-            const cycleText = (data.cycle || "").toUpperCase();
-            const slope = (data.slope || "").toUpperCase();
-            const isBelowSMA = data.ratio_state === "BELOW_SMA";
 
-            // DATUM LOCK: BTC & Commodities go Gold
-            const isCommod = ticker.includes("BTC") || ticker.includes("COMMOD") || cycleText.includes("COMMOD");
+            // PINE BRIDGE: Mapping "card" and "msg" to the UI
+            const cardNum = data.card;
+            const message = (data.msg || "").toUpperCase();
 
-            // CARD 1 - REGIME
-            const c1 = document.getElementById('card-1');
-            const val1 = document.getElementById('val-1');
-            if (isCommod && slope === "RISING") {
-                val1.innerHTML = 'STRONG COMMODITIES <span style="color:var(--gold)">▲</span>';
-                c1.className = "card halo-bg-gold";
-            } else if (!isCommod && slope === "FALLING") {
-                val1.innerHTML = 'STRONG EQUITIES <span style="color:var(--silver)">▼</span>';
-                c1.className = "card halo-bg-silver";
-            } else {
-                val1.innerText = isCommod ? "COMMODITIES" : "EQUITIES";
-                c1.className = "card " + (isCommod ? "halo-bg-gold" : "halo-bg-silver");
-            }
-            const vol = (data.vol || "STABLE").toUpperCase();
-            const sub1 = document.getElementById('sub-1'); sub1.innerText = vol;
-            sub1.style.color = vol.includes("ELEVATED") ? "orange" : (vol.includes("HIGH") ? "var(--red)" : "var(--lime)");
+            // CARD 1: REGIME & VOLATILITY
+            if (cardNum === 1) {
+                const v1 = document.getElementById('val-1');
+                const s1 = document.getElementById('sub-1');
+                const c1 = document.getElementById('card-1');
 
-            // CARD 2 - ROTATION
-            const c2 = document.getElementById('card-2');
-            c2.className = "card " + (isCommod ? "halo-bg-gold" : "halo-bg-silver");
-            document.getElementById('val-2').innerText = (data.flow || "STABLE").toUpperCase();
-            const sub2 = document.getElementById('sub-2'); 
-            sub2.innerText = isCommod ? "OFFENSIVE / RISK-ON" : "DEFENSIVE / RISK-OFF";
-            sub2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
-
-            // CARD 3 - UP/DOWN COUNT
-            const val3 = document.getElementById('val-3');
-            val3.innerText = isBelowSMA ? "DOWN COUNT" : "UP COUNT";
-            
-            const rawProg = parseFloat(data.cycle_progress) || 0;
-            const sub3 = document.getElementById('sub-3');
-            sub3.innerText = Math.abs(rawProg).toFixed(1) + "% " + (isBelowSMA ? "DEVIATION" : "MATURE");
-            
-            const track = document.getElementById('track-3'); track.style.display = 'block';
-            const fill = document.getElementById('fill-3');
-            
-            // Ensure bar is visible even at low values
-            const displayWidth = Math.max(Math.abs(rawProg), 1.5);
-            fill.style.width = displayWidth + "%";
-            
-            if (isBelowSMA) {
-                fill.style.right = "0"; fill.style.left = "auto";
-                fill.style.background = "var(--pink)"; sub3.style.color = "var(--pink)";
-            } else {
-                fill.style.left = "0"; fill.style.right = "auto";
-                let col = rawProg < 25 ? "var(--lime)" : (rawProg > 90 ? "var(--red)" : (rawProg > 75 ? "orange" : (isCommod ? "var(--gold)" : "var(--silver)")));
-                fill.style.background = col; sub3.style.color = col;
+                if (message.includes("COMMODITIES")) {
+                    v1.innerHTML = 'STRONG COMMODITIES <span style="color:var(--gold)">▲</span>';
+                    c1.className = "card halo-bg-gold";
+                } else {
+                    v1.innerHTML = 'STRONG EQUITIES <span style="color:var(--silver)">▼</span>';
+                    c1.className = "card halo-bg-silver";
+                }
+                
+                const vol = message.includes("ELEVATED") ? "ELEVATED" : "STABLE";
+                s1.innerText = vol;
+                s1.style.color = vol === "ELEVATED" ? "var(--red)" : "var(--lime)";
             }
 
-            // CARD 4 - RECESSION
-            const sahm = parseFloat(data.sahm || 0);
-            const c4 = document.getElementById('card-4'); const sub4 = document.getElementById('sub-4');
-            c4.classList.remove('led-pulse-red');
-            if (sahm >= 0.5) {
-                document.getElementById('val-4').innerText = "CONTRACTION";
-                c4.classList.add('led-pulse-red'); sub4.innerText = "SIGNAL TRIGGERED"; sub4.style.color = "var(--red)";
-            } else {
-                document.getElementById('val-4').innerText = "EXPANSION";
-                sub4.innerText = sahm > 0.35 ? "STALLING / MONITORING" : "STABLE";
-                sub4.style.color = sahm > 0.35 ? "orange" : "var(--dim)";
+            // CARD 2: CAPITAL ROTATION
+            if (cardNum === 2) {
+                const s2 = document.getElementById('sub-2');
+                const c2 = document.getElementById('card-2');
+                const isCommod = message.includes("INTO COMMODITIES");
+
+                document.getElementById('val-2').innerText = isCommod ? "OFFENSIVE" : "DEFENSIVE";
+                s2.innerText = isCommod ? "RISK-ON FLOW" : "RISK-OFF FLOW";
+                s2.style.color = isCommod ? "var(--lime)" : "var(--pink)";
+                c2.className = "card " + (isCommod ? "halo-bg-gold" : "halo-bg-silver");
+            }
+
+            // CARD 3: CYCLE MATURITY (The Gold Lines)
+            if (cardNum === 3) {
+                const v3 = document.getElementById('val-3');
+                const s3 = document.getElementById('sub-3');
+                const fill = document.getElementById('fill-3');
+                
+                // Extract number from "Month 12"
+                const count = parseInt(message.replace(/[^0-9]/g, '')) || 0;
+                const isStocks = document.getElementById('val-1').innerText.includes("EQUITIES");
+
+                v3.innerText = isStocks ? "DOWN COUNT" : "UP COUNT";
+                s3.innerText = count + "% CYCLE MATURITY";
+                
+                document.getElementById('track-3').style.display = 'block';
+                fill.style.width = Math.max(count, 2) + "%";
+
+                if (isStocks) {
+                    fill.style.right = "0"; fill.style.left = "auto";
+                    fill.style.background = "var(--pink)";
+                    s3.style.color = "var(--pink)";
+                } else {
+                    fill.style.left = "0"; fill.style.right = "auto";
+                    fill.style.background = count > 80 ? "var(--red)" : "var(--gold)";
+                    s3.style.color = "var(--gold)";
+                }
+            }
+
+            // CARD 4: RECESSION PULSE
+            if (cardNum === 4) {
+                const sahm = parseFloat(message.split(":")[1]) || 0;
+                const c4 = document.getElementById('card-4');
+                const v4 = document.getElementById('val-4');
+                
+                c4.classList.remove('led-pulse-red');
+                if (sahm >= 0.5) {
+                    v4.innerText = "CONTRACTION";
+                    c4.classList.add('led-pulse-red');
+                    document.getElementById('sub-4').innerText = "SAHM RULE TRIGGERED";
+                } else {
+                    v4.innerText = "EXPANSION";
+                    document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahm.toFixed(2);
+                }
             }
         });
     </script>
-</body>
-</html>
