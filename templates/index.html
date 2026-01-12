@@ -173,6 +173,7 @@
 
         socket.on('macro_update', (data) => {
             triggerPulse();
+
             if (data.cycle) {
                 const v1 = document.getElementById('val-1'), c1 = document.getElementById('card-1');
                 if (data.cycle.toLowerCase().includes("commodities")) {
@@ -181,20 +182,26 @@
                     v1.innerText = data.cycle.toUpperCase(); v1.style.color = "var(--text)"; c1.className = "card halo-bg-silver";
                 }
             }
+
             if (data.vol) {
                 const s1 = document.getElementById('sub-1');
                 s1.innerText = "VOLATILITY: " + data.vol.toUpperCase();
                 s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
             }
+
             if (data.flow) {
                 const v2 = document.getElementById('val-2'), c2 = document.getElementById('card-2');
-                document.getElementById('sub-2').innerText = "OUT OF EQUITIES / INTO COMMODITIES";
+
+                // ✅ UPDATED: show the actual flow text
+                document.getElementById('sub-2').innerText = data.flow.toUpperCase();
+
                 if (data.flow.toLowerCase().includes("commodities") || data.flow.toLowerCase().includes("offensive")) {
                     v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--gold)"; c2.className = "card halo-bg-gold";
                 } else {
                     v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--text)"; c2.className = "card halo-bg-silver";
                 }
             }
+
             if (data.count !== undefined) {
                 const count = parseInt(data.count);
                 const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3'), c3 = document.getElementById('card-3'), f3 = document.getElementById('fill-3');
@@ -219,6 +226,7 @@
                     f3.style.background = endCol;
                 }
             }
+
             if (data.sahm !== undefined) {
                 const sahm = parseFloat(data.sahm) || 0;
                 const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), node = document.getElementById('led-node');
