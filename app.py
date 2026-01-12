@@ -4,8 +4,7 @@ import os
 
 app = Flask(__name__, static_folder='static')
 
-# 'threading' is the only mode that works with gthread on Render
-# allow_unsafe_werkzeug=True is needed for the latest Flask versions
+# Use threading mode to remain compatible with Gunicorn gthreads
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 @app.route('/')
@@ -20,14 +19,17 @@ def serve_static(filename):
 def webhook():
     try:
         data = request.get_json()
-        print(f"Incoming Webhook: {data}") # This helps us see it in the logs
         
-        # We use namespace='/' and broadcast=True to ensure the screen updates
-        socketio.emit('macro_update', data, namespace='/', broadcast=True)
+        # This print statement is vital for your Render logs
+        print(f"Incoming Webhook: {data}") 
+        
+        # FIX: Removed 'broadcast=True' and 'namespace' to avoid the 400 error.
+        # socketio.emit broadcasts to everyone by default.
+        socketio.emit('macro_update', data)
         
         return "SUCCESS", 200
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in webhook: {e}")
         return str(e), 400
 
 if __name__ == '__main__':
