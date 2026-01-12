@@ -35,7 +35,7 @@
         /* --- CLOCK & CITIES --- */
         #digital-clock { font-size: 52px; font-weight: 700; text-align: right; letter-spacing: -2px; line-height: 1; }
         .city-grid { display: flex; gap: 18px; margin-top: 12px; justify-content: flex-end; }
-        .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; }
+        .city-item { font-size: 10px; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 700; transition: color 0.4s; cursor: pointer; }
         .status-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; transition: 0.3s; }
         
         .city-open { color: var(--lime) !important; }
@@ -58,20 +58,11 @@
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
         .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; }
 
-        #pw-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; justify-content: center; align-items: center; }
-        .pw-box { background: #0a0a0a; padding: 40px; border: 1px solid var(--gold); text-align: center; border-radius: 4px; }
-        .pw-box input { background: #000; border: 1px solid #222; color: var(--gold); padding: 12px; text-align: center; font-size: 24px; outline: none; font-family: monospace; }
-        
         #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
         .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; }
     </style>
 </head>
 <body>
-
-    <div id="pw-overlay"><div class="pw-box">
-        <h3 style="color: var(--gold); margin-bottom: 20px; font-size: 11px; letter-spacing: 3px;">SYSTEM ACCESS KEY REQUIRED</h3>
-        <input type="password" id="pw-input" onkeydown="if(event.key==='Enter') verifyKey()">
-    </div></div>
 
     <header class="header">
         <div class="logo-area">
@@ -90,7 +81,7 @@
             <div class="city-grid">
                 <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
                 <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-                <div class="city-item" id="city-tor" ondblclick="openVault()"><div class="status-dot"></div> TORONTO</div>
+                <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
                 <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
             </div>
         </div>
@@ -112,14 +103,24 @@
     </section>
 
     <script>
-        const socket = io({ transports: ['websocket', 'polling'] });
+        // 1. CONNECTION CONFIG
+        const socket = io({
+            transports: ['polling', 'websocket'],
+            upgrade: true,
+            reconnection: true
+        });
 
+        socket.on('connect', () => {
+            console.log("CONNECTED: Sutton Terminal Live.");
+        });
+
+        // 2. LIVE CLOCK & TRADING HOURS
         function tick() {
             const now = new Date();
             document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
             const hrs = now.getUTCHours();
             
-            // LIME GREEN for open hours
+            // LIME GREEN for open hours (UTC)
             document.getElementById('city-lon').className = (hrs >= 8 && hrs < 16) ? 'city-item city-open' : 'city-item';
             document.getElementById('city-ny').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
             document.getElementById('city-tor').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
@@ -127,84 +128,54 @@
         }
         setInterval(tick, 1000); tick();
 
-        function openVault() { document.getElementById('pw-overlay').style.display = 'flex'; document.getElementById('pw-input').focus(); }
-        function closeVault() { document.getElementById('private-layer').style.display = 'none'; document.getElementById('pw-input').value = ""; }
-        function verifyKey() { if (document.getElementById('pw-input').value === "toffees") { document.getElementById('pw-overlay').style.display = 'none'; document.getElementById('private-layer').style.display = 'block'; } }
-
         function triggerPulse() {
             const items = document.querySelectorAll('.city-item');
             items.forEach(i => i.classList.add('comms-flash'));
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        socket.on("macro_update", (data) => {
+        // 3. INDICATOR DATA HANDLER
+        socket.on('macro_update', (data) => {
             triggerPulse();
-            const cardNum = data.card;
-            const message = (data.msg || "").toUpperCase();
-
-            // CARD 1: REGIME & VOLATILITY
-            if (cardNum === 1) {
+            console.log("DATA:", data);
+            
+            if (data.regime) {
                 const v1 = document.getElementById('val-1');
-                const s1 = document.getElementById('sub-1');
                 const c1 = document.getElementById('card-1');
-                const isGold = message.includes("COMMODITIES");
-                
-                v1.innerHTML = isGold ? 'COMMODITIES <span style="color:var(--gold)">▲</span>' : 'EQUITIES <span style="color:var(--silver)">▼</span>';
-                c1.className = "card " + (isGold ? "halo-bg-gold" : "halo-bg-silver");
-                
-                // Parse Momentum and Volatility from string
-                const mom = message.includes("RISING") ? "RISING" : message.includes("FALLING") ? "FALLING" : "STABLE";
-                const vol = message.includes("ELEVATED") ? "ELEVATED" : "STABLE";
-                
-                s1.innerText = `${mom} TREND | VOLATILITY: ${vol}`;
-                s1.style.color = vol === "ELEVATED" ? "var(--red)" : "var(--lime)";
+                v1.innerText = data.regime.toUpperCase();
+                c1.className = data.regime.toLowerCase().includes("commodities") ? "card halo-bg-gold" : "card halo-bg-silver";
             }
-
-            // CARD 2: CAPITAL ROTATION
-            if (cardNum === 2) {
-                const isGold = message.includes("COMMODITIES");
-                document.getElementById('val-2').innerText = isGold ? "OFFENSIVE" : "DEFENSIVE";
-                const sub2 = document.getElementById('sub-2');
-                sub2.innerText = isGold ? "OFFENSIVE / RISK-ON" : "DEFENSIVE / RISK-OFF";
-                sub2.style.color = isGold ? "var(--lime)" : "var(--pink)";
-                document.getElementById('card-2').className = "card " + (isGold ? "halo-bg-gold" : "halo-bg-silver");
+            
+            if (data.rotation) {
+                document.getElementById('val-2').innerText = data.rotation.toUpperCase();
             }
-
-            // CARD 3: CYCLE MATURITY
-            if (cardNum === 3) {
-                const isGold = data.regime === "COMMODITIES";
-                const count = parseInt(message) || 0;
-                
-                document.getElementById('val-3').innerText = isGold ? "UP COUNT" : "DOWN COUNT";
-                document.getElementById('sub-3').innerText = count + "% CYCLE MATURITY";
+            
+            if (data.maturity) {
+                document.getElementById('val-3').innerText = "PHASE MATURITY";
+                document.getElementById('sub-3').innerText = data.maturity + "%";
                 document.getElementById('track-3').style.display = 'block';
-                
-                const fill = document.getElementById('fill-3');
-                fill.style.width = Math.max(count, 2) + "%";
-                fill.style.background = isGold ? "var(--gold)" : "var(--pink)";
-                document.getElementById('sub-3').style.color = isGold ? "var(--gold)" : "var(--pink)";
+                document.getElementById('fill-3').style.width = data.maturity + "%";
             }
-
-            // CARD 4: RECESSION PULSE
-            if (cardNum === 4) {
-                const sahmValue = parseFloat(message.split(":")[1]) || 0;
-                const v4 = document.getElementById('val-4');
-                const s4 = document.getElementById('sub-4');
-                const c4 = document.getElementById('card-4');
-                
-                c4.classList.remove('led-pulse-red');
-                if (sahmValue >= 0.5) {
-                    v4.innerText = "CONTRACTION";
-                    c4.classList.add('led-pulse-red');
-                    s4.innerText = "SAHM RULE TRIGGERED";
-                    s4.style.color = "var(--red)";
-                } else {
-                    v4.innerText = "EXPANSION";
-                    s4.innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
-                    s4.style.color = "var(--dim)";
-                }
+            
+            if (data.pulse) {
+                const sahm = parseFloat(data.pulse) || 0;
+                document.getElementById('val-4').innerText = sahm >= 0.5 ? "CONTRACTION" : "EXPANSION";
+                document.getElementById('card-4').className = sahm >= 0.5 ? "card led-pulse-red" : "card";
+                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahm;
             }
         });
+
+        // 4. SUTTON SECRET (Double-Click Toronto)
+        document.getElementById('city-tor').addEventListener('dblclick', () => {
+            const entry = prompt("SYSTEM ACCESS KEY:");
+            if (entry === 'toffees') {
+                document.getElementById('private-layer').style.display = 'block';
+            }
+        });
+
+        function closeVault() {
+            document.getElementById('private-layer').style.display = 'none';
+        }
 
         socket.on("secret_update", (data) => {
             triggerPulse();
