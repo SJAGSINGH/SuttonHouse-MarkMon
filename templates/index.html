@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg: #050505; --card: #111111; --text: #ffffff;
-            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --silver: #C0C0C0; --pink: #FF69B4; --red: #ff4444;
+            --dim: #333333; --lime: #32CD32; --gold: #BF953F; --silver: #C0C0C0; --pink: #FF69B4; --red: #ff4444; --orange: #ff8c00;
         }
         body { 
             background-color: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
@@ -50,7 +50,7 @@
         .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; transition: color 0.5s; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* DEEP FADE REGIME GLOWS */
+        /* REGIME GLOWS */
         .halo-bg-gold { 
             border-color: var(--gold) !important; 
             background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important;
@@ -62,9 +62,15 @@
             box-shadow: 0 0 30px rgba(192, 192, 192, 0.15), inset 0 0 20px rgba(192, 192, 192, 0.1);
         }
 
+        /* DYNAMIC CARD 3 GLOWS */
+        .glow-lime { border-color: var(--lime) !important; background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important; box-shadow: 0 0 30px rgba(50, 205, 50, 0.15); }
+        .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
+        .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
+
         .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.2); }
         @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
 
+        /* PROGRESS BAR */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
         .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; background: var(--gold); }
 
@@ -113,16 +119,8 @@
     </section>
 
     <script>
-        // 1. CONNECTION CONFIG (UNTOUCHED)
-        const socket = io({
-            transports: ['polling', 'websocket'],
-            upgrade: true,
-            reconnection: true
-        });
+        const socket = io({ transports: ['polling', 'websocket'], upgrade: true, reconnection: true });
 
-        socket.on('connect', () => { console.log("CONNECTED: Sutton Terminal Live."); });
-
-        // 2. LIVE CLOCK & TRADING HOURS
         function tick() {
             const now = new Date();
             document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
@@ -140,22 +138,16 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        // 3. INDICATOR DATA HANDLER
         socket.on('macro_update', (data) => {
             triggerPulse();
             
-            // --- CARD 1: REGIME & VOLATILITY (LOCKED) ---
+            // --- CARD 1 (LOCKED) ---
             if (data.cycle) {
-                const v1 = document.getElementById('val-1');
-                const c1 = document.getElementById('card-1');
+                const v1 = document.getElementById('val-1'), c1 = document.getElementById('card-1');
                 if (data.cycle.toLowerCase().includes("commodities")) {
-                    v1.innerText = "STRONG COMMODITIES MACRO";
-                    v1.style.color = "var(--gold)";
-                    c1.className = "card halo-bg-gold";
+                    v1.innerText = "STRONG COMMODITIES MACRO"; v1.style.color = "var(--gold)"; c1.className = "card halo-bg-gold";
                 } else {
-                    v1.innerText = data.cycle.toUpperCase();
-                    v1.style.color = "var(--text)";
-                    c1.className = "card halo-bg-silver";
+                    v1.innerText = data.cycle.toUpperCase(); v1.style.color = "var(--text)"; c1.className = "card halo-bg-silver";
                 }
             }
             if (data.vol) {
@@ -164,50 +156,63 @@
                 s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
             }
             
-            // --- CARD 2: CAPITAL ROTATION (GRAPHICS MOD) ---
+            // --- CARD 2 (LOCKED) ---
             if (data.flow) {
-                const v2 = document.getElementById('val-2');
-                const s2 = document.getElementById('sub-2');
-                const c2 = document.getElementById('card-2');
-                
-                v2.innerText = "ROTATION ACTIVE";
-                s2.innerText = "OUT OF EQUITIES / INTO COMMODITIES";
-                
-                // Match Card 1 Visuals
+                const v2 = document.getElementById('val-2'), c2 = document.getElementById('card-2');
+                document.getElementById('sub-2').innerText = "OUT OF EQUITIES / INTO COMMODITIES";
                 if (data.flow.toLowerCase().includes("commodities") || data.flow.toLowerCase().includes("offensive")) {
-                    v2.style.color = "var(--gold)";
-                    c2.className = "card halo-bg-gold";
+                    v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--gold)"; c2.className = "card halo-bg-gold";
                 } else {
-                    v2.style.color = "var(--text)";
-                    c2.className = "card halo-bg-silver";
+                    v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--text)"; c2.className = "card halo-bg-silver";
                 }
             }
             
-            // Card 3: Maturity
+            // --- CARD 3: CYCLE MATURITY (MOD) ---
             if (data.count !== undefined) {
-                document.getElementById('val-3').innerText = "PHASE MATURITY";
-                document.getElementById('sub-3').innerText = data.count + "%";
+                const count = parseInt(data.count);
+                const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3');
+                const c3 = document.getElementById('card-3'), f3 = document.getElementById('fill-3');
+                
                 document.getElementById('track-3').style.display = 'block';
-                document.getElementById('fill-3').style.width = data.count + "%";
+                f3.style.width = count + "%";
+                s3.innerText = "MATURITY: " + count + "%";
+
+                if (count === 0) {
+                    v3.innerText = "INITIATING"; v3.style.color = "var(--dim)"; 
+                    c3.className = "card"; f3.style.background = "var(--dim)";
+                } else if (count <= 25) {
+                    v3.innerText = "EARLY CYCLE"; v3.style.color = "var(--lime)";
+                    c3.className = "card glow-lime"; f3.style.background = "var(--lime)";
+                } else if (count <= 70) {
+                    v3.innerText = "ESTABLISHED CYCLE";
+                    // Sync with Card 1 Regime Color
+                    const isGold = (data.cycle && data.cycle.toLowerCase().includes("commodities"));
+                    v3.style.color = isGold ? "var(--gold)" : "var(--silver)";
+                    c3.className = isGold ? "card halo-bg-gold" : "card halo-bg-silver";
+                    f3.style.background = isGold ? "var(--gold)" : "var(--silver)";
+                } else {
+                    v3.innerText = "CYCLE END APPROACHING";
+                    const endCol = count > 85 ? "var(--red)" : "var(--orange)";
+                    v3.style.color = endCol;
+                    c3.className = count > 85 ? "card glow-danger" : "card glow-warning";
+                    f3.style.background = endCol;
+                }
             }
             
-            // Card 4: Recession Pulse
+            // --- CARD 4: RECESSION PULSE ---
             if (data.sahm !== undefined) {
                 const sahmValue = parseFloat(data.sahm) || 0;
-                const v4 = document.getElementById('val-4');
-                const c4 = document.getElementById('card-4');
+                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4');
                 v4.innerText = sahmValue >= 0.5 ? "CONTRACTION" : "EXPANSION";
                 document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
                 if (sahmValue >= 0.5) { c4.className = "card led-pulse-red"; } else { c4.className = "card"; }
             }
         });
 
-        // 4. SUTTON SECRET
         document.getElementById('city-tor').addEventListener('dblclick', () => {
             const entry = prompt("SYSTEM ACCESS KEY:");
             if (entry === 'toffees') { document.getElementById('private-layer').style.display = 'block'; }
         });
-
         function closeVault() { document.getElementById('private-layer').style.display = 'none'; }
     </script>
 </body>
