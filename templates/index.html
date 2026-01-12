@@ -1,4 +1,5 @@
-<!DOCTYPE html> 
+
+  <!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -134,34 +135,46 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        // 3. INDICATOR DATA HANDLER
+        // 3. INDICATOR DATA HANDLER (Mapped to your specific Webhook Keys)
         socket.on('macro_update', (data) => {
             triggerPulse();
-            console.log("DATA:", data);
+            console.log("DATA RECEIVED:", data);
             
-            if (data.regime) {
+            // Card 1: Regime (uses 'cycle' and 'vol')
+            if (data.cycle) {
                 const v1 = document.getElementById('val-1');
                 const c1 = document.getElementById('card-1');
-                v1.innerText = data.regime.toUpperCase();
-                c1.className = data.regime.toLowerCase().includes("commodities") ? "card halo-bg-gold" : "card halo-bg-silver";
+                v1.innerText = data.cycle.toUpperCase();
+                c1.className = data.cycle.toLowerCase().includes("commodities") ? "card halo-bg-gold" : "card halo-bg-silver";
+            }
+            if (data.vol) {
+                const s1 = document.getElementById('sub-1');
+                s1.innerText = "VOLATILITY: " + data.vol.toUpperCase();
+                s1.style.color = data.vol === "ELEVATED" ? "var(--red)" : "var(--lime)";
             }
             
-            if (data.rotation) {
-                document.getElementById('val-2').innerText = data.rotation.toUpperCase();
+            // Card 2: Rotation (uses 'flow')
+            if (data.flow) {
+                document.getElementById('val-2').innerText = "ROTATION ACTIVE";
+                document.getElementById('sub-2').innerText = data.flow.toUpperCase();
             }
             
-            if (data.maturity) {
+            // Card 3: Maturity (uses 'count')
+            if (data.count !== undefined) {
                 document.getElementById('val-3').innerText = "PHASE MATURITY";
-                document.getElementById('sub-3').innerText = data.maturity + "%";
+                document.getElementById('sub-3').innerText = data.count + "%";
                 document.getElementById('track-3').style.display = 'block';
-                document.getElementById('fill-3').style.width = data.maturity + "%";
+                document.getElementById('fill-3').style.width = data.count + "%";
             }
             
-            if (data.pulse) {
-                const sahm = parseFloat(data.pulse) || 0;
-                document.getElementById('val-4').innerText = sahm >= 0.5 ? "CONTRACTION" : "EXPANSION";
-                document.getElementById('card-4').className = sahm >= 0.5 ? "card led-pulse-red" : "card";
-                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahm;
+            // Card 4: Pulse (uses 'sahm')
+            if (data.sahm !== undefined) {
+                const sahm = parseFloat(data.sahm) || 0;
+                const v4 = document.getElementById('val-4');
+                const c4 = document.getElementById('card-4');
+                v4.innerText = sahm >= 0.5 ? "CONTRACTION" : "EXPANSION";
+                c4.className = sahm >= 0.5 ? "card led-pulse-red" : "card";
+                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahm.toFixed(2);
             }
         });
 
