@@ -1,4 +1,4 @@
-     <!DOCTYPE html> 
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -62,12 +62,12 @@
             box-shadow: 0 0 30px rgba(192, 192, 192, 0.15), inset 0 0 20px rgba(192, 192, 192, 0.1);
         }
 
-        /* DYNAMIC CARD 3 GLOWS */
+        /* DYNAMIC CARD 3 & 4 GLOWS */
         .glow-lime { border-color: var(--lime) !important; background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important; box-shadow: 0 0 30px rgba(50, 205, 50, 0.15); }
         .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
         .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
 
-        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.2); }
+        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.3), inset 0 0 20px rgba(255, 68, 68, 0.2) !important; }
         @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
 
         /* PROGRESS BAR */
@@ -167,7 +167,7 @@
                 }
             }
             
-            // --- CARD 3: CYCLE MATURITY (MOD) ---
+            // --- CARD 3 (LOCKED) ---
             if (data.count !== undefined) {
                 const count = parseInt(data.count);
                 const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3');
@@ -185,7 +185,6 @@
                     c3.className = "card glow-lime"; f3.style.background = "var(--lime)";
                 } else if (count <= 70) {
                     v3.innerText = "ESTABLISHED CYCLE";
-                    // Sync with Card 1 Regime Color
                     const isGold = (data.cycle && data.cycle.toLowerCase().includes("commodities"));
                     v3.style.color = isGold ? "var(--gold)" : "var(--silver)";
                     c3.className = isGold ? "card halo-bg-gold" : "card halo-bg-silver";
@@ -199,13 +198,26 @@
                 }
             }
             
-            // --- CARD 4: RECESSION PULSE ---
+            // --- CARD 4: RECESSION PULSE (MODIFIED) ---
             if (data.sahm !== undefined) {
                 const sahmValue = parseFloat(data.sahm) || 0;
-                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4');
-                v4.innerText = sahmValue >= 0.5 ? "CONTRACTION" : "EXPANSION";
-                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
-                if (sahmValue >= 0.5) { c4.className = "card led-pulse-red"; } else { c4.className = "card"; }
+                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), s4 = document.getElementById('sub-4');
+                
+                s4.innerText = ""; // Value hidden per requirement
+
+                if (sahmValue <= 0.34) {
+                    v4.innerText = "EXPANSION PHASE";
+                    v4.style.color = "var(--lime)";
+                    c4.className = "card glow-lime";
+                } else if (sahmValue <= 0.49) {
+                    v4.innerText = "WARNING: APPROACHING RECESSION";
+                    v4.style.color = "var(--orange)";
+                    c4.className = "card glow-warning";
+                } else {
+                    v4.innerText = "CONTRACTION";
+                    v4.style.color = "var(--red)";
+                    c4.className = "card glow-danger led-pulse-red";
+                }
             }
         });
 
