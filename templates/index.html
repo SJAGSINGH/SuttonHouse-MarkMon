@@ -67,8 +67,10 @@
         .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
         .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
 
-        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.3), inset 0 0 20px rgba(255, 68, 68, 0.2) !important; }
-        @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
+        /* CARD 4 EXCLUSIVE: Smaller Font & Bigger Pulse */
+        .recession-text { font-size: 13px !important; letter-spacing: 1px; }
+        .led-pulse-red { animation: led-red 0.8s infinite alternate !important; border-color: var(--red) !important; box-shadow: 0 0 40px rgba(255, 68, 68, 0.4), inset 0 0 25px rgba(255, 68, 68, 0.3) !important; }
+        @keyframes led-red { 0% { background: #050505; } 100% { background: #660000; } }
 
         /* PROGRESS BAR */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
@@ -107,7 +109,7 @@
         <div class="card" id="card-1"><h3>Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
         <div class="card" id="card-2"><h3>Capital Rotation</h3><div class="primary-text" id="val-2">AWAITING</div><div class="secondary-text" id="sub-2"></div></div>
         <div class="card" id="card-3"><h3>Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
-        <div class="card" id="card-4"><h3>Recession Pulse</h3><div class="primary-text" id="val-4">AWAITING</div><div class="secondary-text" id="sub-4"></div></div>
+        <div class="card" id="card-4"><h3>Recession Pulse</h3><div class="primary-text recession-text" id="val-4">AWAITING</div><div class="secondary-text" id="sub-4"></div></div>
     </main>
 
     <section id="private-layer">
@@ -198,12 +200,12 @@
                 }
             }
             
-            // --- CARD 4: RECESSION PULSE (MODIFIED) ---
+            // --- CARD 4: RECESSION PULSE (MODIFIED ONLY) ---
             if (data.sahm !== undefined) {
                 const sahmValue = parseFloat(data.sahm) || 0;
                 const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), s4 = document.getElementById('sub-4');
                 
-                s4.innerText = ""; // Value hidden per requirement
+                s4.innerText = ""; 
 
                 if (sahmValue <= 0.34) {
                     v4.innerText = "EXPANSION PHASE";
