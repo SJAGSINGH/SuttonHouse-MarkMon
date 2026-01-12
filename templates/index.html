@@ -149,9 +149,6 @@
       padding:10px; width:200px; text-align:center;
       margin-bottom:20px; outline:none; font-family:monospace; letter-spacing:4px;
     }
-
-    #private-layer{ display:none; border-top:1px solid #222; padding-top:40px; margin-top:20px; }
-    .btn-hide{ background:none; border:1px solid #333; color:#555; padding:10px 20px; font-size:10px; cursor:pointer; text-transform:uppercase; margin-bottom:25px; }
   </style>
 </head>
 
@@ -210,14 +207,6 @@
     </div>
   </main>
 
-  <section id="private-layer">
-    <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
-    <div class="grid" style="grid-template-columns:1fr 1fr;">
-      <div class="card" style="border-color:#2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" style="color:var(--gold);">SECURE</div></div>
-      <div class="card" style="border-color:#2a2210;"><h3>Order Flow</h3><div class="primary-text" style="color:var(--gold);">SECURE</div></div>
-    </div>
-  </section>
-
   <div id="password-modal">
     <div class="modal-content">
       <h2 style="color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:20px;text-transform:uppercase;">Encryption Key Required</h2>
@@ -258,17 +247,17 @@
     }
 
     // ----------------------------
-    // SECRET MODE
+    // SECRET MODE (Cards 1–3 become the secret UI)
     // ----------------------------
     let secretMode = false;
+
     function setText(id, txt){
       const el = document.getElementById(id);
       if (el) el.innerText = txt;
     }
+
     function enableSecretMode(){
       secretMode = true;
-      const layer = document.getElementById('private-layer');
-      if (layer) layer.style.display = 'block';
 
       setText('h3-1', 'Institutional Alpha');
       setText('h3-2', 'Order Flow');
@@ -279,16 +268,27 @@
         if (c) c.className = 'card halo-bg-gold';
       });
 
-      ['val-1','val-2','val-3'].forEach(id => setText(id, 'SECURE FEED'));
-      ['sub-1','sub-2','sub-3'].forEach(id => setText(id, 'AWAITING SIGNAL'));
+      // Force text + override any old inline colours from public mode
+      const v1 = document.getElementById('val-1');
+      const v2 = document.getElementById('val-2');
+      const v3 = document.getElementById('val-3');
+      if (v1){ v1.innerText = 'SECURE FEED'; v1.style.color = 'var(--gold)'; }
+      if (v2){ v2.innerText = 'SECURE FEED'; v2.style.color = 'var(--gold)'; }
+      if (v3){ v3.innerText = 'SECURE FEED'; v3.style.color = 'var(--gold)'; }
+
+      const s1 = document.getElementById('sub-1');
+      const s2 = document.getElementById('sub-2');
+      const s3 = document.getElementById('sub-3');
+      if (s1){ s1.innerText = 'AWAITING SIGNAL'; s1.style.color = 'var(--gold)'; }
+      if (s2){ s2.innerText = 'AWAITING SIGNAL'; s2.style.color = 'var(--gold)'; }
+      if (s3){ s3.innerText = 'AWAITING SIGNAL'; s3.style.color = 'var(--gold)'; }
 
       const t3 = document.getElementById('track-3');
       if (t3) t3.style.display = 'none';
     }
+
     function closeVault(){
       secretMode = false;
-      const layer = document.getElementById('private-layer');
-      if (layer) layer.style.display = 'none';
 
       setText('h3-1', 'Regime & Volatility');
       setText('h3-2', 'Capital Rotation');
@@ -299,8 +299,15 @@
         if (c) c.className = 'card';
       });
 
-      ['val-1','val-2','val-3'].forEach(id => setText(id, 'AWAITING'));
-      ['sub-1','sub-2','sub-3'].forEach(id => setText(id, ''));
+      // Clear any inline styles we set in secret mode
+      ['val-1','val-2','val-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el){ el.innerText = 'AWAITING'; el.style.color = ''; }
+      });
+      ['sub-1','sub-2','sub-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el){ el.innerText = ''; el.style.color = ''; }
+      });
 
       const t3 = document.getElementById('track-3');
       if (t3) t3.style.display = 'block';
@@ -367,7 +374,7 @@
             if (c2) c2.className = flowGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
           }
 
-          // ✅ FIXED CARD 3: CLASSIFY & UPDATE val-3 + styling
+          // CARD 3 maturity
           if (data.count !== undefined && data.count !== null){
             const count = Number.parseInt(data.count, 10);
 
@@ -405,7 +412,6 @@
                 if (f3) f3.style.background = endCol;
               }
             } else {
-              // Non-numeric safety fallback
               if (s3) s3.innerText = 'MATURITY: --';
             }
           }
@@ -423,7 +429,7 @@
             if (c4) c4.className = 'card glow-lime';
             if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
           } else if (s <= 0.49){
-            if (v4) v4.innerText = 'WARNING';
+            if (v4) v4.innerText = 'WARNING: APPROACHING RECESSION';
             if (c4) c4.className = 'card glow-warning';
             if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
           } else {
