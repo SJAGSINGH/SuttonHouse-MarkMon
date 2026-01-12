@@ -50,8 +50,9 @@
         .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .halo-bg-gold { border-color: var(--gold) !important; box-shadow: inset 0 0 20px rgba(191, 149, 63, 0.2); }
-        .halo-bg-silver { border-color: var(--silver) !important; box-shadow: inset 0 0 20px rgba(192, 192, 192, 0.2); }
+        /* HALOS & LEDS */
+        .halo-bg-gold { border-color: var(--gold) !important; box-shadow: inset 0 0 25px rgba(191, 149, 63, 0.2), 0 0 15px rgba(191, 149, 63, 0.1); }
+        .halo-bg-silver { border-color: var(--silver) !important; box-shadow: inset 0 0 25px rgba(192, 192, 192, 0.2), 0 0 15px rgba(192, 192, 192, 0.1); }
         .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.2); }
         @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
 
@@ -103,16 +104,14 @@
     </section>
 
     <script>
-        // 1. CONNECTION CONFIG (UNTOUCHED)
+        // 1. CONNECTION CONFIG (LOCKDOWN MODE)
         const socket = io({
             transports: ['polling', 'websocket'],
             upgrade: true,
             reconnection: true
         });
 
-        socket.on('connect', () => {
-            console.log("CONNECTED: Sutton Terminal Live.");
-        });
+        socket.on('connect', () => { console.log("CONNECTED: Sutton Terminal Live."); });
 
         // 2. LIVE CLOCK & TRADING HOURS
         function tick() {
@@ -132,22 +131,24 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        // 3. INDICATOR DATA HANDLER (FIXED MAPPING & GRAPHICS)
+        // 3. INDICATOR DATA HANDLER
         socket.on('macro_update', (data) => {
             triggerPulse();
             console.log("DATA RECEIVED:", data);
             
-            // Card 1: Regime & Volatility (Mapping 'cycle' and 'vol')
+            // --- CARD 1: REGIME & VOLATILITY (The Priority Fix) ---
             if (data.cycle) {
                 const v1 = document.getElementById('val-1');
                 const c1 = document.getElementById('card-1');
                 v1.innerText = data.cycle.toUpperCase();
                 
-                // RESTORE HALO: Gold if Commodities, Silver otherwise
+                // Logic check for Halo painting
                 if (data.cycle.toLowerCase().includes("commodities")) {
                     c1.className = "card halo-bg-gold";
+                    console.log("Visual Applied: GOLD HALO");
                 } else {
                     c1.className = "card halo-bg-silver";
+                    console.log("Visual Applied: SILVER HALO");
                 }
             }
             if (data.vol) {
@@ -156,13 +157,13 @@
                 s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
             }
             
-            // Card 2: Rotation (Mapping 'flow')
+            // Card 2: Rotation
             if (data.flow) {
                 document.getElementById('val-2').innerText = "ROTATION ACTIVE";
                 document.getElementById('sub-2').innerText = data.flow.toUpperCase();
             }
             
-            // Card 3: Maturity (Mapping 'count')
+            // Card 3: Maturity
             if (data.count !== undefined) {
                 document.getElementById('val-3').innerText = "PHASE MATURITY";
                 document.getElementById('sub-3').innerText = data.count + "%";
@@ -170,43 +171,25 @@
                 document.getElementById('fill-3').style.width = data.count + "%";
             }
             
-            // Card 4: Recession Pulse (Mapping 'sahm')
+            // Card 4: Recession Pulse
             if (data.sahm !== undefined) {
                 const sahmValue = parseFloat(data.sahm) || 0;
                 const v4 = document.getElementById('val-4');
                 const c4 = document.getElementById('card-4');
-                
                 v4.innerText = sahmValue >= 0.5 ? "CONTRACTION" : "EXPANSION";
                 document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
-                
-                // RESTORE LED PULSE
-                if (sahmValue >= 0.5) {
-                    c4.className = "card led-pulse-red";
-                } else {
-                    c4.className = "card";
-                }
+                if (sahmValue >= 0.5) { c4.className = "card led-pulse-red"; } else { c4.className = "card"; }
             }
         });
 
         // 4. SUTTON SECRET
         document.getElementById('city-tor').addEventListener('dblclick', () => {
             const entry = prompt("SYSTEM ACCESS KEY:");
-            if (entry === 'toffees') {
-                document.getElementById('private-layer').style.display = 'block';
-            }
+            if (entry === 'toffees') { document.getElementById('private-layer').style.display = 'block'; }
         });
 
-        function closeVault() {
-            document.getElementById('private-layer').style.display = 'none';
-        }
-
-        socket.on("secret_update", (data) => {
-            triggerPulse();
-            if (data.sec_card === 1) document.getElementById('sec-val-1').innerText = data.msg;
-            if (data.sec_card === 2) document.getElementById('sec-val-2').innerText = data.msg;
-        });
+        function closeVault() { document.getElementById('private-layer').style.display = 'none'; }
     </script>
 </body>
 </html>
-
   
