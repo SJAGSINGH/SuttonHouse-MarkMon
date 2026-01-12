@@ -20,6 +20,9 @@
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 30px; }
         .logo-area { display: flex; align-items: center; gap: 15px; }
         .logo-img { height: 75px; width: auto; }
+        /* Vertical Divider */
+        .header-divider { width: 1px; height: 50px; background: #333; margin: 0 10px; }
+        
         .gleam {
             background: linear-gradient(to right, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
             background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -31,6 +34,9 @@
         .brand-bottom { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 300; }
         .status-dot-active { width: 5px; height: 5px; background: var(--lime); border-radius: 50%; box-shadow: 0 0 10px var(--lime); animation: pulse-lime 2s infinite; }
         @keyframes pulse-lime { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* --- MACRO SUB-HEAD --- */
+        .macro-header { font-size: 14px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 4px; margin-bottom: -20px; border-left: 3px solid var(--gold); padding-left: 15px; }
 
         /* --- CLOCK & CITIES --- */
         #digital-clock { font-size: 52px; font-weight: 700; text-align: right; letter-spacing: -2px; line-height: 1; }
@@ -50,38 +56,33 @@
         .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; transition: color 0.5s; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* REGIME GLOWS */
-        .halo-bg-gold { 
-            border-color: var(--gold) !important; 
-            background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important;
-            box-shadow: 0 0 30px rgba(191, 149, 63, 0.15), inset 0 0 20px rgba(191, 149, 63, 0.1);
-        }
-        .halo-bg-silver { 
-            border-color: var(--silver) !important; 
-            background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%) !important;
-            box-shadow: 0 0 30px rgba(192, 192, 192, 0.15), inset 0 0 20px rgba(192, 192, 192, 0.1);
-        }
-
-        /* DYNAMIC CARD 3 & 4 GLOWS */
-        .glow-lime { border-color: var(--lime) !important; background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important; box-shadow: 0 0 30px rgba(50, 205, 50, 0.15); }
-        .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
-        .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
-
-        /* CARD 4 COMMANDING LED */
-        .pulse-container { display: flex; justify-content: center; align-items: center; padding: 20px 0; flex-grow: 1; }
+        /* CARD 4 COMMANDING LED & FREQUENCY */
+        .pulse-container { display: flex; justify-content: center; align-items: center; padding: 15px 0; flex-grow: 1; }
         .pulse-node { 
-            width: 40px; height: 40px; border-radius: 50%; 
+            width: 55px; height: 55px; border-radius: 50%; 
             background: var(--dim); 
-            box-shadow: 0 0 20px rgba(255,255,255,0.05); 
-            animation: node-pulse 2s infinite ease-in-out;
+            transition: all 0.5s ease;
         }
+        
+        /* Frequency Definitions */
+        .pulse-slow { animation: node-pulse 3s infinite ease-in-out; }
+        .pulse-mid { animation: node-pulse 1.2s infinite ease-in-out; }
+        .pulse-fast { animation: node-pulse 0.5s infinite ease-in-out; }
+
         @keyframes node-pulse { 
-            0% { transform: scale(0.95); opacity: 0.8; } 
-            50% { transform: scale(1.05); opacity: 1; } 
-            100% { transform: scale(0.95); opacity: 0.8; } 
+            0% { transform: scale(0.9); opacity: 0.5; } 
+            50% { transform: scale(1.1); opacity: 1; } 
+            100% { transform: scale(0.9); opacity: 0.5; } 
         }
 
-        .recession-text { font-size: 12px !important; text-align: center; justify-content: center; margin-top: 15px; }
+        .recession-text { font-size: 12px !important; text-align: center; justify-content: center; margin-top: 10px; color: #ffffff !important; }
+
+        /* HALOS & GLOWS */
+        .halo-bg-gold { border-color: var(--gold) !important; background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important; box-shadow: 0 0 30px rgba(191, 149, 63, 0.15); }
+        .halo-bg-silver { border-color: var(--silver) !important; background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%) !important; box-shadow: 0 0 30px rgba(192, 192, 192, 0.15); }
+        .glow-lime { border-color: var(--lime) !important; background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important; }
+        .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; }
+        .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; }
 
         /* PROGRESS BAR */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
@@ -96,7 +97,7 @@
     <header class="header">
         <div class="logo-area">
             <img src="/static/logo.png" class="logo-img">
-            <div style="width: 1px; height: 55px; background: #222; margin: 0 20px;"></div>
+            <div class="header-divider"></div>
             <div class="brand-container">
                 <div style="display:flex; align-items:baseline;">
                     <h1 class="gleam">SUTTON HOUSE</h1>
@@ -115,6 +116,8 @@
             </div>
         </div>
     </header>
+
+    <div class="macro-header">Macro Analysis</div>
 
     <main class="grid">
         <div class="card" id="card-1"><h3>Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
@@ -208,27 +211,29 @@
                 }
             }
             
-            // --- CARD 4: RECESSION PULSE (EXCLUSIVE MOD) ---
+            // --- CARD 4: RECESSION PULSE (EXCLUSIVE FREQUENCY MOD) ---
             if (data.sahm !== undefined) {
                 const sahm = parseFloat(data.sahm) || 0;
                 const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), node = document.getElementById('led-node');
                 
                 if (sahm <= 0.34) {
-                    v4.innerText = "EXPANSION PHASE"; v4.style.color = "var(--lime)";
+                    v4.innerText = "EXPANSION PHASE";
                     c4.className = "card glow-lime";
                     node.style.background = "var(--lime)";
-                    node.style.boxShadow = "0 0 30px var(--lime)";
+                    node.style.boxShadow = "0 0 40px var(--lime)";
+                    node.className = "pulse-node pulse-slow";
                 } else if (sahm <= 0.49) {
-                    v4.innerText = "WARNING: APPROACHING RECESSION"; v4.style.color = "var(--orange)";
+                    v4.innerText = "WARNING: APPROACHING RECESSION";
                     c4.className = "card glow-warning";
                     node.style.background = "var(--orange)";
-                    node.style.boxShadow = "0 0 30px var(--orange)";
+                    node.style.boxShadow = "0 0 40px var(--orange)";
+                    node.className = "pulse-node pulse-mid";
                 } else {
-                    v4.innerText = "CONTRACTION"; v4.style.color = "var(--red)";
+                    v4.innerText = "CONTRACTION";
                     c4.className = "card glow-danger";
                     node.style.background = "var(--red)";
-                    node.style.boxShadow = "0 0 50px var(--red)";
-                    node.style.animation = "node-pulse 0.6s infinite ease-in-out"; // Faster for danger
+                    node.style.boxShadow = "0 0 60px var(--red)";
+                    node.className = "pulse-node pulse-fast";
                 }
             }
         });
