@@ -50,29 +50,20 @@
         .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; transition: color 0.5s; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* REGIME GLOWS */
-        .halo-bg-gold { 
-            border-color: var(--gold) !important; 
-            background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important;
-            box-shadow: 0 0 30px rgba(191, 149, 63, 0.15), inset 0 0 20px rgba(191, 149, 63, 0.1);
-        }
-        .halo-bg-silver { 
-            border-color: var(--silver) !important; 
-            background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%) !important;
-            box-shadow: 0 0 30px rgba(192, 192, 192, 0.15), inset 0 0 20px rgba(192, 192, 192, 0.1);
-        }
-
-        /* DYNAMIC CARD 3 GLOWS */
+        /* HALO EFFECTS */
+        .halo-bg-gold { border-color: var(--gold) !important; background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important; box-shadow: 0 0 30px rgba(191, 149, 63, 0.15); }
+        .halo-bg-silver { border-color: var(--silver) !important; background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%) !important; box-shadow: 0 0 30px rgba(192, 192, 192, 0.15); }
         .glow-lime { border-color: var(--lime) !important; background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important; box-shadow: 0 0 30px rgba(50, 205, 50, 0.15); }
-        .glow-warning { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
+        .glow-orange { border-color: var(--orange) !important; background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 140, 0, 0.15); }
+        .glow-red { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
         .glow-danger { border-color: var(--red) !important; background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important; box-shadow: 0 0 30px rgba(255, 68, 68, 0.2); }
 
-        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.2); }
-        @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
+        /* PULSE LED ANIMATION */
+        .led-pulse-red { animation: led-red 1.5s infinite alternate; }
+        @keyframes led-red { 0% { background: #111; } 100% { background: #440000; } }
 
-        /* PROGRESS BAR */
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
-        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; background: var(--gold); }
+        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; }
 
         #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
         .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; }
@@ -167,45 +158,38 @@
                 }
             }
             
-            // --- CARD 3: CYCLE MATURITY (MOD) ---
+            // --- CARD 3 (LOCKED) ---
             if (data.count !== undefined) {
                 const count = parseInt(data.count);
-                const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3');
-                const c3 = document.getElementById('card-3'), f3 = document.getElementById('fill-3');
-                
-                document.getElementById('track-3').style.display = 'block';
-                f3.style.width = count + "%";
-                s3.innerText = "MATURITY: " + count + "%";
-
-                if (count === 0) {
-                    v3.innerText = "INITIATING"; v3.style.color = "var(--dim)"; 
-                    c3.className = "card"; f3.style.background = "var(--dim)";
-                } else if (count <= 25) {
-                    v3.innerText = "EARLY CYCLE"; v3.style.color = "var(--lime)";
-                    c3.className = "card glow-lime"; f3.style.background = "var(--lime)";
-                } else if (count <= 70) {
-                    v3.innerText = "ESTABLISHED CYCLE";
-                    // Sync with Card 1 Regime Color
-                    const isGold = (data.cycle && data.cycle.toLowerCase().includes("commodities"));
-                    v3.style.color = isGold ? "var(--gold)" : "var(--silver)";
-                    c3.className = isGold ? "card halo-bg-gold" : "card halo-bg-silver";
-                    f3.style.background = isGold ? "var(--gold)" : "var(--silver)";
-                } else {
-                    v3.innerText = "CYCLE END APPROACHING";
-                    const endCol = count > 85 ? "var(--red)" : "var(--orange)";
-                    v3.style.color = endCol;
-                    c3.className = count > 85 ? "card glow-danger" : "card glow-warning";
-                    f3.style.background = endCol;
+                const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3'), c3 = document.getElementById('card-3'), f3 = document.getElementById('fill-3');
+                document.getElementById('track-3').style.display = 'block'; f3.style.width = count + "%"; s3.innerText = "MATURITY: " + count + "%";
+                if (count === 0) { v3.innerText = "INITIATING"; v3.style.color = "var(--dim)"; c3.className = "card"; f3.style.background = "var(--dim)"; } 
+                else if (count <= 25) { v3.innerText = "EARLY CYCLE"; v3.style.color = "var(--lime)"; c3.className = "card glow-lime"; f3.style.background = "var(--lime)"; } 
+                else if (count <= 70) { 
+                    v3.innerText = "ESTABLISHED CYCLE"; const isGold = (data.cycle && data.cycle.toLowerCase().includes("commodities"));
+                    v3.style.color = isGold ? "var(--gold)" : "var(--silver)"; c3.className = isGold ? "card halo-bg-gold" : "card halo-bg-silver"; f3.style.background = isGold ? "var(--gold)" : "var(--silver)";
+                } else { 
+                    v3.innerText = "CYCLE END APPROACHING"; const endCol = count > 85 ? "var(--red)" : "var(--orange)";
+                    v3.style.color = endCol; c3.className = count > 85 ? "card glow-danger" : "card glow-warning"; f3.style.background = endCol;
                 }
             }
             
-            // --- CARD 4: RECESSION PULSE ---
+            // --- CARD 4: RECESSION PULSE (MODIFIED) ---
             if (data.sahm !== undefined) {
-                const sahmValue = parseFloat(data.sahm) || 0;
-                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4');
-                v4.innerText = sahmValue >= 0.5 ? "CONTRACTION" : "EXPANSION";
-                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
-                if (sahmValue >= 0.5) { c4.className = "card led-pulse-red"; } else { c4.className = "card"; }
+                const sahm = parseFloat(data.sahm);
+                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), s4 = document.getElementById('sub-4');
+                s4.innerText = ""; 
+
+                if (sahm <= 0.34) {
+                    v4.innerText = "EXPANSION PHASE"; v4.style.color = "var(--lime)";
+                    c4.className = "card glow-lime";
+                } else if (sahm <= 0.49) {
+                    v4.innerText = "WARNING: APPROACHING RECESSION"; v4.style.color = "var(--orange)";
+                    c4.className = "card glow-orange";
+                } else {
+                    v4.innerText = "CONTRACTION"; v4.style.color = "var(--red)";
+                    c4.className = "card glow-red led-pulse-red";
+                }
             }
         });
 
