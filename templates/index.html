@@ -1,5 +1,4 @@
-
-  <!DOCTYPE html> 
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -51,13 +50,13 @@
         .primary-text { font-size: 19px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
         .secondary-text { font-size: 11px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .halo-bg-gold { border-color: var(--gold) !important; box-shadow: inset 0 0 20px rgba(191, 149, 63, 0.1); }
-        .halo-bg-silver { border-color: var(--silver) !important; box-shadow: inset 0 0 20px rgba(192, 192, 192, 0.1); }
-        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; }
-        @keyframes led-red { 0% { background: #111; } 100% { background: #220000; } }
+        .halo-bg-gold { border-color: var(--gold) !important; box-shadow: inset 0 0 20px rgba(191, 149, 63, 0.2); }
+        .halo-bg-silver { border-color: var(--silver) !important; box-shadow: inset 0 0 20px rgba(192, 192, 192, 0.2); }
+        .led-pulse-red { animation: led-red 1.5s infinite alternate; border-color: var(--red) !important; box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.2); }
+        @keyframes led-red { 0% { background: #111; } 100% { background: #330000; } }
 
         .track { width: 100%; height: 4px; background: #1a1a1a; margin-top: 18px; border-radius: 2px; overflow: hidden; display: none; position: relative; }
-        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; }
+        .fill { height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); position: absolute; background: var(--gold); }
 
         #private-layer { display: none; border-top: 1px solid #222; padding-top: 40px; margin-top: 20px; }
         .btn-hide { background: none; border: 1px solid #333; color: #555; padding: 10px 20px; font-size: 10px; cursor: pointer; text-transform: uppercase; margin-bottom: 25px; }
@@ -104,7 +103,7 @@
     </section>
 
     <script>
-        // 1. CONNECTION CONFIG
+        // 1. CONNECTION CONFIG (UNTOUCHED)
         const socket = io({
             transports: ['polling', 'websocket'],
             upgrade: true,
@@ -120,8 +119,6 @@
             const now = new Date();
             document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
             const hrs = now.getUTCHours();
-            
-            // LIME GREEN for open hours (UTC)
             document.getElementById('city-lon').className = (hrs >= 8 && hrs < 16) ? 'city-item city-open' : 'city-item';
             document.getElementById('city-ny').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
             document.getElementById('city-tor').className = (hrs >= 13 && hrs < 21) ? 'city-item city-open' : 'city-item';
@@ -135,31 +132,37 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        // 3. INDICATOR DATA HANDLER (Mapped to your specific Webhook Keys)
+        // 3. INDICATOR DATA HANDLER (FIXED MAPPING & GRAPHICS)
         socket.on('macro_update', (data) => {
             triggerPulse();
             console.log("DATA RECEIVED:", data);
             
-            // Card 1: Regime (uses 'cycle' and 'vol')
+            // Card 1: Regime & Volatility (Mapping 'cycle' and 'vol')
             if (data.cycle) {
                 const v1 = document.getElementById('val-1');
                 const c1 = document.getElementById('card-1');
                 v1.innerText = data.cycle.toUpperCase();
-                c1.className = data.cycle.toLowerCase().includes("commodities") ? "card halo-bg-gold" : "card halo-bg-silver";
+                
+                // RESTORE HALO: Gold if Commodities, Silver otherwise
+                if (data.cycle.toLowerCase().includes("commodities")) {
+                    c1.className = "card halo-bg-gold";
+                } else {
+                    c1.className = "card halo-bg-silver";
+                }
             }
             if (data.vol) {
                 const s1 = document.getElementById('sub-1');
                 s1.innerText = "VOLATILITY: " + data.vol.toUpperCase();
-                s1.style.color = data.vol === "ELEVATED" ? "var(--red)" : "var(--lime)";
+                s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
             }
             
-            // Card 2: Rotation (uses 'flow')
+            // Card 2: Rotation (Mapping 'flow')
             if (data.flow) {
                 document.getElementById('val-2').innerText = "ROTATION ACTIVE";
                 document.getElementById('sub-2').innerText = data.flow.toUpperCase();
             }
             
-            // Card 3: Maturity (uses 'count')
+            // Card 3: Maturity (Mapping 'count')
             if (data.count !== undefined) {
                 document.getElementById('val-3').innerText = "PHASE MATURITY";
                 document.getElementById('sub-3').innerText = data.count + "%";
@@ -167,18 +170,25 @@
                 document.getElementById('fill-3').style.width = data.count + "%";
             }
             
-            // Card 4: Pulse (uses 'sahm')
+            // Card 4: Recession Pulse (Mapping 'sahm')
             if (data.sahm !== undefined) {
-                const sahm = parseFloat(data.sahm) || 0;
+                const sahmValue = parseFloat(data.sahm) || 0;
                 const v4 = document.getElementById('val-4');
                 const c4 = document.getElementById('card-4');
-                v4.innerText = sahm >= 0.5 ? "CONTRACTION" : "EXPANSION";
-                c4.className = sahm >= 0.5 ? "card led-pulse-red" : "card";
-                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahm.toFixed(2);
+                
+                v4.innerText = sahmValue >= 0.5 ? "CONTRACTION" : "EXPANSION";
+                document.getElementById('sub-4').innerText = "SAHM PULSE: " + sahmValue.toFixed(2);
+                
+                // RESTORE LED PULSE
+                if (sahmValue >= 0.5) {
+                    c4.className = "card led-pulse-red";
+                } else {
+                    c4.className = "card";
+                }
             }
         });
 
-        // 4. SUTTON SECRET (Double-Click Toronto)
+        // 4. SUTTON SECRET
         document.getElementById('city-tor').addEventListener('dblclick', () => {
             const entry = prompt("SYSTEM ACCESS KEY:");
             if (entry === 'toffees') {
@@ -198,3 +208,5 @@
     </script>
 </body>
 </html>
+
+  
