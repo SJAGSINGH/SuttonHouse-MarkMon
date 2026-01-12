@@ -144,11 +144,10 @@
         socket.on('macro_update', (data) => {
             triggerPulse();
             
-            // --- CARD 1: REGIME & VOLATILITY (THE DATUM) ---
+            // --- CARD 1: REGIME & VOLATILITY (LOCKED) ---
             if (data.cycle) {
                 const v1 = document.getElementById('val-1');
                 const c1 = document.getElementById('card-1');
-                
                 if (data.cycle.toLowerCase().includes("commodities")) {
                     v1.innerText = "STRONG COMMODITIES MACRO";
                     v1.style.color = "var(--gold)";
@@ -165,10 +164,23 @@
                 s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
             }
             
-            // Card 2: Rotation
+            // --- CARD 2: CAPITAL ROTATION (GRAPHICS MOD) ---
             if (data.flow) {
-                document.getElementById('val-2').innerText = "ROTATION ACTIVE";
-                document.getElementById('sub-2').innerText = data.flow.toUpperCase();
+                const v2 = document.getElementById('val-2');
+                const s2 = document.getElementById('sub-2');
+                const c2 = document.getElementById('card-2');
+                
+                v2.innerText = "ROTATION ACTIVE";
+                s2.innerText = "OUT OF EQUITIES / INTO COMMODITIES";
+                
+                // Match Card 1 Visuals
+                if (data.flow.toLowerCase().includes("commodities") || data.flow.toLowerCase().includes("offensive")) {
+                    v2.style.color = "var(--gold)";
+                    c2.className = "card halo-bg-gold";
+                } else {
+                    v2.style.color = "var(--text)";
+                    c2.className = "card halo-bg-silver";
+                }
             }
             
             // Card 3: Maturity
