@@ -1,4 +1,3 @@
-
 from flask import Flask, request, render_template, send_from_directory, abort, jsonify
 from flask_socketio import SocketIO, emit
 import os
@@ -11,18 +10,26 @@ app = Flask(__name__, static_folder="static")
 # Threading mode = compatible with Gunicorn gthreads on Render
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# Optional: set WEBHOOK_SECRET in Render env vars to lock the endpoint.
+# Optional: lock TradingView webhook (set in Render env)
 WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
 
-# This is the ONLY schema your index.html needs:
-# { cycle, vol, flow, count, sahm }
+# Server-side vault password (set in Render env)
+VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
+
+# ---- Simple brute-force limiter (per IP) ----
+# Allow 6 attempts per 5 minutes
+ATTEMPTS: Dict[str, list] = {}
+ATTEMPT_WINDOW_SECS = 5 * 60
+ATTEMPT_MAX = 6
+
+# Unified state expected by your index.html
 STATE: Dict[str, Any] = {
-    "cycle": None,      # "COMMODITIES" / "EQUITIES"
-    "vol": None,        # "ELEVATED" / "STABLE"
-    "flow": None,       # e.g. "INTO COMMODITIES"
-    "count": None,      # int 0..100
-    "sahm": None,       # float
-    "_server_ts": None  # server timestamp for debugging/health
+    "cycle": None,
+    "vol": None,
+    "flow": None,
+    "count": None,
+    "sahm": None,
+    "_server_ts": None
 }
 
 
@@ -41,13 +48,7 @@ def health():
     return jsonify({"ok": True, "state": STATE}), 200
 
 
-def _authorised(req) -> bool:
-    """
-    Supports either:
-      - Header: X-Webhook-Secret: <secret>
-      - Query:  /webhook?secret=<secret>
-    If WEBHOOK_SECRET is empty, auth is disabled (dev mode).
-    """
+def _authorised_webhook(req) -> bool:
     if not WEBHOOK_SECRET:
         return True
     header_secret = (req.headers.get("X-Webhook-Secret") or "").strip()
@@ -60,9 +61,6 @@ def _clamp_int(x: int, lo: int, hi: int) -> int:
 
 
 def _merge_field_payload(data: Dict[str, Any]) -> None:
-    """
-    If you ever switch Pine to field-based JSON later, this will still work.
-    """
     if "cycle" in data and data["cycle"] is not None:
         STATE["cycle"] = str(data["cycle"]).upper()
     if "vol" in data and data["vol"] is not None:
@@ -82,13 +80,6 @@ def _merge_field_payload(data: Dict[str, Any]) -> None:
 
 
 def _parse_card_payload(data: Dict[str, Any]) -> None:
-    """
-    Converts your Pine card payloads into STATE fields:
-      card 1: regime + vol
-      card 2: flow
-      card 3: count + regime
-      card 4: sahm
-    """
     card = data.get("card")
     msg = str(data.get("msg") or "").strip()
 
@@ -99,7 +90,6 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 
     if card_n == 1:
         # "COMMODITIES ABOVE SMA (RISING) ELEVATED"
-        # first token is regime, last token is vol
         parts = msg.split()
         if parts:
             STATE["cycle"] = parts[0].upper()
@@ -115,8 +105,6 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         m = re.search(r"(\d+(\.\d+)?)\s*%", msg)
         if m:
             STATE["count"] = _clamp_int(int(float(m.group(1))), 0, 100)
-
-        # your Pine includes "regime": "COMMODITIES"
         if data.get("regime"):
             STATE["cycle"] = str(data["regime"]).upper()
 
@@ -129,7 +117,7 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    if not _authorised(request):
+    if not _authorised_webhook(request):
         print("Rejected webhook: unauthorised")
         abort(401)
 
@@ -138,21 +126,15 @@ def webhook():
         if not isinstance(data, dict):
             abort(400)
 
-        # Timestamp
         STATE["_server_ts"] = time.time()
-
-        # Log
         print(f"Incoming Webhook: {data}")
 
-        # Normalise both possible schemas
+        # Normalise TradingView/Pine formats
         if "card" in data and "msg" in data:
             _parse_card_payload(data)
-
         _merge_field_payload(data)
 
-        # Emit the unified STATE (the UI’s expected schema)
         socketio.emit("macro_update", STATE)
-
         return "SUCCESS", 200
 
     except Exception as e:
@@ -160,9 +142,37 @@ def webhook():
         return str(e), 400
 
 
+@app.route("/verify_secret", methods=["POST"])
+def verify_secret():
+    """
+    Frontend posts {"password":"..."}.
+    Returns 200 {ok:true} if correct, 401 if incorrect, 429 if rate-limited.
+    """
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0].strip()
+    now = time.time()
+
+    # Clean old attempts
+    history = ATTEMPTS.get(ip, [])
+    history = [t for t in history if now - t < ATTEMPT_WINDOW_SECS]
+    ATTEMPTS[ip] = history
+
+    if len(history) >= ATTEMPT_MAX:
+        return jsonify({"ok": False, "error": "rate_limited"}), 429
+
+    data = request.get_json(force=True, silent=True) or {}
+    pw = str(data.get("password") or "").strip()
+
+    if pw == VAULT_PASSWORD:
+        return jsonify({"ok": True}), 200
+
+    # record failed attempt
+    ATTEMPTS[ip].append(now)
+    return jsonify({"ok": False}), 401
+
+
 @socketio.on("connect")
 def on_connect():
-    # New tab / refresh instantly gets current state
+    # New tab / refresh instantly gets current macro state
     emit("macro_update", STATE)
 
 
