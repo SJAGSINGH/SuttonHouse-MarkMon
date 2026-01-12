@@ -57,11 +57,7 @@
 
         /* CARD 4 COMMANDING LED & FREQUENCY */
         .pulse-container { display: flex; justify-content: center; align-items: center; padding: 15px 0; flex-grow: 1; }
-        .pulse-node { 
-            width: 55px; height: 55px; border-radius: 50%; 
-            background: var(--dim); 
-            transition: all 0.5s ease;
-        }
+        .pulse-node { width: 55px; height: 55px; border-radius: 50%; background: var(--dim); transition: all 0.5s ease; }
         .pulse-slow { animation: node-pulse 3s infinite ease-in-out; }
         .pulse-mid { animation: node-pulse 1.2s infinite ease-in-out; }
         .pulse-fast { animation: node-pulse 0.5s infinite ease-in-out; }
@@ -121,9 +117,9 @@
     <div class="macro-header">Macro Analysis</div>
 
     <main class="grid">
-        <div class="card" id="card-1"><h3>Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
-        <div class="card" id="card-2"><h3>Capital Rotation</h3><div class="primary-text" id="val-2">AWAITING</div><div class="secondary-text" id="sub-2"></div></div>
-        <div class="card" id="card-3"><h3>Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
+        <div class="card" id="card-1"><h3 id="h3-1">Regime & Volatility</h3><div class="primary-text" id="val-1">AWAITING</div><div class="secondary-text" id="sub-1"></div></div>
+        <div class="card" id="card-2"><h3 id="h3-2">Capital Rotation</h3><div class="primary-text" id="val-2">AWAITING</div><div class="secondary-text" id="sub-2"></div></div>
+        <div class="card" id="card-3"><h3 id="h3-3">Cycle Maturity</h3><div class="primary-text" id="val-3">AWAITING</div><div class="secondary-text" id="sub-3"></div><div class="track" id="track-3"><div class="fill" id="fill-3"></div></div></div>
         <div class="card" id="card-4">
             <h3>Recession Pulse</h3>
             <div class="pulse-container"><div id="led-node" class="pulse-node"></div></div>
@@ -153,6 +149,7 @@
 
     <script>
         const socket = io({ transports: ['polling', 'websocket'], upgrade: true, reconnection: true });
+        let secretMode = false;
 
         function tick() {
             const now = new Date();
@@ -171,107 +168,10 @@
             setTimeout(() => { items.forEach(i => i.classList.remove('comms-flash')); }, 400);
         }
 
-        socket.on('macro_update', (data) => {
-            triggerPulse();
+        function enableSecretMode() {
+            secretMode = true;
+            document.getElementById('private-layer').style.display = 'block';
 
-            if (data.cycle) {
-                const v1 = document.getElementById('val-1'), c1 = document.getElementById('card-1');
-                if (data.cycle.toLowerCase().includes("commodities")) {
-                    v1.innerText = "STRONG COMMODITIES MACRO"; v1.style.color = "var(--gold)"; c1.className = "card halo-bg-gold";
-                } else {
-                    v1.innerText = data.cycle.toUpperCase(); v1.style.color = "var(--text)"; c1.className = "card halo-bg-silver";
-                }
-            }
-
-            if (data.vol) {
-                const s1 = document.getElementById('sub-1');
-                s1.innerText = "VOLATILITY: " + data.vol.toUpperCase();
-                s1.style.color = (data.vol.toUpperCase() === "ELEVATED") ? "var(--red)" : "var(--lime)";
-            }
-
-            if (data.flow) {
-                const v2 = document.getElementById('val-2'), c2 = document.getElementById('card-2');
-
-                // ✅ UPDATED: show the actual flow text
-                document.getElementById('sub-2').innerText = data.flow.toUpperCase();
-
-                if (data.flow.toLowerCase().includes("commodities") || data.flow.toLowerCase().includes("offensive")) {
-                    v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--gold)"; c2.className = "card halo-bg-gold";
-                } else {
-                    v2.innerText = "ROTATION ACTIVE"; v2.style.color = "var(--text)"; c2.className = "card halo-bg-silver";
-                }
-            }
-
-            if (data.count !== undefined) {
-                const count = parseInt(data.count);
-                const v3 = document.getElementById('val-3'), s3 = document.getElementById('sub-3'), c3 = document.getElementById('card-3'), f3 = document.getElementById('fill-3');
-                document.getElementById('track-3').style.display = 'block';
-                f3.style.width = count + "%";
-                s3.innerText = "MATURITY: " + count + "%";
-                if (count === 0) {
-                    v3.innerText = "INITIATING"; v3.style.color = "var(--dim)"; c3.className = "card"; f3.style.background = "var(--dim)";
-                } else if (count <= 25) {
-                    v3.innerText = "EARLY CYCLE"; v3.style.color = "var(--lime)"; c3.className = "card glow-lime"; f3.style.background = "var(--lime)";
-                } else if (count <= 70) {
-                    v3.innerText = "ESTABLISHED CYCLE";
-                    const isGold = (data.cycle && data.cycle.toLowerCase().includes("commodities"));
-                    v3.style.color = isGold ? "var(--gold)" : "var(--silver)";
-                    c3.className = isGold ? "card halo-bg-gold" : "card halo-bg-silver";
-                    f3.style.background = isGold ? "var(--gold)" : "var(--silver)";
-                } else {
-                    v3.innerText = "CYCLE END APPROACHING";
-                    const endCol = count > 85 ? "var(--red)" : "var(--orange)";
-                    v3.style.color = endCol;
-                    c3.className = count > 85 ? "card glow-danger" : "card glow-warning";
-                    f3.style.background = endCol;
-                }
-            }
-
-            if (data.sahm !== undefined) {
-                const sahm = parseFloat(data.sahm) || 0;
-                const v4 = document.getElementById('val-4'), c4 = document.getElementById('card-4'), node = document.getElementById('led-node');
-                if (sahm <= 0.34) {
-                    v4.innerText = "EXPANSION PHASE";
-                    c4.className = "card glow-lime";
-                    node.style.background = "var(--lime)";
-                    node.style.boxShadow = "0 0 40px var(--lime)";
-                    node.className = "pulse-node pulse-slow";
-                } else if (sahm <= 0.49) {
-                    v4.innerText = "WARNING: APPROACHING RECESSION";
-                    c4.className = "card glow-warning";
-                    node.style.background = "var(--orange)";
-                    node.style.boxShadow = "0 0 40px var(--orange)";
-                    node.className = "pulse-node pulse-mid";
-                } else {
-                    v4.innerText = "CONTRACTION";
-                    c4.className = "card glow-danger";
-                    node.style.background = "var(--red)";
-                    node.style.boxShadow = "0 0 60px var(--red)";
-                    node.className = "pulse-node pulse-fast";
-                }
-            }
-        });
-
-        // --- PASSWORD LOGIC ---
-        document.getElementById('city-tor').addEventListener('dblclick', () => {
-            document.getElementById('password-modal').style.display = 'flex';
-            document.getElementById('pass-input').focus();
-        });
-        function closeModal() {
-            document.getElementById('password-modal').style.display = 'none';
-            document.getElementById('pass-input').value = '';
-        }
-        function checkPass() {
-            const entry = document.getElementById('pass-input').value;
-            if (entry === 'toffees') {
-                document.getElementById('private-layer').style.display = 'block';
-                closeModal();
-            } else {
-                closeModal();
-            }
-        }
-        document.getElementById('pass-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
-        function closeVault() { document.getElementById('private-layer').style.display = 'none'; }
-    </script>
-</body>
-</html>
+            // Cards 1–3 now become "Secret Indicators"
+            document.getElementById('h3-1').innerText = "Institutional Alpha";
+            document.getElem
