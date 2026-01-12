@@ -1,211 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sutton House | Master Terminal</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sutton House | Master Terminal</title>
 
-    <!-- Socket.IO -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-    <style>
-        :root {
-            --bg:#050505; --card:#111; --text:#fff;
-            --dim:#333; --lime:#32CD32; --gold:#BF953F;
-            --silver:#C0C0C0; --pink:#FF69B4;
-            --red:#ff4444; --orange:#ff8c00;
-        }
+  <style>
+    :root{
+      --bg:#050505; --card:#111111; --text:#ffffff;
+      --dim:#333333; --lime:#32CD32; --gold:#BF953F; --silver:#C0C0C0;
+      --pink:#FF69B4; --red:#ff4444; --orange:#ff8c00;
+    }
 
-        body {
-            background:var(--bg); color:var(--text);
-            font-family:Inter,system-ui,sans-serif;
-            margin:0; padding:40px;
-            display:flex; flex-direction:column; gap:40px;
-        }
+    body{
+      background:var(--bg); color:var(--text);
+      font-family:Inter,system-ui,sans-serif;
+      margin:0; padding:40px;
+      display:flex; flex-direction:column; gap:40px;
+      min-height:100vh; box-sizing:border-box;
+      overflow-x:hidden;
+    }
 
-        /* HEADER */
-        .header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222; padding-bottom:30px; }
-        .logo-area { display:flex; align-items:center; gap:15px; }
-        .logo-img { height:70px; }
+    .header{
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid #222; padding-bottom:30px;
+    }
+    .logo-area{ display:flex; align-items:center; gap:15px; }
+    .logo-img{ height:70px; width:auto; }
 
-        .gleam {
-            font-weight:800; font-size:32px; letter-spacing:3px;
-            background:linear-gradient(90deg,#BF953F,#FCF6BA,#AA771C);
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-        }
+    .gleam{
+      font-weight:800; font-size:32px; letter-spacing:3px; margin:0;
+      background:linear-gradient(to right,#BF953F 0%,#FCF6BA 25%,#B38728 50%,#FBF5B7 75%,#AA771C 100%);
+      background-size:200% auto;
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      animation:shine 5s linear infinite;
+    }
+    @keyframes shine{ to { background-position:200% center; } }
 
-        .brand-bottom { font-size:11px; letter-spacing:2px; color:#aaa; }
+    .brand-bottom{
+      display:flex; align-items:center; gap:10px; margin-top:5px;
+      color:#fff; font-size:11px; text-transform:uppercase;
+      letter-spacing:1.5px; font-weight:300;
+    }
+    .status-dot-active{
+      width:5px; height:5px; border-radius:50%;
+      background:var(--lime); box-shadow:0 0 10px var(--lime);
+      animation:pulse-lime 2s infinite;
+    }
+    @keyframes pulse-lime{ 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
 
-        /* CLOCK */
-        #digital-clock { font-size:52px; font-weight:700; text-align:right; }
+    #digital-clock{ font-size:52px; font-weight:700; text-align:right; letter-spacing:-2px; line-height:1; }
+    .city-grid{ display:flex; gap:18px; margin-top:12px; justify-content:flex-end; }
+    .city-item{ font-size:10px; color:#fff; display:flex; align-items:center; gap:6px; font-weight:700; cursor:pointer; transition:color .3s; }
+    .status-dot{ width:6px; height:6px; background:#fff; border-radius:50%; transition:.3s; }
 
-        .city-grid { display:flex; gap:16px; justify-content:flex-end; margin-top:10px; }
-        .city-item { font-size:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
-        .status-dot { width:6px; height:6px; border-radius:50%; background:#fff; }
-        .city-open { color:var(--lime); }
-        .city-open .status-dot { background:var(--lime); box-shadow:0 0 10px var(--lime); }
-        .comms-flash { color:var(--pink) !important; }
+    .city-open{ color:var(--lime) !important; }
+    .city-open .status-dot{ background:var(--lime) !important; box-shadow:0 0 12px var(--lime); }
+    .comms-flash{ color:var(--pink) !important; transition:.1s; }
 
-        /* GRID */
-        .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+    .macro-header{
+      font-size:14px; font-weight:700; color:#555;
+      text-transform:uppercase; letter-spacing:4px;
+      margin-bottom:-20px; border-left:3px solid var(--gold); padding-left:15px;
+    }
 
-        .card {
-            background:var(--card);
-            border:1px solid #1f1f1f;
-            padding:30px; border-radius:8px;
-            display:flex; flex-direction:column;
-            transition:.6s;
-        }
+    .grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+    .card{
+      background:var(--card); padding:35px; border-radius:8px;
+      border:1px solid #1f1f1f;
+      transition:all .6s cubic-bezier(0.4,0,0.2,1);
+      display:flex; flex-direction:column;
+    }
+    .card h3{
+      font-size:10px; color:#555; text-transform:uppercase;
+      margin:0 0 20px 0; letter-spacing:2px;
+    }
+    .primary-text{
+      font-size:19px; font-weight:800; color:#fff; text-transform:uppercase;
+      display:flex; align-items:center; gap:10px;
+    }
+    .secondary-text{
+      font-size:11px; font-weight:700; margin-top:8px;
+      text-transform:uppercase; letter-spacing:1px;
+    }
 
-        .card h3 {
-            font-size:10px; letter-spacing:2px;
-            color:#666; margin:0 0 20px;
-            text-transform:uppercase;
-        }
+    .halo-bg-gold{ border-color:var(--gold) !important; box-shadow:0 0 30px rgba(191,149,63,.15); }
+    .halo-bg-silver{ border-color:var(--silver) !important; box-shadow:0 0 30px rgba(192,192,192,.15); }
+    .glow-lime{ border-color:var(--lime) !important; }
+    .glow-warning{ border-color:var(--orange) !important; }
+    .glow-danger{ border-color:var(--red) !important; }
 
-        .primary-text { font-size:18px; font-weight:800; }
-        .secondary-text { font-size:11px; margin-top:8px; letter-spacing:1px; }
+    .track{ width:100%; height:4px; background:#1a1a1a; margin-top:18px; border-radius:2px; overflow:hidden; display:none; }
+    .fill{ height:100%; width:0%; transition:1.2s; background:var(--gold); }
 
-        /* STATES */
-        .halo-bg-gold { border-color:var(--gold); box-shadow:0 0 25px rgba(191,149,63,.2); }
-        .halo-bg-silver { border-color:var(--silver); box-shadow:0 0 25px rgba(192,192,192,.2); }
-        .glow-lime { border-color:var(--lime); }
-        .glow-warning { border-color:var(--orange); }
-        .glow-danger { border-color:var(--red); }
+    .pulse-container{ display:flex; justify-content:center; align-items:center; padding:15px 0; flex-grow:1; }
+    .pulse-node{ width:55px; height:55px; border-radius:50%; background:var(--dim); transition:.4s; }
+    .pulse-slow{ animation:node-pulse 3s infinite ease-in-out; }
+    .pulse-mid{ animation:node-pulse 1.2s infinite ease-in-out; }
+    .pulse-fast{ animation:node-pulse .5s infinite ease-in-out; }
+    @keyframes node-pulse{
+      0%{transform:scale(.9);opacity:.5}
+      50%{transform:scale(1.1);opacity:1}
+      100%{transform:scale(.9);opacity:.5}
+    }
+    .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
 
-        /* PROGRESS */
-        .track { height:4px; background:#222; margin-top:18px; display:none; }
-        .fill { height:100%; width:0%; background:var(--gold); transition:1s; }
+    #password-modal{
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,.95); z-index:10000;
+      justify-content:center; align-items:center;
+    }
+    .modal-content{ background:#111; padding:30px; border:1px solid var(--gold); border-radius:4px; text-align:center; }
+    .modal-input{
+      background:#000; border:1px solid #333; color:#fff;
+      padding:10px; width:200px; text-align:center;
+      margin-bottom:20px; outline:none; font-family:monospace; letter-spacing:4px;
+    }
 
-        /* RECESSION NODE */
-        .pulse-node { width:55px; height:55px; border-radius:50%; margin:auto; }
-        .pulse-slow { animation:pulse 3s infinite; }
-        .pulse-mid { animation:pulse 1.2s infinite; }
-        .pulse-fast { animation:pulse .5s infinite; }
-
-        @keyframes pulse {
-            0%{transform:scale(.9);opacity:.5}
-            50%{transform:scale(1.1);opacity:1}
-            100%{transform:scale(.9);opacity:.5}
-        }
-
-        /* MODAL */
-        #password-modal {
-            display:none; position:fixed; inset:0;
-            background:rgba(0,0,0,.95);
-            justify-content:center; align-items:center;
-        }
-
-        .modal-content {
-            background:#111; padding:30px;
-            border:1px solid var(--gold);
-        }
-
-        .modal-input {
-            background:#000; color:#fff;
-            border:1px solid #333;
-            padding:10px; width:200px;
-            text-align:center; letter-spacing:4px;
-        }
-    </style>
+    #private-layer{ display:none; border-top:1px solid #222; padding-top:40px; margin-top:20px; }
+    .btn-hide{ background:none; border:1px solid #333; color:#555; padding:10px 20px; font-size:10px; cursor:pointer; text-transform:uppercase; margin-bottom:25px; }
+  </style>
 </head>
 
 <body>
-
-<header class="header">
+  <header class="header">
     <div class="logo-area">
-        <img src="/static/logo.png" class="logo-img">
-        <div>
-            <div class="gleam">SUTTON HOUSE</div>
-            <div class="brand-bottom">MARKET MONITOR • TERMINAL ACTIVE</div>
+      <img src="/static/logo.png" class="logo-img" alt="Logo" />
+      <div style="width:1px;height:55px;background:#222;margin:0 20px;"></div>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;">
+          <h1 class="gleam">SUTTON HOUSE</h1>
+          <span style="color:#fff;font-size:16px;font-weight:300;letter-spacing:1px;text-transform:uppercase;">Market Analytics</span>
         </div>
+        <div class="brand-bottom">MARKET MONITOR <div class="status-dot-active"></div> <span style="color:var(--lime);font-family:monospace;font-weight:bold;">TERMINAL ACTIVE</span></div>
+      </div>
     </div>
 
     <div>
-        <div id="digital-clock">00:00:00</div>
-        <div class="city-grid">
-            <div class="city-item" id="city-lon"><div class="status-dot"></div>LONDON</div>
-            <div class="city-item" id="city-ny"><div class="status-dot"></div>NEW YORK</div>
-            <div class="city-item" id="city-tor"><div class="status-dot"></div>TORONTO</div>
-            <div class="city-item" id="city-syd"><div class="status-dot"></div>SYDNEY</div>
-        </div>
+      <div id="digital-clock">00:00:00</div>
+      <div class="city-grid">
+        <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
+        <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
+        <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
+        <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
+      </div>
     </div>
-</header>
+  </header>
 
-<main class="grid">
+  <div class="macro-header">Macro Analysis</div>
 
+  <main class="grid">
     <div class="card" id="card-1">
-        <h3 id="h3-1">Regime & Volatility</h3>
-        <div class="primary-text" id="val-1">AWAITING</div>
-        <div class="secondary-text" id="sub-1"></div>
+      <h3 id="h3-1">Regime &amp; Volatility</h3>
+      <div class="primary-text" id="val-1">AWAITING</div>
+      <div class="secondary-text" id="sub-1"></div>
     </div>
 
     <div class="card" id="card-2">
-        <h3 id="h3-2">Capital Rotation</h3>
-        <div class="primary-text" id="val-2">AWAITING</div>
-        <div class="secondary-text" id="sub-2"></div>
+      <h3 id="h3-2">Capital Rotation</h3>
+      <div class="primary-text" id="val-2">AWAITING</div>
+      <div class="secondary-text" id="sub-2"></div>
     </div>
 
     <div class="card" id="card-3">
-        <h3 id="h3-3">Cycle Maturity</h3>
-        <div class="primary-text" id="val-3">AWAITING</div>
-        <div class="secondary-text" id="sub-3"></div>
-        <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
+      <h3 id="h3-3">Cycle Maturity</h3>
+      <div class="primary-text" id="val-3">AWAITING</div>
+      <div class="secondary-text" id="sub-3"></div>
+      <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
     </div>
 
     <div class="card" id="card-4">
-        <h3>Recession Pulse</h3>
-        <div class="pulse-node" id="led-node"></div>
-        <div class="primary-text" id="val-4">AWAITING</div>
+      <h3>Recession Pulse</h3>
+      <div class="pulse-container"><div id="led-node" class="pulse-node"></div></div>
+      <div class="primary-text recession-text" id="val-4">AWAITING</div>
+      <div class="secondary-text" id="sub-4" style="display:none;"></div>
     </div>
+  </main>
 
-</main>
+  <section id="private-layer">
+    <button class="btn-hide" onclick="closeVault()">[X] Close Secure Layer</button>
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card" style="border-color:#2a2210;"><h3>Institutional Alpha</h3><div class="primary-text" style="color:var(--gold);">SECURE</div></div>
+      <div class="card" style="border-color:#2a2210;"><h3>Order Flow</h3><div class="primary-text" style="color:var(--gold);">SECURE</div></div>
+    </div>
+  </section>
 
-<div id="password-modal">
+  <div id="password-modal">
     <div class="modal-content">
-        <input type="password" id="pass-input" class="modal-input" placeholder="****">
-        <br><br>
-        <button onclick="checkPass()">VERIFY</button>
-        <button onclick="closeModal()">ABORT</button>
+      <h2 style="color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:20px;text-transform:uppercase;">Encryption Key Required</h2>
+      <input type="password" id="pass-input" class="modal-input" placeholder="****" />
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="checkPass()" style="background:var(--gold);border:none;color:#000;padding:8px 15px;font-weight:bold;cursor:pointer;font-size:10px;">VERIFY</button>
+        <button onclick="closeModal()" style="background:none;border:1px solid #333;color:#555;padding:8px 15px;cursor:pointer;font-size:10px;">ABORT</button>
+      </div>
     </div>
-</div>
+  </div>
 
-<script>
-/* CLOCK */
-function tick(){
-    const n=new Date();
-    digital-clock.innerText=n.toLocaleTimeString('en-GB',{hour12:false});
-    const h=n.getUTCHours();
-    const open=(id,v)=>document.getElementById(id).className=v?'city-item city-open':'city-item';
-    open('city-lon',h>=8&&h<16);
-    open('city-ny',h>=13&&h<21);
-    open('city-tor',h>=13&&h<21);
-    open('city-syd',h>=22||h<6);
-}
-setInterval(tick,1000); tick();
+  <script>
+    // ----------------------------
+    // CLOCK MUST ALWAYS RUN
+    // ----------------------------
+    function tick(){
+      const now = new Date();
+      const clock = document.getElementById('digital-clock');
+      if (clock) clock.innerText = now.toLocaleTimeString('en-GB', {hour12:false});
 
-/* SOCKET SAFE */
-let socket=null;
-if(window.io){
-    socket=io({transports:['polling','websocket']});
-}
+      const hrs = now.getUTCHours();
+      const setCity = (id, open) => {
+        const el = document.getElementById(id);
+        if (el) el.className = open ? 'city-item city-open' : 'city-item';
+      };
 
-/* SECRET */
-city-tor.addEventListener('dblclick',()=>{
-    password-modal.style.display='flex';
-    pass-input.focus();
-});
-function closeModal(){password-modal.style.display='none';pass-input.value='';}
-async function checkPass(){
-    const r=await fetch('/verify_secret',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass-input.value})});
-    closeModal();
-    if(r.ok){
-        h3-1.innerText='Institutional Alpha';
-        h3-2.innerText='Order Flow';
-        h3-3.innerText='Liquidity Timing';
+      setCity('city-lon', hrs >= 8 && hrs < 16);
+      setCity('city-ny',  hrs >= 13 && hrs < 21);
+      setCity('city-tor', hrs >= 13 && hrs < 21);
+      setCity('city-syd', hrs >= 22 || hrs < 6);
     }
-}
-</script>
+    tick();
+    setInterval(tick, 1000);
 
+    function triggerPulse(){
+      document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
+      setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
+    }
+
+    // ----------------------------
+    // SECRET MODE
+    // ----------------------------
+    let secretMode = false;
+    function setText(id, txt){
+      const el = document.getElementById(id);
+      if (el) el.innerText = txt;
+    }
+    function enableSecretMode(){
+      secretMode = true;
+      const layer = document.getElementById('private-layer');
+      if (layer) layer.style.display = 'block';
+
+      setText('h3-1', 'Institutional Alpha');
+      setText('h3-2', 'Order Flow');
+      setText('h3-3', 'Liquidity Timing');
+
+      ['card-1','card-2','card-3'].forEach(id => {
+        const c = document.getElementById(id);
+        if (c) c.className = 'card halo-bg-gold';
+      });
+
+      ['val-1','val-2','val-3'].forEach(id => setText(id, 'SECURE FEED'));
+      ['sub-1','sub-2','sub-3'].forEach(id => setText(id, 'AWAITING SIGNAL'));
+
+      const t3 = document.getElementById('track-3');
+      if (t3) t3.style.display = 'none';
+    }
+    function closeVault(){
+      secretMode = false;
+      const layer = document.getElementById('private-layer');
+      if (layer) layer.style.display = 'none';
+
+      setText('h3-1', 'Regime & Volatility');
+      setText('h3-2', 'Capital Rotation');
+      setText('h3-3', 'Cycle Maturity');
+
+      ['card-1','card-2','card-3'].forEach(id => {
+        const c = document.getElementById(id);
+        if (c) c.className = 'card';
+      });
+
+      ['val-1','val-2','val-3'].forEach(id => setText(id, 'AWAITING'));
+      ['sub-1','sub-2','sub-3'].forEach(id => setText(id, ''));
+
+      const t3 = document.getElementById('track-3');
+      if (t3) t3.style.display = 'block';
+    }
+    window.closeVault = closeVault;
+
+    // ----------------------------
+    // SOCKET.IO (GUARDED)
+    // ----------------------------
+    let socket = null;
+    try{
+      if (window.io){
+        socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+        socket.on('connect', () => console.log('CONNECTED'));
+        socket.on('connect_error', (e) => console.log('SOCKET ERROR', e));
+      } else {
+        console.log('Socket.IO not loaded; clock will still run.');
+      }
+    } catch(e){
+      console.log('Socket init failed; clock will still run.', e);
+    }
+
+    // ----------------------------
+    // LIVE MACRO UPDATES
+    // ----------------------------
+    if (socket){
+      socket.on('macro_update', (data) => {
+        triggerPulse();
+
+        // Cards 1–3 only update in public mode
+        if (!secretMode){
+          if (data.cycle){
+            const v1 = document.getElementById('val-1');
+            const c1 = document.getElementById('card-1');
+            const isCom = String(data.cycle).toLowerCase().includes('commodities');
+            if (v1){
+              v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase();
+              v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
+            }
+            if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
+          }
+
+          if (data.vol){
+            const s1 = document.getElementById('sub-1');
+            if (s1){
+              s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase();
+              s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+            }
+          }
+
+          if (data.flow){
+            const v2 = document.getElementById('val-2');
+            const s2 = document.getElementById('sub-2');
+            if (v2) v2.innerText = 'ROTATION ACTIVE';
+            if (s2) s2.innerText = String(data.flow).toUpperCase();
+          }
+
+          if (data.count !== undefined && data.count !== null){
+            const n = parseInt(data.count);
+            const t3 = document.getElementById('track-3');
+            const f3 = document.getElementById('fill-3');
+            const s3 = document.getElementById('sub-3');
+            if (t3) t3.style.display = 'block';
+            if (f3) f3.style.width = n + '%';
+            if (s3) s3.innerText = 'MATURITY: ' + n + '%';
+          }
+        }
+
+        // Card 4 always live
+        if (data.sahm !== undefined && data.sahm !== null){
+          const s = parseFloat(data.sahm) || 0;
+          const v4 = document.getElementById('val-4');
+          const c4 = document.getElementById('card-4');
+          const node = document.getElementById('led-node');
+
+          if (s <= 0.34){
+            if (v4) v4.innerText = 'EXPANSION PHASE';
+            if (c4) c4.className = 'card glow-lime';
+            if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
+          } else if (s <= 0.49){
+            if (v4) v4.innerText = 'WARNING';
+            if (c4) c4.className = 'card glow-warning';
+            if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
+          } else {
+            if (v4) v4.innerText = 'CONTRACTION';
+            if (c4) c4.className = 'card glow-danger';
+            if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
+          }
+        }
+      });
+    }
+
+    // ----------------------------
+    // PASSWORD MODAL (SERVER VERIFY)
+    // ----------------------------
+    const tor = document.getElementById('city-tor');
+    if (tor){
+      tor.addEventListener('dblclick', () => {
+        const modal = document.getElementById('password-modal');
+        const input = document.getElementById('pass-input');
+        if (modal) modal.style.display = 'flex';
+        if (input) input.focus();
+      });
+    }
+
+    function closeModal(){
+      const modal = document.getElementById('password-modal');
+      const input = document.getElementById('pass-input');
+      if (modal) modal.style.display = 'none';
+      if (input) input.value = '';
+    }
+    window.closeModal = closeModal;
+
+    async function checkPass(){
+      const input = document.getElementById('pass-input');
+      const pwd = input ? input.value : '';
+
+      try{
+        const r = await fetch('/verify_secret', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ password: pwd })
+        });
+        closeModal();
+        if (r.ok) enableSecretMode();
+      } catch(e){
+        closeModal();
+      }
+    }
+    window.checkPass = checkPass;
+
+    const passInput = document.getElementById('pass-input');
+    if (passInput){
+      passInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPass();
+      });
+    }
+  </script>
 </body>
 </html>
