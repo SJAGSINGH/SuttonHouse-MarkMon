@@ -323,18 +323,60 @@
           if (data.flow){
             const v2 = document.getElementById('val-2');
             const s2 = document.getElementById('sub-2');
-            if (v2) v2.innerText = 'ROTATION ACTIVE';
+            const c2 = document.getElementById('card-2');
+
+            const flowStr = String(data.flow).toLowerCase();
+            const flowGold = flowStr.includes('commod') || flowStr.includes('offensive');
+
+            if (v2){
+              v2.innerText = 'ROTATION ACTIVE';
+              v2.style.color = flowGold ? 'var(--gold)' : 'var(--text)';
+            }
             if (s2) s2.innerText = String(data.flow).toUpperCase();
+            if (c2) c2.className = flowGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
           }
 
+          // ✅ FIXED CARD 3: CLASSIFY & UPDATE val-3 + styling
           if (data.count !== undefined && data.count !== null){
-            const n = parseInt(data.count);
+            const count = Number.parseInt(data.count, 10);
+
+            const v3 = document.getElementById('val-3');
+            const s3 = document.getElementById('sub-3');
+            const c3 = document.getElementById('card-3');
             const t3 = document.getElementById('track-3');
             const f3 = document.getElementById('fill-3');
-            const s3 = document.getElementById('sub-3');
-            if (t3) t3.style.display = 'block';
-            if (f3) f3.style.width = n + '%';
-            if (s3) s3.innerText = 'MATURITY: ' + n + '%';
+
+            if (Number.isFinite(count)){
+              if (t3) t3.style.display = 'block';
+              if (f3) f3.style.width = count + '%';
+              if (s3) s3.innerText = 'MATURITY: ' + count + '%';
+
+              const cycleStr = String(data.cycle || '').toLowerCase();
+              const isCommodities = cycleStr.includes('commod');
+
+              if (count <= 0){
+                if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; }
+                if (c3) c3.className = 'card';
+                if (f3) f3.style.background = 'var(--dim)';
+              } else if (count <= 25){
+                if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; }
+                if (c3) c3.className = 'card glow-lime';
+                if (f3) f3.style.background = 'var(--lime)';
+              } else if (count <= 70){
+                if (v3) v3.innerText = 'ESTABLISHED CYCLE';
+                if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)';
+                if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver';
+                if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)';
+              } else {
+                const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)';
+                if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; }
+                if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning';
+                if (f3) f3.style.background = endCol;
+              }
+            } else {
+              // Non-numeric safety fallback
+              if (s3) s3.innerText = 'MATURITY: --';
+            }
           }
         }
 
