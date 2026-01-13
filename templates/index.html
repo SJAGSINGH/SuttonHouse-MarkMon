@@ -462,7 +462,7 @@
         }
         if (s2){
           s2.innerText = detail.toUpperCase();
-          s2.style.color = intoCom ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+          s2.style.color = 'var(--text)'; // ✅ always white
         }
         if (c2) c2.className = intoCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
       }
