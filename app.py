@@ -172,11 +172,12 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 
         if isinstance(vixL, int) and vixL <= 4:
             war = True
-            reason.append(f"VIX_L{vixL}")
+            reason.append(f"Institutional X: LEVEL {vixL}")
 
         if isinstance(gvzL, int) and (gvzL <= 3 or gvzL >= 8):
             war = True
-            reason.append(f"GVZ_L{gvzL}")
+            reason.append(f"Institutional Y: LEVEL {gvzL}")
+
 
         STATE["secret"]["war"] = {"active": war, "reason": ", ".join(reason) if reason else ""}
 
