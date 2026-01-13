@@ -13,10 +13,12 @@
       --dim:#333333; --lime:#32CD32; --gold:#BF953F; --silver:#C0C0C0;
       --pink:#FF69B4; --red:#ff4444; --orange:#ff8c00;
 
-      /* ✅ Secret emerald (recommended) */
       --secret:#1fa67a;
       --secret-bg-1:#0b1512;
       --secret-bg-2:#0f2a21;
+
+      --war-1:#12080a;
+      --war-2:#061313;
     }
 
     body{
@@ -26,6 +28,13 @@
       display:flex; flex-direction:column; gap:40px;
       min-height:100vh; box-sizing:border-box;
       overflow-x:hidden;
+      transition:background .35s ease;
+    }
+
+    body.war-room{
+      background: radial-gradient(1100px 700px at 15% 10%, rgba(255,68,68,.10), transparent 55%),
+                  radial-gradient(900px 600px at 85% 25%, rgba(31,166,122,.10), transparent 55%),
+                  linear-gradient(145deg, var(--war-1), var(--war-2));
     }
 
     .header{
@@ -78,6 +87,7 @@
       transition:all .6s cubic-bezier(0.4,0,0.2,1);
       display:flex; flex-direction:column;
       position:relative;
+      min-height:170px;
     }
     .card h3{
       font-size:10px; color:#555; text-transform:uppercase;
@@ -92,50 +102,36 @@
       text-transform:uppercase; letter-spacing:1px;
     }
 
-    /* ✅ RESTORED “REGIME HUM” / FADED BACKGROUNDS */
     .halo-bg-gold{
       border-color: var(--gold) !important;
       background: linear-gradient(145deg, #111111 0%, #2a2210 100%) !important;
-      box-shadow:
-        0 0 30px rgba(191,149,63,.15),
-        inset 0 0 20px rgba(191,149,63,.10);
+      box-shadow: 0 0 30px rgba(191,149,63,.15), inset 0 0 20px rgba(191,149,63,.10);
     }
     .halo-bg-silver{
       border-color: var(--silver) !important;
       background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%) !important;
-      box-shadow:
-        0 0 30px rgba(192,192,192,.15),
-        inset 0 0 20px rgba(192,192,192,.08);
+      box-shadow: 0 0 30px rgba(192,192,192,.15), inset 0 0 20px rgba(192,192,192,.08);
     }
     .glow-lime{
       border-color: var(--lime) !important;
       background: linear-gradient(145deg, #111111 0%, #0a1f0a 100%) !important;
-      box-shadow:
-        0 0 26px rgba(50,205,50,.12),
-        inset 0 0 22px rgba(50,205,50,.10);
+      box-shadow: 0 0 26px rgba(50,205,50,.12), inset 0 0 22px rgba(50,205,50,.10);
     }
     .glow-warning{
       border-color: var(--orange) !important;
       background: linear-gradient(145deg, #111111 0%, #2a1a0a 100%) !important;
-      box-shadow:
-        0 0 26px rgba(255,140,0,.12),
-        inset 0 0 22px rgba(255,140,0,.10);
+      box-shadow: 0 0 26px rgba(255,140,0,.12), inset 0 0 22px rgba(255,140,0,.10);
     }
     .glow-danger{
       border-color: var(--red) !important;
       background: linear-gradient(145deg, #111111 0%, #2a0a0a 100%) !important;
-      box-shadow:
-        0 0 26px rgba(255,68,68,.14),
-        inset 0 0 22px rgba(255,68,68,.12);
+      box-shadow: 0 0 26px rgba(255,68,68,.14), inset 0 0 22px rgba(255,68,68,.12);
     }
 
-    /* ✅ SECRET MODE — EMERALD */
     .halo-bg-secret{
       border-color: var(--secret) !important;
       background: linear-gradient(145deg, var(--secret-bg-1) 0%, var(--secret-bg-2) 100%) !important;
-      box-shadow:
-        0 0 34px rgba(31,166,122,.22),
-        inset 0 0 26px rgba(31,166,122,.18);
+      box-shadow: 0 0 34px rgba(31,166,122,.22), inset 0 0 26px rgba(31,166,122,.18);
     }
 
     .track{ width:100%; height:4px; background:#1a1a1a; margin-top:18px; border-radius:2px; overflow:hidden; display:none; }
@@ -146,11 +142,7 @@
     .pulse-slow{ animation:node-pulse 3s infinite ease-in-out; }
     .pulse-mid{ animation:node-pulse 1.2s infinite ease-in-out; }
     .pulse-fast{ animation:node-pulse .5s infinite ease-in-out; }
-    @keyframes node-pulse{
-      0%{transform:scale(.9);opacity:.5}
-      50%{transform:scale(1.1);opacity:1}
-      100%{transform:scale(.9);opacity:.5}
-    }
+    @keyframes node-pulse{ 0%{transform:scale(.9);opacity:.5} 50%{transform:scale(1.1);opacity:1} 100%{transform:scale(.9);opacity:.5} }
     .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
 
     #password-modal{
@@ -165,7 +157,6 @@
       margin-bottom:20px; outline:none; font-family:monospace; letter-spacing:4px;
     }
 
-    /* ✅ Back button (shows only in secret mode) */
     #vault-exit{
       display:none;
       margin-top:18px;
@@ -186,6 +177,46 @@
       background:rgba(31,166,122,.08);
       box-shadow:0 0 18px rgba(31,166,122,.18);
     }
+
+    /* ✅ Gauges */
+    .gauge{
+      margin-top:14px;
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .gauge-bars{
+      display:grid;
+      grid-template-columns:repeat(10, 1fr);
+      gap:5px;
+      width:100%;
+    }
+    .gseg{
+      height:10px;
+      border-radius:3px;
+      background:#1b1b1b;
+      border:1px solid #242424;
+      transition:.25s;
+    }
+    .gseg.on{
+      background:rgba(31,166,122,.35);
+      border-color:rgba(31,166,122,.55);
+      box-shadow:0 0 12px rgba(31,166,122,.14);
+    }
+    .gseg.hot{
+      background:rgba(255,68,68,.30);
+      border-color:rgba(255,68,68,.55);
+      box-shadow:0 0 14px rgba(255,68,68,.16);
+    }
+    .gmeta{
+      margin-top:10px;
+      font-size:10px;
+      color:#8a8a8a;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      line-height:1.4;
+    }
+    .gmeta strong{ color:#fff; letter-spacing:1.2px; }
   </style>
 </head>
 
@@ -216,7 +247,6 @@
 
   <div class="macro-header">Macro Analysis</div>
 
-  <!-- ✅ Back button (hidden until secret mode is enabled) -->
   <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
 
   <main class="grid">
@@ -224,12 +254,14 @@
       <h3 id="h3-1">Regime &amp; Volatility</h3>
       <div class="primary-text" id="val-1">AWAITING</div>
       <div class="secondary-text" id="sub-1"></div>
+      <div id="gauge-1" style="display:none;"></div>
     </div>
 
     <div class="card" id="card-2">
       <h3 id="h3-2">Capital Rotation</h3>
       <div class="primary-text" id="val-2">AWAITING</div>
       <div class="secondary-text" id="sub-2"></div>
+      <div id="gauge-2" style="display:none;"></div>
     </div>
 
     <div class="card" id="card-3">
@@ -237,6 +269,7 @@
       <div class="primary-text" id="val-3">AWAITING</div>
       <div class="secondary-text" id="sub-3"></div>
       <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
+      <div id="gauge-3" style="display:none;"></div>
     </div>
 
     <div class="card" id="card-4">
@@ -287,81 +320,272 @@
     }
 
     // ----------------------------
-    // SECRET MODE (Cards 1–3 become the secret UI)
+    // STATE CACHE (fix: restore after secret mode)
     // ----------------------------
-    let secretMode = false;
+    let lastState = null;
 
     function setText(id, txt){
       const el = document.getElementById(id);
       if (el) el.innerText = txt;
     }
 
+    function showGauge(containerId, level, hotRangeFn, title, metaLines){
+      const host = document.getElementById(containerId);
+      if (!host) return;
+
+      const lv = Number.isFinite(level) ? Math.max(1, Math.min(10, level)) : null;
+
+      let bars = '';
+      for (let i=1;i<=10;i++){
+        const on = (lv !== null && i <= lv) ? 'on' : '';
+        const hot = (lv !== null && hotRangeFn && hotRangeFn(lv) && i <= lv) ? 'hot' : '';
+        bars += `<div class="gseg ${hot || on}"></div>`;
+      }
+
+      let metaHtml = '';
+      if (Array.isArray(metaLines) && metaLines.length){
+        metaHtml = `<div class="gmeta">${metaLines.map(x => `<div>${x}</div>`).join('')}</div>`;
+      }
+
+      host.innerHTML = `
+        <div class="gauge">
+          <div style="font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;min-width:120px;">${title}</div>
+          <div class="gauge-bars">${bars}</div>
+        </div>
+        ${metaHtml}
+      `;
+      host.style.display = 'block';
+    }
+
+    function hideGauge(containerId){
+      const host = document.getElementById(containerId);
+      if (host){ host.style.display = 'none'; host.innerHTML = ''; }
+    }
+
+    // ----------------------------
+    // SECRET MODE
+    // ----------------------------
+    let secretMode = false;
+
     function enableSecretMode(){
       secretMode = true;
 
-      // show exit button
       const exitBtn = document.getElementById('vault-exit');
       if (exitBtn) exitBtn.style.display = 'inline-flex';
 
-      setText('h3-1', 'Institutional Alpha');
-      setText('h3-2', 'Order Flow');
-      setText('h3-3', 'Liquidity Timing');
+      setText('h3-1', 'Institutional X');
+      setText('h3-2', 'Institutional Y');
+      setText('h3-3', 'Institutional Buyers / Sellers');
 
-      // ✅ Secret emerald styling
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
         if (c) c.className = 'card halo-bg-secret';
       });
 
-      // Force text + override any old inline colours from public mode
-      const v1 = document.getElementById('val-1');
-      const v2 = document.getElementById('val-2');
-      const v3 = document.getElementById('val-3');
-      if (v1){ v1.innerText = 'SECURE FEED'; v1.style.color = 'var(--secret)'; }
-      if (v2){ v2.innerText = 'SECURE FEED'; v2.style.color = 'var(--secret)'; }
-      if (v3){ v3.innerText = 'SECURE FEED'; v3.style.color = 'var(--secret)'; }
-
-      const s1 = document.getElementById('sub-1');
-      const s2 = document.getElementById('sub-2');
-      const s3 = document.getElementById('sub-3');
-      if (s1){ s1.innerText = 'AWAITING SIGNAL'; s1.style.color = 'var(--secret)'; }
-      if (s2){ s2.innerText = 'AWAITING SIGNAL'; s2.style.color = 'var(--secret)'; }
-      if (s3){ s3.innerText = 'AWAITING SIGNAL'; s3.style.color = 'var(--secret)'; }
-
       const t3 = document.getElementById('track-3');
       if (t3) t3.style.display = 'none';
+
+      // render immediately from lastState (no waiting)
+      if (lastState) applySecretFromState(lastState);
     }
 
     function closeVault(){
       secretMode = false;
 
-      // hide exit button
       const exitBtn = document.getElementById('vault-exit');
       if (exitBtn) exitBtn.style.display = 'none';
+
+      hideGauge('gauge-1');
+      hideGauge('gauge-2');
+      hideGauge('gauge-3');
 
       setText('h3-1', 'Regime & Volatility');
       setText('h3-2', 'Capital Rotation');
       setText('h3-3', 'Cycle Maturity');
 
+      // restore immediately from lastState (✅ FIX for losing data)
+      if (lastState) applyPublicFromState(lastState);
+    }
+    window.closeVault = closeVault;
+
+    // ----------------------------
+    // APPLY STATE (Public)
+    // ----------------------------
+    function applyPublicFromState(data){
+      // remove war-room background in public mode
+      document.body.classList.remove('war-room');
+
+      // reset cards 1–3 base class, then reapply based on state
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
         if (c) c.className = 'card';
       });
 
-      // Clear any inline styles we set in secret mode
-      ['val-1','val-2','val-3'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el){ el.innerText = 'AWAITING'; el.style.color = ''; }
-      });
-      ['sub-1','sub-2','sub-3'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el){ el.innerText = ''; el.style.color = ''; }
-      });
+      // Card 1
+      if (data.cycle){
+        const v1 = document.getElementById('val-1');
+        const c1 = document.getElementById('card-1');
+        const isCom = String(data.cycle).toLowerCase().includes('commodities');
+        if (v1){
+          v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase();
+          v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
+        }
+        if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
+      }
 
-      const t3 = document.getElementById('track-3');
-      if (t3) t3.style.display = 'block';
+      if (data.vol){
+        const s1 = document.getElementById('sub-1');
+        if (s1){
+          s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase();
+          s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+        }
+      }
+
+      // Card 2 — parse “ROTATION ACTIVE | ... | ...”
+      if (data.flow){
+        const v2 = document.getElementById('val-2');
+        const s2 = document.getElementById('sub-2');
+        const c2 = document.getElementById('card-2');
+
+        const flowRaw = String(data.flow);
+        const parts = flowRaw.split('|').map(x => x.trim()).filter(Boolean);
+
+        const headline = parts[0] || 'ROTATION';
+        const detail = parts.slice(1).join(' | ') || flowRaw;
+
+        const intoCom = flowRaw.toLowerCase().includes('into commodities');
+        const intoEq  = flowRaw.toLowerCase().includes('into equities');
+
+        if (v2){
+          v2.innerText = headline.toUpperCase();
+          v2.style.color = intoCom ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+        }
+        if (s2){
+          s2.innerText = detail.toUpperCase();
+          s2.style.color = intoCom ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+        }
+        if (c2) c2.className = intoCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
+      }
+
+      // Card 3 maturity
+      if (data.count !== undefined && data.count !== null){
+        const count = Number.parseInt(data.count, 10);
+
+        const v3 = document.getElementById('val-3');
+        const s3 = document.getElementById('sub-3');
+        const c3 = document.getElementById('card-3');
+        const t3 = document.getElementById('track-3');
+        const f3 = document.getElementById('fill-3');
+
+        if (Number.isFinite(count)){
+          if (t3) t3.style.display = 'block';
+          if (f3) f3.style.width = count + '%';
+          if (s3) s3.innerText = 'MATURITY: ' + count + '%';
+
+          const cycleStr = String(data.cycle || '').toLowerCase();
+          const isCommodities = cycleStr.includes('commod');
+
+          if (count <= 0){
+            if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; }
+            if (c3) c3.className = 'card';
+            if (f3) f3.style.background = 'var(--dim)';
+          } else if (count <= 25){
+            if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; }
+            if (c3) c3.className = 'card glow-lime';
+            if (f3) f3.style.background = 'var(--lime)';
+          } else if (count <= 70){
+            if (v3) v3.innerText = 'ESTABLISHED CYCLE';
+            if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)';
+            if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver';
+            if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)';
+          } else {
+            const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)';
+            if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; }
+            if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning';
+            if (f3) f3.style.background = endCol;
+          }
+        }
+      }
     }
-    window.closeVault = closeVault;
+
+    // ----------------------------
+    // APPLY STATE (Secret Gauges)
+    // ----------------------------
+    function applySecretFromState(data){
+      const secret = (data && data.secret) ? data.secret : {};
+      const vix = secret.vix || {};
+      const gvz = secret.gvz || {};
+      const buy = secret.buy || {};
+      const sell = secret.sell || {};
+      const vold = secret.vold || {};
+      const war = secret.war || {};
+
+      // War-room background only in secret mode
+      if (war && war.active){
+        document.body.classList.add('war-room');
+      } else {
+        document.body.classList.remove('war-room');
+      }
+
+      // Card 1: VIX gauge
+      setText('val-1', (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—');
+      setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
+      document.getElementById('val-1').style.color = 'var(--secret)';
+      document.getElementById('sub-1').style.color = 'var(--secret)';
+
+      showGauge(
+        'gauge-1',
+        vix.level,
+        (lv) => lv <= 4, // VIX interest zone
+        'VIX LEVEL',
+        [
+          `<strong>${vix.symbol || 'CBOE:VIX'}</strong>`,
+          `LEVEL: ${vix.level ?? '—'} ${ (vix.level && vix.level <= 4) ? '• WAR ROOM' : '' }`
+        ]
+      );
+
+      // Card 2: GVZ gauge
+      setText('val-2', (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—');
+      setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
+      document.getElementById('val-2').style.color = 'var(--secret)';
+      document.getElementById('sub-2').style.color = 'var(--secret)';
+
+      showGauge(
+        'gauge-2',
+        gvz.level,
+        (lv) => (lv <= 3 || lv >= 8), // GVZ interest zone
+        'GVZ LEVEL',
+        [
+          `<strong>${gvz.symbol || 'CBOE:GVZ'}</strong>`,
+          `LEVEL: ${gvz.level ?? '—'} ${ (gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? '• WAR ROOM' : '' }`
+        ]
+      );
+
+      // Card 3: Buyers vs Sellers (2 indicators in one card)
+      const buyVal = (buy.value !== null && buy.value !== undefined) ? String(buy.value) : '—';
+      const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
+
+      setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
+      setText('sub-3', `${(buy.state || 'BUYERS')} • ${(sell.state || 'SELLERS')} • ${(vold.state || '')}`.trim());
+      document.getElementById('val-3').style.color = 'var(--secret)';
+      document.getElementById('sub-3').style.color = 'var(--secret)';
+
+      // For gauge: use whichever side is “dominant” level if present
+      const buyL = Number.isFinite(buy.level) ? buy.level : null;
+      const sellL = Number.isFinite(sell.level) ? sell.level : null;
+      const dom = (buyL !== null && sellL !== null) ? (buyL >= sellL ? buyL : sellL) : (buyL ?? sellL);
+
+      showGauge(
+        'gauge-3',
+        dom,
+        (lv) => lv >= 7, // treat high dominance as “hot”
+        'VOLUME PRESSURE',
+        [
+          `<strong>${buy.symbol || 'UPVOL/DNVOL'}</strong>`,
+          `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
+        ]
+      );
+    }
 
     // ----------------------------
     // SOCKET.IO (GUARDED)
@@ -380,90 +604,17 @@
     }
 
     // ----------------------------
-    // LIVE MACRO UPDATES
+    // LIVE UPDATES
     // ----------------------------
     if (socket){
       socket.on('macro_update', (data) => {
         triggerPulse();
+        lastState = data;
 
-        // Cards 1–3 only update in public mode
         if (!secretMode){
-          if (data.cycle){
-            const v1 = document.getElementById('val-1');
-            const c1 = document.getElementById('card-1');
-            const isCom = String(data.cycle).toLowerCase().includes('commodities');
-            if (v1){
-              v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase();
-              v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
-            }
-            if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
-          }
-
-          if (data.vol){
-            const s1 = document.getElementById('sub-1');
-            if (s1){
-              s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase();
-              s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
-            }
-          }
-
-          if (data.flow){
-            const v2 = document.getElementById('val-2');
-            const s2 = document.getElementById('sub-2');
-            const c2 = document.getElementById('card-2');
-
-            const flowStr = String(data.flow).toLowerCase();
-            const flowGold = flowStr.includes('commod') || flowStr.includes('offensive');
-
-            if (v2){
-              v2.innerText = 'ROTATION ACTIVE';
-              v2.style.color = flowGold ? 'var(--gold)' : 'var(--text)';
-            }
-            if (s2) s2.innerText = String(data.flow).toUpperCase();
-            if (c2) c2.className = flowGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
-          }
-
-          // CARD 3 maturity
-          if (data.count !== undefined && data.count !== null){
-            const count = Number.parseInt(data.count, 10);
-
-            const v3 = document.getElementById('val-3');
-            const s3 = document.getElementById('sub-3');
-            const c3 = document.getElementById('card-3');
-            const t3 = document.getElementById('track-3');
-            const f3 = document.getElementById('fill-3');
-
-            if (Number.isFinite(count)){
-              if (t3) t3.style.display = 'block';
-              if (f3) f3.style.width = count + '%';
-              if (s3) s3.innerText = 'MATURITY: ' + count + '%';
-
-              const cycleStr = String(data.cycle || '').toLowerCase();
-              const isCommodities = cycleStr.includes('commod');
-
-              if (count <= 0){
-                if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; }
-                if (c3) c3.className = 'card';
-                if (f3) f3.style.background = 'var(--dim)';
-              } else if (count <= 25){
-                if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; }
-                if (c3) c3.className = 'card glow-lime';
-                if (f3) f3.style.background = 'var(--lime)';
-              } else if (count <= 70){
-                if (v3) v3.innerText = 'ESTABLISHED CYCLE';
-                if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)';
-                if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver';
-                if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)';
-              } else {
-                const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)';
-                if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; }
-                if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning';
-                if (f3) f3.style.background = endCol;
-              }
-            } else {
-              if (s3) s3.innerText = 'MATURITY: --';
-            }
-          }
+          applyPublicFromState(data);
+        } else {
+          applySecretFromState(data);
         }
 
         // Card 4 always live
@@ -478,7 +629,7 @@
             if (c4) c4.className = 'card glow-lime';
             if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
           } else if (s <= 0.49){
-            if (v4) v4.innerText = 'WARNING: APPROACHING RECESSION';
+            if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
             if (c4) c4.className = 'card glow-warning';
             if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
           } else {
