@@ -32,9 +32,10 @@
     }
 
     body.war-room{
-      background: radial-gradient(1100px 700px at 15% 10%, rgba(255,68,68,.10), transparent 55%),
-                  radial-gradient(900px 600px at 85% 25%, rgba(31,166,122,.10), transparent 55%),
-                  linear-gradient(145deg, var(--war-1), var(--war-2));
+      background:
+        radial-gradient(1100px 700px at 15% 10%, rgba(255,68,68,.10), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(31,166,122,.10), transparent 55%),
+        linear-gradient(145deg, var(--war-1), var(--war-2));
     }
 
     .header{
@@ -178,12 +179,20 @@
       box-shadow:0 0 18px rgba(31,166,122,.18);
     }
 
-    /* ✅ Gauges */
+    /* Gauges */
     .gauge{
       margin-top:14px;
       display:flex;
-      gap:6px;
+      gap:10px;
       align-items:center;
+    }
+    .gauge-title{
+      font-size:10px;
+      color:#8a8a8a;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      min-width:120px;
+      user-select:none;
     }
     .gauge-bars{
       display:grid;
@@ -292,9 +301,7 @@
   </div>
 
   <script>
-    // ----------------------------
-    // CLOCK MUST ALWAYS RUN
-    // ----------------------------
+    // CLOCK
     function tick(){
       const now = new Date();
       const clock = document.getElementById('digital-clock');
@@ -319,9 +326,7 @@
       setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
     }
 
-    // ----------------------------
-    // STATE CACHE (fix: restore after secret mode)
-    // ----------------------------
+    // STATE CACHE
     let lastState = null;
 
     function setText(id, txt){
@@ -329,11 +334,16 @@
       if (el) el.innerText = txt;
     }
 
+    function hideGauge(containerId){
+      const host = document.getElementById(containerId);
+      if (host){ host.style.display = 'none'; host.innerHTML = ''; }
+    }
+
     function showGauge(containerId, level, hotRangeFn, title, metaLines){
       const host = document.getElementById(containerId);
       if (!host) return;
 
-      const lv = Number.isFinite(level) ? Math.max(1, Math.min(10, level)) : null;
+      const lv = Number.isFinite(level) ? Math.max(0, Math.min(10, level)) : null;
 
       let bars = '';
       for (let i=1;i<=10;i++){
@@ -349,7 +359,7 @@
 
       host.innerHTML = `
         <div class="gauge">
-          <div style="font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;min-width:120px;">${title}</div>
+          <div class="gauge-title">${title}</div>
           <div class="gauge-bars">${bars}</div>
         </div>
         ${metaHtml}
@@ -357,14 +367,45 @@
       host.style.display = 'block';
     }
 
-    function hideGauge(containerId){
+    function showDualGauge(containerId, buyLevel, sellLevel, hotFn, title, metaLines){
       const host = document.getElementById(containerId);
-      if (host){ host.style.display = 'none'; host.innerHTML = ''; }
+      if (!host) return;
+
+      const mkBars = (lv) => {
+        const L = Number.isFinite(lv) ? Math.max(0, Math.min(10, lv)) : 0;
+        let bars = '';
+        for (let i=1;i<=10;i++){
+          const on = i <= L ? 'on' : '';
+          const hot = (hotFn && hotFn(L) && i <= L) ? 'hot' : '';
+          bars += `<div class="gseg ${hot || on}"></div>`;
+        }
+        return bars;
+      };
+
+      const metaHtml = Array.isArray(metaLines) && metaLines.length
+        ? `<div class="gmeta">${metaLines.map(x => `<div>${x}</div>`).join('')}</div>`
+        : '';
+
+      host.innerHTML = `
+        <div class="gauge">
+          <div class="gauge-title">${title}</div>
+          <div style="width:100%;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">BUY</div>
+              <div class="gauge-bars">${mkBars(buyLevel)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">SELL</div>
+              <div class="gauge-bars">${mkBars(sellLevel)}</div>
+            </div>
+          </div>
+        </div>
+        ${metaHtml}
+      `;
+      host.style.display = 'block';
     }
 
-    // ----------------------------
     // SECRET MODE
-    // ----------------------------
     let secretMode = false;
 
     function enableSecretMode(){
@@ -385,7 +426,6 @@
       const t3 = document.getElementById('track-3');
       if (t3) t3.style.display = 'none';
 
-      // render immediately from lastState (no waiting)
       if (lastState) applySecretFromState(lastState);
     }
 
@@ -403,19 +443,14 @@
       setText('h3-2', 'Capital Rotation');
       setText('h3-3', 'Cycle Maturity');
 
-      // restore immediately from lastState (✅ FIX for losing data)
       if (lastState) applyPublicFromState(lastState);
     }
     window.closeVault = closeVault;
 
-    // ----------------------------
-    // APPLY STATE (Public)
-    // ----------------------------
+    // PUBLIC APPLY
     function applyPublicFromState(data){
-      // remove war-room background in public mode
       document.body.classList.remove('war-room');
 
-      // reset cards 1–3 base class, then reapply based on state
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
         if (c) c.className = 'card';
@@ -441,7 +476,7 @@
         }
       }
 
-      // Card 2 — parse “ROTATION ACTIVE | ... | ...”
+      // Card 2
       if (data.flow){
         const v2 = document.getElementById('val-2');
         const s2 = document.getElementById('sub-2');
@@ -462,7 +497,7 @@
         }
         if (s2){
           s2.innerText = detail.toUpperCase();
-          s2.style.color = 'var(--text)'; // ✅ always white
+          s2.style.color = 'var(--text)'; // always white
         }
         if (c2) c2.className = intoCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
       }
@@ -508,9 +543,7 @@
       }
     }
 
-    // ----------------------------
-    // APPLY STATE (Secret Gauges)
-    // ----------------------------
+    // SECRET APPLY
     function applySecretFromState(data){
       const secret = (data && data.secret) ? data.secret : {};
       const vix = secret.vix || {};
@@ -527,69 +560,68 @@
         document.body.classList.remove('war-room');
       }
 
-      // Card 1: VIX gauge
-      setText('val-1', (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—');
+      // Card 1 (Institutional X)
+      const vixVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
+      setText('val-1', vixVal);
       setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
       document.getElementById('val-1').style.color = 'var(--secret)';
       document.getElementById('sub-1').style.color = 'var(--secret)';
 
       showGauge(
         'gauge-1',
-        vix.level,
-        (lv) => lv <= 4, // VIX interest zone
-        'VIX LEVEL',
+        Number.isFinite(vix.level) ? vix.level : null,
+        (lv) => lv <= 4, // interest zone
+        'LEVEL',
         [
-          `<strong>${vix.symbol || 'CBOE:VIX'}</strong>`,
-          `LEVEL: ${vix.level ?? '—'} ${ (vix.level && vix.level <= 4) ? '• WAR ROOM' : '' }`
+          `<strong>Institutional X</strong>`,
+          `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`
         ]
       );
 
-      // Card 2: GVZ gauge
-      setText('val-2', (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—');
+      // Card 2 (Institutional Y)
+      const gvzVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
+      setText('val-2', gvzVal);
       setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
       document.getElementById('val-2').style.color = 'var(--secret)';
       document.getElementById('sub-2').style.color = 'var(--secret)';
 
       showGauge(
         'gauge-2',
-        gvz.level,
-        (lv) => (lv <= 3 || lv >= 8), // GVZ interest zone
-        'GVZ LEVEL',
+        Number.isFinite(gvz.level) ? gvz.level : null,
+        (lv) => (lv <= 3 || lv >= 8),
+        'LEVEL',
         [
-          `<strong>${gvz.symbol || 'CBOE:GVZ'}</strong>`,
-          `LEVEL: ${gvz.level ?? '—'} ${ (gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? '• WAR ROOM' : '' }`
+          `<strong>Institutional Y</strong>`,
+          `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`
         ]
       );
 
-      // Card 3: Buyers vs Sellers (2 indicators in one card)
+      // Card 3 dual gauge (Buy/Sell)
       const buyVal = (buy.value !== null && buy.value !== undefined) ? String(buy.value) : '—';
       const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
 
       setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-      setText('sub-3', `${(buy.state || 'BUYERS')} • ${(sell.state || 'SELLERS')} • ${(vold.state || '')}`.trim());
+      setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
       document.getElementById('val-3').style.color = 'var(--secret)';
       document.getElementById('sub-3').style.color = 'var(--secret)';
 
-      // For gauge: use whichever side is “dominant” level if present
-      const buyL = Number.isFinite(buy.level) ? buy.level : null;
-      const sellL = Number.isFinite(sell.level) ? sell.level : null;
-      const dom = (buyL !== null && sellL !== null) ? (buyL >= sellL ? buyL : sellL) : (buyL ?? sellL);
+      const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
+      const sellL = Number.isFinite(sell.level) ? sell.level : 0;
 
-      showGauge(
+      showDualGauge(
         'gauge-3',
-        dom,
-        (lv) => lv >= 7, // treat high dominance as “hot”
-        'VOLUME PRESSURE',
+        buyL,
+        sellL,
+        (lv) => lv >= 7,
+        'PRESSURE',
         [
-          `<strong>${buy.symbol || 'UPVOL/DNVOL'}</strong>`,
+          `<strong>Institutional Buyers / Sellers</strong>`,
           `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
         ]
       );
     }
 
-    // ----------------------------
-    // SOCKET.IO (GUARDED)
-    // ----------------------------
+    // SOCKET.IO
     let socket = null;
     try{
       if (window.io){
@@ -603,9 +635,6 @@
       console.log('Socket init failed; clock will still run.', e);
     }
 
-    // ----------------------------
-    // LIVE UPDATES
-    // ----------------------------
     if (socket){
       socket.on('macro_update', (data) => {
         triggerPulse();
@@ -641,9 +670,7 @@
       });
     }
 
-    // ----------------------------
-    // PASSWORD MODAL (SERVER VERIFY)
-    // ----------------------------
+    // PASSWORD MODAL
     const tor = document.getElementById('city-tor');
     if (tor){
       tor.addEventListener('dblclick', () => {
