@@ -450,8 +450,8 @@
         const flowRaw = String(data.flow);
         const parts = flowRaw.split('|').map(x => x.trim()).filter(Boolean);
 
-        const headline = parts[0] || 'ROTATION';
-        const detail = parts.slice(1).join(' | ') || flowRaw;
+        const headline = parts.length > 1 ? parts[0] : 'ROTATION ACTIVE';
+        const detail   = parts.length > 1 ? parts.slice(1).join(' | ') : flowRaw;
 
         const intoCom = flowRaw.toLowerCase().includes('into commodities');
         const intoEq  = flowRaw.toLowerCase().includes('into equities');
