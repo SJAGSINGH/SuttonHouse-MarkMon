@@ -7,27 +7,38 @@ from typing import Any, Dict
 
 app = Flask(__name__, static_folder="static")
 
-# Socket.IO – threading mode (Render-safe)
+# Threading mode = compatible with Gunicorn gthreads on Render
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# Optional webhook auth
+# Optional: lock TradingView webhook (set in Render env)
 WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
 
-# Vault password
+# Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
 
-# --- Rate limit for password attempts ---
+# ---- Simple brute-force limiter (per IP) ----
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
 
-# --- Canonical macro state ---
+# Unified state expected by index.html (+ secret block)
 STATE: Dict[str, Any] = {
     "cycle": None,
     "vol": None,
     "flow": None,
     "count": None,
     "sahm": None,
+
+    # ✅ secret indicators (cards 5–9)
+    "secret": {
+        "vix": None,    # dict: {value, level, state, symbol}
+        "gvz": None,    # dict: {value, level, state, symbol}
+        "buy": None,    # dict: {value, level, state, symbol}
+        "sell": None,   # dict: {value, level, state, symbol}
+        "vold": None,   # dict: {level, state}
+        "war": None,    # dict: {active, reason}
+    },
+
     "_server_ts": None
 }
 
@@ -50,33 +61,28 @@ def health():
 def _authorised_webhook(req) -> bool:
     if not WEBHOOK_SECRET:
         return True
-    return (
-        (req.headers.get("X-Webhook-Secret") or "").strip() == WEBHOOK_SECRET
-        or (req.args.get("secret") or "").strip() == WEBHOOK_SECRET
-    )
+    header_secret = (req.headers.get("X-Webhook-Secret") or "").strip()
+    query_secret = (req.args.get("secret") or "").strip()
+    return header_secret == WEBHOOK_SECRET or query_secret == WEBHOOK_SECRET
 
 
 def _clamp_int(x: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, x))
 
 
-def _merge_payload(data: Dict[str, Any]) -> None:
-    if data.get("cycle") is not None:
+def _merge_field_payload(data: Dict[str, Any]) -> None:
+    if "cycle" in data and data["cycle"] is not None:
         STATE["cycle"] = str(data["cycle"]).upper()
-
-    if data.get("vol") is not None:
+    if "vol" in data and data["vol"] is not None:
         STATE["vol"] = str(data["vol"]).upper()
-
-    if data.get("flow") is not None:
+    if "flow" in data and data["flow"] is not None:
         STATE["flow"] = str(data["flow"])
-
-    if data.get("count") is not None:
+    if "count" in data and data["count"] is not None:
         try:
             STATE["count"] = _clamp_int(int(float(data["count"])), 0, 100)
         except Exception:
             pass
-
-    if data.get("sahm") is not None:
+    if "sahm" in data and data["sahm"] is not None:
         try:
             STATE["sahm"] = float(data["sahm"])
         except Exception:
@@ -100,7 +106,7 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 
     elif card_n == 2:
         if msg:
-            STATE["flow"] = msg
+            STATE["flow"] = msg  # can be "ROTATION ACTIVE | ..."
 
     elif card_n == 3:
         m = re.search(r"(\d+(\.\d+)?)\s*%", msg)
@@ -114,49 +120,111 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         if m:
             STATE["sahm"] = float(m.group(1))
 
+    # ✅ SECRET CARDS 5–9 (already structured JSON from Pine)
+    elif card_n in (5, 6, 7, 8, 9):
+        name = str(data.get("name") or "").strip().upper()
+        symbol = str(data.get("symbol") or "").strip()
+        state = str(data.get("state") or "").strip()
+        level_raw = data.get("level")
+        value_raw = data.get("value")
+
+        level = None
+        try:
+            if level_raw is not None:
+                level = int(float(level_raw))
+        except Exception:
+            level = None
+
+        value = None
+        try:
+            if value_raw is not None and str(value_raw).lower() != "na":
+                value = float(value_raw)
+        except Exception:
+            value = None
+
+        pack = {"name": name, "symbol": symbol, "state": state, "level": level, "value": value}
+
+        if card_n == 5:
+            STATE["secret"]["vix"] = pack
+        elif card_n == 6:
+            STATE["secret"]["gvz"] = pack
+        elif card_n == 7:
+            STATE["secret"]["buy"] = pack
+        elif card_n == 8:
+            STATE["secret"]["sell"] = pack
+        elif card_n == 9:
+            # This can be “volume bias” meta info (no numeric value needed)
+            STATE["secret"]["vold"] = {"level": level, "state": state}
+
+        # ✅ WAR ROOM logic (server-side) so UI stays simple
+        vix = STATE["secret"].get("vix") or {}
+        gvz = STATE["secret"].get("gvz") or {}
+        vixL = vix.get("level")
+        gvzL = gvz.get("level")
+
+        # levels of interest:
+        # VIX: 1-4 (1 extreme)
+        # GVZ: 1-3 (1 extreme) OR 8-10 (10 extreme)
+        war = False
+        reason = []
+
+        if isinstance(vixL, int) and vixL <= 4:
+            war = True
+            reason.append(f"VIX_L{vixL}")
+
+        if isinstance(gvzL, int) and (gvzL <= 3 or gvzL >= 8):
+            war = True
+            reason.append(f"GVZ_L{gvzL}")
+
+        STATE["secret"]["war"] = {"active": war, "reason": ", ".join(reason) if reason else ""}
+
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if not _authorised_webhook(request):
+        print("Rejected webhook: unauthorised")
         abort(401)
 
     try:
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=False)
         if not isinstance(data, dict):
             abort(400)
 
         STATE["_server_ts"] = time.time()
-        print("Incoming Webhook:", data)
+        print(f"Incoming Webhook: {data}")
 
         if "card" in data and "msg" in data:
             _parse_card_payload(data)
 
-        _merge_payload(data)
+        _merge_field_payload(data)
 
         socketio.emit("macro_update", STATE)
         return "SUCCESS", 200
 
     except Exception as e:
-        print("Webhook error:", e)
+        print(f"Error in webhook: {e}")
         return str(e), 400
 
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
-    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0]
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0].strip()
     now = time.time()
 
-    history = [t for t in ATTEMPTS.get(ip, []) if now - t < ATTEMPT_WINDOW_SECS]
+    history = ATTEMPTS.get(ip, [])
+    history = [t for t in history if now - t < ATTEMPT_WINDOW_SECS]
     ATTEMPTS[ip] = history
 
     if len(history) >= ATTEMPT_MAX:
         return jsonify({"ok": False, "error": "rate_limited"}), 429
 
-    data = request.get_json(force=True) or {}
-    if str(data.get("password") or "").strip() == VAULT_PASSWORD:
+    data = request.get_json(force=True, silent=True) or {}
+    pw = str(data.get("password") or "").strip()
+
+    if pw == VAULT_PASSWORD:
         return jsonify({"ok": True}), 200
 
-    history.append(now)
+    ATTEMPTS[ip].append(now)
     return jsonify({"ok": False}), 401
 
 
