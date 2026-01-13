@@ -31,10 +31,10 @@ STATE: Dict[str, Any] = {
 
     # ✅ secret indicators (cards 5–9)
     "secret": {
-        "vix": None,    # dict: {value, level, state, symbol}
-        "gvz": None,    # dict: {value, level, state, symbol}
-        "buy": None,    # dict: {value, level, state, symbol}
-        "sell": None,   # dict: {value, level, state, symbol}
+        "vix": None,    # dict: {value, level, state, symbol, name}
+        "gvz": None,    # dict: {value, level, state, symbol, name}
+        "buy": None,    # dict: {value, level, state, symbol, name}
+        "sell": None,   # dict: {value, level, state, symbol, name}
         "vold": None,   # dict: {level, state}
         "war": None,    # dict: {active, reason}
     },
@@ -71,6 +71,7 @@ def _clamp_int(x: int, lo: int, hi: int) -> int:
 
 
 def _merge_field_payload(data: Dict[str, Any]) -> None:
+    # Backwards compatible: if Pine ever sends cycle/vol/flow/count/sahm directly
     if "cycle" in data and data["cycle"] is not None:
         STATE["cycle"] = str(data["cycle"]).upper()
     if "vol" in data and data["vol"] is not None:
@@ -91,12 +92,14 @@ def _merge_field_payload(data: Dict[str, Any]) -> None:
 
 def _parse_card_payload(data: Dict[str, Any]) -> None:
     card = data.get("card")
-    msg = str(data.get("msg") or "").strip()
 
     try:
         card_n = int(card)
     except Exception:
         return
+
+    # msg is optional for secret cards
+    msg = str(data.get("msg") or "").strip()
 
     if card_n == 1:
         parts = msg.split()
@@ -120,11 +123,12 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         if m:
             STATE["sahm"] = float(m.group(1))
 
-    # ✅ SECRET CARDS 5–9 (already structured JSON from Pine)
+    # ✅ SECRET CARDS 5–9 (structured JSON from Pine; no msg required)
     elif card_n in (5, 6, 7, 8, 9):
         name = str(data.get("name") or "").strip().upper()
         symbol = str(data.get("symbol") or "").strip()
         state = str(data.get("state") or "").strip()
+
         level_raw = data.get("level")
         value_raw = data.get("value")
 
@@ -153,18 +157,16 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         elif card_n == 8:
             STATE["secret"]["sell"] = pack
         elif card_n == 9:
-            # This can be “volume bias” meta info (no numeric value needed)
             STATE["secret"]["vold"] = {"level": level, "state": state}
 
-        # ✅ WAR ROOM logic (server-side) so UI stays simple
+        # ✅ WAR ROOM logic (server-side)
         vix = STATE["secret"].get("vix") or {}
         gvz = STATE["secret"].get("gvz") or {}
         vixL = vix.get("level")
         gvzL = gvz.get("level")
 
-        # levels of interest:
-        # VIX: 1-4 (1 extreme)
-        # GVZ: 1-3 (1 extreme) OR 8-10 (10 extreme)
+        # VIX: 1–4 = interest (1 extreme)
+        # GVZ: 1–3 = negative extreme interest (1 extreme) OR 8–10 = high interest
         war = False
         reason = []
 
@@ -193,7 +195,8 @@ def webhook():
         STATE["_server_ts"] = time.time()
         print(f"Incoming Webhook: {data}")
 
-        if "card" in data and "msg" in data:
+        # ✅ FIX: parse whenever card exists (msg optional for secret cards)
+        if "card" in data:
             _parse_card_payload(data)
 
         _merge_field_payload(data)
