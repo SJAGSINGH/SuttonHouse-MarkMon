@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -82,6 +82,22 @@
       font-size:14px; font-weight:700; color:#555;
       text-transform:uppercase; letter-spacing:4px;
       margin-bottom:-20px; border-left:3px solid var(--gold); padding-left:15px;
+      display:flex; align-items:center; justify-content:space-between; gap:18px;
+    }
+
+    /* Public teaser badge (shows only when war.active=true and NOT in secret mode) */
+    #war-badge{
+      display:none;
+      font-size:10px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:var(--red);
+      border:1px solid rgba(255,68,68,.35);
+      background:rgba(0,0,0,.25);
+      padding:7px 10px;
+      border-radius:999px;
+      white-space:nowrap;
+      user-select:none;
     }
 
     .grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
@@ -298,7 +314,10 @@
     </div>
   </header>
 
-  <div class="macro-header">Macro Analysis</div>
+  <div class="macro-header">
+    <div>Macro Analysis</div>
+    <div id="war-badge">WAR SIGNAL DETECTED — SECURE LAYER REQUIRED</div>
+  </div>
 
   <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
 
@@ -593,15 +612,30 @@
       setText('h3-2', 'Capital Rotation');
       setText('h3-3', 'Cycle Maturity');
 
+      // leaving secure layer should always clear war-room bg in public
+      document.body.classList.remove('war-room');
+
       if (lastState) applyPublicFromState(lastState);
     }
     window.closeVault = closeVault;
+
+    function setWarBadge(active){
+      const badge = document.getElementById('war-badge');
+      if (!badge) return;
+      // only show in public mode
+      badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
+    }
 
     // ----------------------------
     // PUBLIC APPLY
     // ----------------------------
     function applyPublicFromState(data){
+      // Always keep war background off in public mode
       document.body.classList.remove('war-room');
+
+      // Teaser badge in public if war is active
+      const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+      setWarBadge(warActive);
 
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
@@ -705,14 +739,13 @@
       const buy = secret.buy || {};
       const sell = secret.sell || {};
       const vold = secret.vold || {};
-      const war = secret.war || {};
+      const warActive = !!(secret && secret.war && secret.war.active);
 
-      // War-room background only in secret mode
-      if (war && war.active){
-        document.body.classList.add('war-room');
-      } else {
-        document.body.classList.remove('war-room');
-      }
+      // War-room background in secret mode (robust toggle)
+      document.body.classList.toggle('war-room', warActive);
+
+      // Badge should never show in secret mode
+      setWarBadge(false);
 
       // Card 1 (Institutional X)
       const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
@@ -868,6 +901,10 @@
         triggerPulse();
         lastState = data;
 
+        // War badge always computed from payload (but only shows in public mode)
+        const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+        setWarBadge(warActive);
+
         if (!secretMode){
           applyPublicFromState(data);
         } else {
@@ -949,4 +986,3 @@
   </script>
 </body>
 </html>
-
