@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit
 import os
 import re
 import time
+import json
+import atexit
 from typing import Any, Dict
 
 app = Flask(__name__, static_folder="static")
@@ -42,6 +44,64 @@ STATE: Dict[str, Any] = {
     "_server_ts": None
 }
 
+# ---- State persistence (warm start cache) ----
+STATE_FILE = os.environ.get("STATE_FILE", "/tmp/marketmonitor_state.json")
+STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days safety window (macro is monthly)
+
+def _load_state_from_disk() -> None:
+    """Load last known STATE so the UI isn't blank after a restart."""
+    global STATE
+    try:
+        if not os.path.exists(STATE_FILE):
+            print(f"[state] No cache file at {STATE_FILE}")
+            return
+
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            cached = json.load(f)
+
+        if not isinstance(cached, dict):
+            print("[state] Cache invalid (not a dict)")
+            return
+
+        ts = cached.get("_server_ts")
+        now = time.time()
+        if isinstance(ts, (int, float)) and (now - float(ts)) > STATE_MAX_AGE_SECS:
+            print("[state] Cache too old, ignoring")
+            return
+
+        # Merge cautiously (keep your STATE shape)
+        for k in ("cycle", "vol", "flow", "count", "sahm", "_server_ts"):
+            if k in cached:
+                STATE[k] = cached.get(k)
+
+        if isinstance(cached.get("secret"), dict):
+            # merge secret block if present
+            for sk in ("vix", "gvz", "buy", "sell", "vold", "war"):
+                if sk in cached["secret"]:
+                    STATE["secret"][sk] = cached["secret"].get(sk)
+
+        print(f"[state] Loaded cache from {STATE_FILE} (ts={STATE.get('_server_ts')})")
+    except Exception as e:
+        print(f"[state] Failed to load cache: {e}")
+
+
+def _save_state_to_disk() -> None:
+    """Persist current STATE so we can restore quickly after restart."""
+    try:
+        tmp = f"{STATE_FILE}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(STATE, f, ensure_ascii=False)
+        os.replace(tmp, STATE_FILE)
+        # print(f"[state] Saved cache to {STATE_FILE}")
+    except Exception as e:
+        print(f"[state] Failed to save cache: {e}")
+
+
+# Save on clean shutdown
+atexit.register(_save_state_to_disk)
+
+# Load immediately on boot so connect() emits real values
+_load_state_from_disk()
 
 @app.route("/")
 def index():
@@ -192,7 +252,7 @@ def webhook():
         data = request.get_json(force=True, silent=False)
         if not isinstance(data, dict):
             abort(400)
-
+        socketio.emit("macro_update", STATE)
         STATE["_server_ts"] = time.time()
         print(f"Incoming Webhook: {data}")
 
@@ -201,7 +261,9 @@ def webhook():
             _parse_card_payload(data)
 
         _merge_field_payload(data)
-
+        # Persist last-known state so restarts don't wait for next monthly update
+        _save_state_to_disk()
+        
         socketio.emit("macro_update", STATE)
         return "SUCCESS", 200
 
