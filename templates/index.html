@@ -219,6 +219,57 @@
       line-height:1.4;
     }
     .gmeta strong{ color:#fff; letter-spacing:1.2px; }
+
+    /* ============================
+       MONITORING STATE CARD
+    ============================ */
+    .section-header{
+      font-size:14px; font-weight:700; color:#555;
+      text-transform:uppercase; letter-spacing:4px;
+      margin-bottom:-20px;
+      border-left:3px solid var(--gold);
+      padding-left:15px;
+    }
+
+    .card-wide{
+      grid-column:1 / -1;
+      min-height:180px;
+    }
+
+    .badge-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:16px;
+    }
+
+    .badge{
+      font-size:10px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid #2a2a2a;
+      background:#0b0b0b;
+      color:#cfcfcf;
+    }
+
+    .badge-good{
+      border-color:rgba(50,205,50,.45);
+      color:var(--lime);
+    }
+    .badge-warn{
+      border-color:rgba(255,140,0,.45);
+      color:var(--orange);
+    }
+    .badge-bad{
+      border-color:rgba(255,68,68,.45);
+      color:var(--red);
+    }
+
+    .mono{
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
   </style>
 </head>
 
@@ -279,6 +330,37 @@
       <div class="pulse-container"><div id="led-node" class="pulse-node"></div></div>
       <div class="primary-text recession-text" id="val-4">AWAITING</div>
       <div class="secondary-text" id="sub-4" style="display:none;"></div>
+    </div>
+  </main>
+
+  <!-- ============================
+       MONITORING STATE SECTION
+  ============================ -->
+  <div class="section-header">Monitoring State</div>
+
+  <main class="grid">
+    <div class="card card-wide" id="monitor-card">
+      <h3>Active Watch</h3>
+
+      <div class="primary-text">
+        <span class="mono" id="mon-ticker">NO SYMBOL</span>
+        <span id="mon-trigger" class="badge">TRIGGER: —</span>
+      </div>
+
+      <div class="secondary-text" id="mon-status">
+        AWAITING — NO ACTIVE MONITORING
+      </div>
+
+      <div class="badge-row">
+        <div class="badge" id="mon-setup">SETUP: —</div>
+        <div class="badge" id="mon-trend">TREND: —</div>
+        <div class="badge" id="mon-strategy">STRATEGY: —</div>
+        <div class="badge" id="mon-updated">UPDATED: —</div>
+      </div>
+
+      <div class="gmeta" style="margin-top:16px;">
+        <strong>Note:</strong> Setup may persist for multiple days before confirmation.
+      </div>
     </div>
   </main>
 
@@ -693,6 +775,79 @@
     }
 
     // ----------------------------
+    // MONITORING STATE APPLY
+    // ----------------------------
+    function applyMonitoringFromState(data){
+      const m = data && data.monitor ? data.monitor : {};
+
+      const ticker   = (m.ticker || '').toUpperCase();
+      const trigger  = (m.trigger || '').toUpperCase();
+      const status   = m.status || '';
+      const setup    = m.setup;
+      const trend    = (m.trend || '').toUpperCase();
+      const strategy = (m.strategy || '').toUpperCase();
+      const updated  = m.updated || '';
+
+      const tickerEl = document.getElementById('mon-ticker');
+      const trigEl   = document.getElementById('mon-trigger');
+      const statusEl = document.getElementById('mon-status');
+
+      if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
+      if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
+      if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
+
+      // SETUP
+      const setupEl = document.getElementById('mon-setup');
+      if (setupEl){
+        setupEl.className = 'badge';
+        if (setup === true || setup === 'ON'){
+          setupEl.classList.add('badge-warn');
+          setupEl.innerText = 'SETUP: ACTIVE';
+        } else {
+          setupEl.innerText = 'SETUP: INACTIVE';
+        }
+      }
+
+      // TREND
+      const trendEl = document.getElementById('mon-trend');
+      if (trendEl){
+        trendEl.className = 'badge';
+        if (trend === 'ALIGNED'){
+          trendEl.classList.add('badge-good');
+          trendEl.innerText = 'TREND: ALIGNED';
+        } else if (trend === 'MISALIGNED'){
+          trendEl.classList.add('badge-bad');
+          trendEl.innerText = 'TREND: MISALIGNED';
+        } else {
+          trendEl.innerText = 'TREND: —';
+        }
+      }
+
+      // STRATEGY
+      const stratEl = document.getElementById('mon-strategy');
+      if (stratEl){
+        stratEl.className = 'badge';
+        stratEl.innerText = `STRATEGY: ${strategy || '—'}`;
+      }
+
+      // UPDATED
+      const updEl = document.getElementById('mon-updated');
+      if (updEl){
+        updEl.innerText = `UPDATED: ${updated || '—'}`;
+      }
+
+      // Card glow logic
+      const card = document.getElementById('monitor-card');
+      if (card){
+        card.className = 'card card-wide';
+        const setupOn = (setup === true || setup === 'ON');
+        if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
+        if (trend === 'MISALIGNED') card.classList.add('glow-danger');
+        if (setupOn && trend !== 'ALIGNED') card.classList.add('glow-warning');
+      }
+    }
+
+    // ----------------------------
     // SOCKET.IO
     // ----------------------------
     let socket = null;
@@ -718,6 +873,9 @@
         } else {
           applySecretFromState(data);
         }
+
+        // Monitoring card (always live)
+        applyMonitoringFromState(data);
 
         // Card 4 always live
         if (data.sahm !== undefined && data.sahm !== null){
@@ -791,3 +949,4 @@
   </script>
 </body>
 </html>
+
