@@ -47,8 +47,10 @@ STATE: Dict[str, Any] = {
 STATE_LOCK = Lock()
 
 # ---- State persistence (warm start cache) ----
-# IMPORTANT: /tmp is ephemeral on many hosts. Use a Render Disk path via STATE_FILE env if you want persistence.
-STATE_FILE = os.environ.get("STATE_FILE", "/tmp/marketmonitor_state.json")
+# Render disks typically mount to /var/data. If present, prefer it automatically.
+# You can still override with STATE_FILE env.
+DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var/data") else "/tmp/marketmonitor_state.json"
+STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
 STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 
 
@@ -119,6 +121,9 @@ def _load_state_from_disk() -> None:
 
 def _save_state_to_disk() -> None:
     try:
+        # ensure directory exists (important for /var/data)
+        os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
+
         tmp = STATE_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(STATE, f, ensure_ascii=False)
@@ -336,8 +341,15 @@ def serve_static(filename):
 
 @app.route("/health", methods=["GET"])
 def health():
+    # include persistence diagnostics so you can instantly confirm if it's saving to /var/data or /tmp
     with STATE_LOCK:
-        return jsonify({"ok": True, "state": copy.deepcopy(STATE)}), 200
+        snap = copy.deepcopy(STATE)
+    return jsonify({
+        "ok": True,
+        "state": snap,
+        "state_file": STATE_FILE,
+        "state_file_exists": os.path.exists(STATE_FILE),
+    }), 200
 
 @app.route("/state", methods=["GET"])
 def state():
@@ -371,7 +383,6 @@ def webhook():
                 _recompute_war_from_secret()
 
             _save_state_to_disk()
-
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
