@@ -569,65 +569,6 @@
     }
 
     // ----------------------------
-    // WAR LATCH + UI (NEW)
-    // ----------------------------
-    const WAR_LATCH = {
-      active: false,
-      last_seen_ts: 0,
-    };
-
-    function extractWarActive(data){
-      // We treat three cases:
-      // 1) explicit true -> latch ON
-      // 2) explicit false -> latch OFF
-      // 3) missing -> keep previous latch (prevents disappearing)
-      const warObj = data && data.secret && data.secret.war ? data.secret.war : null;
-      if (!warObj || typeof warObj.active === 'undefined' || warObj.active === null) {
-        return null; // unknown / missing
-      }
-      return !!warObj.active;
-    }
-
-    function setWarBadge(active){
-      const badge = document.getElementById('war-badge');
-      if (!badge) return;
-      // only show in public mode
-      badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
-    }
-
-    function setWarUI(active, source){
-      // Apply background in BOTH modes
-      document.body.classList.toggle('war-room', !!active);
-
-      // Badge only in public mode
-      setWarBadge(!!active);
-
-      // (Optional) debug
-      // console.log('[WAR_UI]', { active: !!active, source, secretMode });
-    }
-
-    function ingestWarFromPayload(data){
-      const explicit = extractWarActive(data);
-
-      if (explicit === true){
-        WAR_LATCH.active = true;
-        WAR_LATCH.last_seen_ts = Date.now();
-        setWarUI(true, 'explicit_true');
-        return;
-      }
-
-      if (explicit === false){
-        WAR_LATCH.active = false;
-        WAR_LATCH.last_seen_ts = Date.now();
-        setWarUI(false, 'explicit_false');
-        return;
-      }
-
-      // Missing war field: DO NOT clear UI; keep whatever was latched
-      setWarUI(WAR_LATCH.active, 'missing_keep');
-    }
-
-    // ----------------------------
     // SECRET MODE
     // ----------------------------
     let secretMode = false;
@@ -650,9 +591,6 @@
       const t3 = document.getElementById('track-3');
       if (t3) t3.style.display = 'none';
 
-      // Re-apply WAR UI immediately when entering vault
-      setWarUI(WAR_LATCH.active, 'enter_secret');
-
       if (lastState) applySecretFromState(lastState);
     }
 
@@ -670,28 +608,45 @@
       setText('h3-2', 'Capital Rotation');
       setText('h3-3', 'Cycle Maturity');
 
-      // IMPORTANT: do NOT force-clear war-room anymore.
-      // Keep whatever the latch says.
-      setWarUI(WAR_LATCH.active, 'exit_secret');
-
+      // IMPORTANT: immediately re-render public from lastState (and clear stale secret values)
       if (lastState) applyPublicFromState(lastState);
+      else applyPublicFromState({});
     }
     window.closeVault = closeVault;
 
+    function setWarBadge(active){
+      const badge = document.getElementById('war-badge');
+      if (!badge) return;
+      badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
+    }
+
     // ----------------------------
-    // PUBLIC APPLY
+    // PUBLIC APPLY (now includes war-room background)
     // ----------------------------
     function applyPublicFromState(data){
-      // DO NOT clear war-room here anymore.
-      // WAR UI is managed by setWarUI() / latch.
+      const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
 
+      // Public mode background SHOULD reflect war now (your ask)
+      document.body.classList.toggle('war-room', warActive);
+
+      // Teaser badge in public if war is active
+      setWarBadge(warActive);
+
+      // Reset cards 1-3 to prevent secret-mode residue
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
         if (c) c.className = 'card';
       });
+      setText('val-1', 'AWAITING'); setText('sub-1','');
+      setText('val-2', 'AWAITING'); setText('sub-2','');
+      setText('val-3', 'AWAITING'); setText('sub-3','');
+      const t3 = document.getElementById('track-3');
+      const f3 = document.getElementById('fill-3');
+      if (t3) t3.style.display = 'none';
+      if (f3) f3.style.width = '0%';
 
       // Card 1
-      if (data.cycle){
+      if (data && data.cycle){
         const v1 = document.getElementById('val-1');
         const c1 = document.getElementById('card-1');
         const isCom = String(data.cycle).toLowerCase().includes('commodities');
@@ -702,7 +657,7 @@
         if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
       }
 
-      if (data.vol){
+      if (data && data.vol){
         const s1 = document.getElementById('sub-1');
         if (s1){
           s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase();
@@ -711,7 +666,7 @@
       }
 
       // Card 2
-      if (data.flow){
+      if (data && data.flow){
         const v2 = document.getElementById('val-2');
         const s2 = document.getElementById('sub-2');
         const c2 = document.getElementById('card-2');
@@ -731,13 +686,13 @@
         }
         if (s2){
           s2.innerText = detail.toUpperCase();
-          s2.style.color = 'var(--text)'; // always white
+          s2.style.color = 'var(--text)';
         }
         if (c2) c2.className = intoCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
       }
 
       // Card 3 maturity
-      if (data.count !== undefined && data.count !== null){
+      if (data && data.count !== undefined && data.count !== null){
         const count = Number.parseInt(data.count, 10);
 
         const v3 = document.getElementById('val-3');
@@ -787,17 +742,27 @@
       const buy = secret.buy || {};
       const sell = secret.sell || {};
       const vold = secret.vold || {};
+      const warActive = !!(secret && secret.war && secret.war.active);
 
-      // WAR handled centrally (do not toggle here)
-      // (still ensure badge never shows in secret mode)
+      // War-room background in secret mode
+      document.body.classList.toggle('war-room', warActive);
+
+      // Badge should never show in secret mode
       setWarBadge(false);
+
+      const v1 = document.getElementById('val-1');
+      const s1 = document.getElementById('sub-1');
+      const v2 = document.getElementById('val-2');
+      const s2 = document.getElementById('sub-2');
+      const v3 = document.getElementById('val-3');
+      const s3 = document.getElementById('sub-3');
 
       // Card 1 (Institutional X)
       const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
       setText('val-1', xVal);
       setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
-      document.getElementById('val-1').style.color = 'var(--text)';
-      document.getElementById('sub-1').style.color = 'var(--text)';
+      if (v1) v1.style.color = 'var(--text)';
+      if (s1) s1.style.color = 'var(--text)';
 
       showGauge(
         'gauge-1',
@@ -814,8 +779,8 @@
       const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
       setText('val-2', yVal);
       setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
-      document.getElementById('val-2').style.color = 'var(--text)';
-      document.getElementById('sub-2').style.color = 'var(--text)';
+      if (v2) v2.style.color = 'var(--text)';
+      if (s2) s2.style.color = 'var(--text)';
 
       showGauge(
         'gauge-2',
@@ -834,8 +799,8 @@
 
       setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
       setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-      document.getElementById('val-3').style.color = 'var(--text)';
-      document.getElementById('sub-3').style.color = 'var(--text)';
+      if (v3) v3.style.color = 'var(--text)';
+      if (s3) s3.style.color = 'var(--text)';
 
       const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
       const sellL = Number.isFinite(sell.level) ? sell.level : 0;
@@ -874,7 +839,6 @@
       if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
       if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
 
-      // SETUP
       const setupEl = document.getElementById('mon-setup');
       if (setupEl){
         setupEl.className = 'badge';
@@ -886,7 +850,6 @@
         }
       }
 
-      // TREND
       const trendEl = document.getElementById('mon-trend');
       if (trendEl){
         trendEl.className = 'badge';
@@ -901,20 +864,17 @@
         }
       }
 
-      // STRATEGY
       const stratEl = document.getElementById('mon-strategy');
       if (stratEl){
         stratEl.className = 'badge';
         stratEl.innerText = `STRATEGY: ${strategy || '—'}`;
       }
 
-      // UPDATED
       const updEl = document.getElementById('mon-updated');
       if (updEl){
         updEl.innerText = `UPDATED: ${updated || '—'}`;
       }
 
-      // Card glow logic
       const card = document.getElementById('monitor-card');
       if (card){
         card.className = 'card card-wide';
@@ -941,46 +901,55 @@
       console.log('Socket init failed; clock will still run.', e);
     }
 
+    function applyAllFromState(data){
+      lastState = data || {};
+      const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+      setWarBadge(warActive);
+
+      if (!secretMode) applyPublicFromState(data);
+      else applySecretFromState(data);
+
+      applyMonitoringFromState(data);
+
+      // Card 4 always live
+      if (data && data.sahm !== undefined && data.sahm !== null){
+        const s = parseFloat(data.sahm) || 0;
+        const v4 = document.getElementById('val-4');
+        const c4 = document.getElementById('card-4');
+        const node = document.getElementById('led-node');
+
+        if (s <= 0.34){
+          if (v4) v4.innerText = 'EXPANSION PHASE';
+          if (c4) c4.className = 'card glow-lime';
+          if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
+        } else if (s <= 0.49){
+          if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
+          if (c4) c4.className = 'card glow-warning';
+          if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
+        } else {
+          if (v4) v4.innerText = 'CONTRACTION';
+          if (c4) c4.className = 'card glow-danger';
+          if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
+        }
+      }
+    }
+
     if (socket){
       socket.on('macro_update', (data) => {
         triggerPulse();
-        lastState = data;
-
-        // NEW: war latch ingestion first (drives badge + background)
-        ingestWarFromPayload(data);
-
-        if (!secretMode){
-          applyPublicFromState(data);
-        } else {
-          applySecretFromState(data);
-        }
-
-        // Monitoring card (always live)
-        applyMonitoringFromState(data);
-
-        // Card 4 always live
-        if (data.sahm !== undefined && data.sahm !== null){
-          const s = parseFloat(data.sahm) || 0;
-          const v4 = document.getElementById('val-4');
-          const c4 = document.getElementById('card-4');
-          const node = document.getElementById('led-node');
-
-          if (s <= 0.34){
-            if (v4) v4.innerText = 'EXPANSION PHASE';
-            if (c4) c4.className = 'card glow-lime';
-            if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
-          } else if (s <= 0.49){
-            if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
-            if (c4) c4.className = 'card glow-warning';
-            if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
-          } else {
-            if (v4) v4.innerText = 'CONTRACTION';
-            if (c4) c4.className = 'card glow-danger';
-            if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
-          }
-        }
+        applyAllFromState(data);
       });
     }
+
+    // Fallback: fetch latest cached state on page load (helps on fresh clients / timing)
+    (async function warmStart(){
+      try{
+        const r = await fetch('/health', { cache:'no-store' });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j && j.state) applyAllFromState(j.state);
+      } catch(e){}
+    })();
 
     // ----------------------------
     // PASSWORD MODAL
