@@ -333,6 +333,7 @@
       <h3 id="h3-2">Capital Rotation</h3>
       <div class="primary-text" id="val-2">AWAITING</div>
       <div class="secondary-text" id="sub-2"></div>
+      <div class="gmeta" id="card2-meta" style="margin-top:14px;"></div>
       <div id="gauge-2" style="display:none;"></div>
     </div>
 
@@ -508,6 +509,76 @@
       const el = document.getElementById(id);
       if (el) el.innerText = txt;
     }
+    function _extract6mRor(flowRaw){
+  // Looks for patterns like "6M ROR: 12.3%" or "6M RoR -1.2%" etc.
+  if (!flowRaw) return null;
+  const s = String(flowRaw);
+  const m = s.match(/6M\s*R(?:O)?R\s*[:\-]?\s*([+\-]?\d+(\.\d+)?)\s*%/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  return Number.isFinite(v) ? v : null;
+}
+
+function _classifyRor(r){
+  // Basic bucket. If you later send "trend" explicitly from Pine, we can refine.
+  if (r === null) return 'UNKNOWN';
+  if (r < 0) return 'NEGATIVE';
+  // "flat/slowing" needs slope info we don’t have; use a conservative band near 0.
+  if (r >= 0 && r <= 2) return 'FLAT';
+  return 'RISING';
+}
+
+function _clockBucket(count){
+  const c = parseInt(count, 10);
+  if (!Number.isFinite(c)) return null;
+  // Low vs High for your table
+  return (c <= 40) ? 'LOW' : (c >= 70 ? 'HIGH' : 'MID');
+}
+
+function _card2Interpretation(rorClass, clockBucket){
+  // This is your table encoded + a sensible handling for MID clock
+  if (!clockBucket || rorClass === 'UNKNOWN') return { label:'AWAITING', tone:'' };
+
+  if (rorClass === 'RISING' && clockBucket === 'LOW')  return { label:'TREND CONFIRMATION', tone:'badge-good' };
+  if (rorClass === 'FLAT'   && clockBucket === 'LOW')  return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn' };
+  if (rorClass === 'RISING' && clockBucket === 'MID')  return { label:'TREND HEALTHY', tone:'badge-good' };
+  if (rorClass === 'FLAT'   && clockBucket === 'MID')  return { label:'PAUSE / DIGESTION', tone:'badge-warn' };
+  if (rorClass === 'NEGATIVE' && (clockBucket === 'MID' || clockBucket === 'HIGH'))
+    return { label:'DISTRIBUTION RISK', tone:'badge-bad' };
+  if (rorClass === 'RISING' && clockBucket === 'HIGH') return { label:'LATE CYCLE — STRONG BUT WATCH', tone:'badge-warn' };
+  if (rorClass === 'FLAT'   && clockBucket === 'HIGH') return { label:'LATE CYCLE WARNING', tone:'badge-warn' };
+  if (rorClass === 'NEGATIVE' && clockBucket === 'LOW') return { label:'EARLY CYCLE — CHECK REGIME', tone:'badge-warn' };
+
+  return { label:'CONTEXT ACTIVE', tone:'' };
+}
+
+function _renderCard2Meta(flowRaw, count){
+  const host = document.getElementById('card2-meta');
+  if (!host){
+    return;
+  }
+
+  const r = _extract6mRor(flowRaw);
+  const rClass = _classifyRor(r);
+  const cb = _clockBucket(count);
+  const out = _card2Interpretation(rClass, cb);
+
+  // Make it readable + aligned with your “no hype, disciplined” tone
+  const rTxt = (r === null) ? '—' : (r.toFixed(2) + '%');
+  const cTxt = (Number.isFinite(parseInt(count,10))) ? (parseInt(count,10) + '%') : '—';
+
+  // Use your existing badge color classes without introducing new CSS
+  const pill = out.tone ? `<span class="badge ${out.tone}">${out.label}</span>` : `<span class="badge">${out.label}</span>`;
+
+  host.innerHTML = `
+    <div><strong>6M RoR:</strong> ${rTxt} &nbsp; <strong>CYCLE CLOCK:</strong> ${cTxt}</div>
+    <div style="margin-top:10px;">${pill}</div>
+    <div style="margin-top:10px;opacity:.9;">
+      <div><strong>Guide:</strong> Rising+Low = Trend confirmation • Flat+Low = Opportunity / consolidation</div>
+      <div>Falling/Negative+High = Late cycle warning • Negative+High = Distribution risk</div>
+    </div>
+  `;
+}
 
     function hideGauge(containerId){
       const host = document.getElementById(containerId);
@@ -659,48 +730,55 @@
       }
 
       // Card 2 (MOD: bulletproof + always show a detail line)
-      if (data && data.flow !== undefined && data.flow !== null){
-        const v2 = document.getElementById('val-2');
-        const s2 = document.getElementById('sub-2');
-        const c2 = document.getElementById('card-2');
+if (data && data.flow !== undefined && data.flow !== null){
+  const v2 = document.getElementById('val-2');
+  const s2 = document.getElementById('sub-2');
+  const c2 = document.getElementById('card-2');
 
-        const flowRaw = String(data.flow || '').trim();
+  const flowRaw = String(data.flow || '').trim();
 
-        const parts = flowRaw
-          .split('|')
-          .map(x => (x || '').trim())
-          .filter(x => x.length > 0);
+  const parts = flowRaw
+    .split('|')
+    .map(x => (x || '').trim())
+    .filter(x => x.length > 0);
 
-        const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
+  const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
 
-        let detail = '';
-        if (parts.length >= 2) {
-          detail = parts.slice(1).join(' | ').trim();
-        } else {
-          detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
-        }
+  let detail = '';
+  if (parts.length >= 2) {
+    detail = parts.slice(1).join(' | ').trim();
+  } else {
+    detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
+  }
 
-        const intoCom = flowRaw.toLowerCase().includes('into commodities');
-        const intoEq  = flowRaw.toLowerCase().includes('into equities');
+  const intoCom = flowRaw.toLowerCase().includes('into commodities');
+  const intoEq  = flowRaw.toLowerCase().includes('into equities');
 
-        const cycleStr = String(data.cycle || '').toLowerCase();
-        const isComCycle = cycleStr.includes('commod');
-        const makeGold = intoCom || isComCycle;
+  const cycleStr = String(data.cycle || '').toLowerCase();
+  const isComCycle = cycleStr.includes('commod');
+  const makeGold = intoCom || isComCycle;
 
-        if (v2){
-          v2.innerText = headline.toUpperCase();
-          v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
-        }
+  if (v2){
+    v2.innerText = headline.toUpperCase();
+    v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+  }
 
-        if (s2){
-          const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
-          s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback;
-          s2.style.color = 'var(--text)';
-          s2.style.display = 'block';
-        }
+  if (s2){
+    const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
+    s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback;
+    s2.style.color = 'var(--text)';
+    s2.style.display = 'block';
+  }
 
-        if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
-      }
+  if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
+
+  // Render the RoR/Clock interpretation panel
+  _renderCard2Meta(flowRaw, data.count);
+
+} else {
+  // If flow is missing, still render the panel in neutral "awaiting" state
+  _renderCard2Meta(null, data ? data.count : null);
+}
 
       // Card 3 maturity
       if (data && data.count !== undefined && data.count !== null){
