@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -337,7 +337,6 @@
     </div>
 
     <div class="card" id="card-3">
-      <!-- MOD: title changed -->
       <h3 id="h3-3">CYCLE CLOCK</h3>
       <div class="primary-text" id="val-3">AWAITING</div>
       <div class="secondary-text" id="sub-3"></div>
@@ -353,9 +352,6 @@
     </div>
   </main>
 
-  <!-- ============================
-       MONITORING STATE SECTION
-  ============================ -->
   <div class="section-header">Monitoring State</div>
 
   <main class="grid">
@@ -607,10 +603,8 @@
 
       setText('h3-1', 'Regime & Volatility');
       setText('h3-2', 'Capital Rotation');
-      // MOD: return to CYCLE CLOCK
       setText('h3-3', 'CYCLE CLOCK');
 
-      // IMPORTANT: immediately re-render public from lastState (and clear stale secret values)
       if (lastState) applyPublicFromState(lastState);
       else applyPublicFromState({});
     }
@@ -623,18 +617,14 @@
     }
 
     // ----------------------------
-    // PUBLIC APPLY (now includes war-room background)
+    // PUBLIC APPLY
     // ----------------------------
     function applyPublicFromState(data){
       const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
 
-      // Public mode background SHOULD reflect war now
       document.body.classList.toggle('war-room', warActive);
-
-      // Teaser badge in public if war is active
       setWarBadge(warActive);
 
-      // Reset cards 1-3 to prevent secret-mode residue
       ['card-1','card-2','card-3'].forEach(id => {
         const c = document.getElementById(id);
         if (c) c.className = 'card';
@@ -642,6 +632,7 @@
       setText('val-1', 'AWAITING'); setText('sub-1','');
       setText('val-2', 'AWAITING'); setText('sub-2','');
       setText('val-3', 'AWAITING'); setText('sub-3','');
+
       const t3 = document.getElementById('track-3');
       const f3 = document.getElementById('fill-3');
       if (t3) t3.style.display = 'none';
@@ -667,37 +658,48 @@
         }
       }
 
-      // Card 2
-      if (data && data.flow){
+      // Card 2 (MOD: bulletproof + always show a detail line)
+      if (data && data.flow !== undefined && data.flow !== null){
         const v2 = document.getElementById('val-2');
         const s2 = document.getElementById('sub-2');
         const c2 = document.getElementById('card-2');
 
-        const flowRaw = String(data.flow).trim();
-        const parts = flowRaw.split('|').map(x => x.trim()).filter(Boolean);
+        const flowRaw = String(data.flow || '').trim();
 
-        const headline = (parts.length > 1 ? parts[0] : 'ROTATION ACTIVE').toUpperCase();
+        const parts = flowRaw
+          .split('|')
+          .map(x => (x || '').trim())
+          .filter(x => x.length > 0);
 
-        // MOD: prevent duplicate detail line
-        let detail = parts.length > 1 ? parts.slice(1).join(' | ') : flowRaw;
-        if (String(detail).trim().toUpperCase() === headline) detail = '';
+        const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
+
+        let detail = '';
+        if (parts.length >= 2) {
+          detail = parts.slice(1).join(' | ').trim();
+        } else {
+          detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
+        }
 
         const intoCom = flowRaw.toLowerCase().includes('into commodities');
         const intoEq  = flowRaw.toLowerCase().includes('into equities');
 
-        // MOD: match card-1 color when cycle is commodities
         const cycleStr = String(data.cycle || '').toLowerCase();
         const isComCycle = cycleStr.includes('commod');
+        const makeGold = intoCom || isComCycle;
 
         if (v2){
-          v2.innerText = headline;
-          v2.style.color = (intoCom || isComCycle) ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+          v2.innerText = headline.toUpperCase();
+          v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
         }
+
         if (s2){
-          s2.innerText = detail ? detail.toUpperCase() : '';
+          const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
+          s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback;
           s2.style.color = 'var(--text)';
+          s2.style.display = 'block';
         }
-        if (c2) c2.className = (intoCom || isComCycle) ? 'card halo-bg-gold' : 'card halo-bg-silver';
+
+        if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
       }
 
       // Card 3 maturity
@@ -742,7 +744,7 @@
     }
 
     // ----------------------------
-    // SECRET APPLY (colored gauges)
+    // SECRET APPLY (unchanged)
     // ----------------------------
     function applySecretFromState(data){
       const secret = (data && data.secret) ? data.secret : {};
@@ -753,10 +755,7 @@
       const vold = secret.vold || {};
       const warActive = !!(secret && secret.war && secret.war.active);
 
-      // War-room background in secret mode
       document.body.classList.toggle('war-room', warActive);
-
-      // Badge should never show in secret mode
       setWarBadge(false);
 
       const v1 = document.getElementById('val-1');
@@ -766,7 +765,6 @@
       const v3 = document.getElementById('val-3');
       const s3 = document.getElementById('sub-3');
 
-      // Card 1 (Institutional X)
       const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
       setText('val-1', xVal);
       setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
@@ -784,7 +782,6 @@
         XY_COL
       );
 
-      // Card 2 (Institutional Y)
       const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
       setText('val-2', yVal);
       setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
@@ -802,7 +799,6 @@
         XY_COL
       );
 
-      // Card 3 dual gauge (Buy/Sell)
       const buyVal = (buy.value !== null && buy.value !== undefined) ? String(buy.value) : '—';
       const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
 
@@ -827,7 +823,7 @@
     }
 
     // ----------------------------
-    // MONITORING STATE APPLY
+    // MONITORING STATE APPLY (unchanged)
     // ----------------------------
     function applyMonitoringFromState(data){
       const m = data && data.monitor ? data.monitor : {};
@@ -920,7 +916,6 @@
 
       applyMonitoringFromState(data);
 
-      // Card 4 always live
       if (data && data.sahm !== undefined && data.sahm !== null){
         const s = parseFloat(data.sahm) || 0;
         const v4 = document.getElementById('val-4');
@@ -950,7 +945,6 @@
       });
     }
 
-    // Fallback: fetch latest cached state on page load (helps on fresh clients / timing)
     (async function warmStart(){
       try{
         const r = await fetch('/health', { cache:'no-store' });
