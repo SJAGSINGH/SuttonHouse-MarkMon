@@ -520,10 +520,8 @@
 }
 
 function _classifyRor(r){
-  // Basic bucket. If you later send "trend" explicitly from Pine, we can refine.
   if (r === null) return 'UNKNOWN';
   if (r < 0) return 'NEGATIVE';
-  // "flat/slowing" needs slope info we don’t have; use a conservative band near 0.
   if (r >= 0 && r <= 2) return 'FLAT';
   return 'RISING';
 }
@@ -531,55 +529,64 @@ function _classifyRor(r){
 function _clockBucket(count){
   const c = parseInt(count, 10);
   if (!Number.isFinite(c)) return null;
-  // Low vs High for your table
-  return (c <= 40) ? 'LOW' : (c >= 70 ? 'HIGH' : 'MID');
+  return (c <= 40) ? 'LOW' : 'HIGH';
 }
 
 function _card2Interpretation(rorClass, clockBucket){
-  // This is your table encoded + a sensible handling for MID clock
-  if (!clockBucket || rorClass === 'UNKNOWN') return { label:'AWAITING', tone:'' };
+  // If we don't have enough info, return a neutral "pending" state
+  if (!clockBucket) return { label:'CYCLE CLOCK PENDING', tone:'', rule:'Waiting for Cycle Clock…' };
+  if (rorClass === 'UNKNOWN') return { label:'6M RoR PENDING', tone:'', rule:'Waiting for 6M RoR…' };
 
-  if (rorClass === 'RISING' && clockBucket === 'LOW')  return { label:'TREND CONFIRMATION', tone:'badge-good' };
-  if (rorClass === 'FLAT'   && clockBucket === 'LOW')  return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn' };
-  if (rorClass === 'RISING' && clockBucket === 'MID')  return { label:'TREND HEALTHY', tone:'badge-good' };
-  if (rorClass === 'FLAT'   && clockBucket === 'MID')  return { label:'PAUSE / DIGESTION', tone:'badge-warn' };
-  if (rorClass === 'NEGATIVE' && (clockBucket === 'MID' || clockBucket === 'HIGH'))
-    return { label:'DISTRIBUTION RISK', tone:'badge-bad' };
-  if (rorClass === 'RISING' && clockBucket === 'HIGH') return { label:'LATE CYCLE — STRONG BUT WATCH', tone:'badge-warn' };
-  if (rorClass === 'FLAT'   && clockBucket === 'HIGH') return { label:'LATE CYCLE WARNING', tone:'badge-warn' };
-  if (rorClass === 'NEGATIVE' && clockBucket === 'LOW') return { label:'EARLY CYCLE — CHECK REGIME', tone:'badge-warn' };
+  // Your table — now returns the matching rule line only
+  if (rorClass === 'RISING' && clockBucket === 'LOW')
+    return { label:'TREND CONFIRMATION', tone:'badge-good', rule:'Rising RoR + Low clock → trend confirmation.' };
 
-  return { label:'CONTEXT ACTIVE', tone:'' };
+  if (rorClass === 'FLAT' && clockBucket === 'LOW')
+    return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn', rule:'Flat/slowing RoR + Low clock → consolidation / opportunity.' };
+
+  if (rorClass === 'NEGATIVE' && clockBucket === 'HIGH')
+    return { label:'DISTRIBUTION RISK', tone:'badge-bad', rule:'Negative RoR + High clock → distribution risk.' };
+
+  if (rorClass === 'FLAT' && clockBucket === 'HIGH')
+    return { label:'LATE CYCLE WARNING', tone:'badge-warn', rule:'Flat/slowing RoR + High clock → late-cycle warning.' };
+
+  if (rorClass === 'RISING' && clockBucket === 'HIGH')
+    return { label:'LATE CYCLE — WATCH', tone:'badge-warn', rule:'Rising RoR + High clock → strong trend, but late-cycle watch.' };
+
+  // If you still use MID
+  if (clockBucket === 'MID'){
+    if (rorClass === 'RISING')   return { label:'TREND HEALTHY', tone:'badge-good', rule:'Rising RoR + Mid clock → trend healthy.' };
+    if (rorClass === 'FLAT')     return { label:'PAUSE / DIGESTION', tone:'badge-warn', rule:'Flat RoR + Mid clock → pause / digestion.' };
+    if (rorClass === 'NEGATIVE') return { label:'RISK RISING', tone:'badge-bad', rule:'Negative RoR + Mid clock → risk rising.' };
+  }
+
+  return { label:'CONTEXT ACTIVE', tone:'', rule:'Context active.' };
 }
 
 function _renderCard2Meta(flowRaw, count){
   const host = document.getElementById('card2-meta');
-  if (!host){
-    return;
-  }
+  if (!host) return;
 
   const r = _extract6mRor(flowRaw);
   const rClass = _classifyRor(r);
+
   const cb = _clockBucket(count);
   const out = _card2Interpretation(rClass, cb);
 
-  // Make it readable + aligned with your “no hype, disciplined” tone
   const rTxt = (r === null) ? '—' : (r.toFixed(2) + '%');
-  const cTxt = (Number.isFinite(parseInt(count,10))) ? (parseInt(count,10) + '%') : '—';
+  const cVal = parseInt(count, 10);
+  const cTxt = Number.isFinite(cVal) ? (cVal + '%') : '—';
 
-  // Use your existing badge color classes without introducing new CSS
-  const pill = out.tone ? `<span class="badge ${out.tone}">${out.label}</span>` : `<span class="badge">${out.label}</span>`;
+  const pill = out.tone
+    ? `<span class="badge ${out.tone}">${out.label}</span>`
+    : `<span class="badge">${out.label}</span>`;
 
   host.innerHTML = `
     <div><strong>6M RoR:</strong> ${rTxt} &nbsp; <strong>CYCLE CLOCK:</strong> ${cTxt}</div>
     <div style="margin-top:10px;">${pill}</div>
-    <div style="margin-top:10px;opacity:.9;">
-      <div><strong>Guide:</strong> Rising+Low = Trend confirmation • Flat+Low = Opportunity / consolidation</div>
-      <div>Falling/Negative+High = Late cycle warning • Negative+High = Distribution risk</div>
-    </div>
+    <div style="margin-top:10px;opacity:.85;">${out.rule || ''}</div>
   `;
 }
-
     function hideGauge(containerId){
       const host = document.getElementById(containerId);
       if (host){ host.style.display = 'none'; host.innerHTML = ''; }
@@ -773,7 +780,7 @@ if (data && data.flow !== undefined && data.flow !== null){
   if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
 
   // Render the RoR/Clock interpretation panel
-  _renderCard2Meta(flowRaw, data.count);
+  _renderCard2Meta(null, data ? data.count : null);
 
 } else {
   // If flow is missing, still render the panel in neutral "awaiting" state
