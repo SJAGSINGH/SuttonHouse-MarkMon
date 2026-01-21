@@ -499,6 +499,21 @@
       }
       return bars;
     }
+window.handleMacroUpdate = function(payload){
+  console.log("[RSC HANDLE]", payload);
+  // placeholder — we’ll fill this next
+};
+// ----------------------------
+// RSC ENTRY POINT
+// ----------------------------
+window.handleMacroUpdate = function(payload){
+  console.log("[RSC HANDLE]", payload);
+
+  // TEMP: accept everything (validator comes next)
+  lastState = payload;
+
+  // nothing else yet
+};
 
     // ----------------------------
     // STATE CACHE
@@ -974,6 +989,16 @@ if (data && data.flow !== undefined && data.flow !== null){
         if (setupOn && trend !== 'ALIGNED') card.classList.add('glow-warning');
       }
     }
+<script>
+/* === RSC MOCK MODE (REMOVE LATER) === */
+window.RSC_MOCK = true;
+
+function emitMockMacro(payload){
+  if(!window.RSC_MOCK) return;
+  console.log("[RSC MOCK]", payload);
+  window.handleMacroUpdate(payload);
+}
+</script>
 
     // ----------------------------
     // SOCKET.IO
