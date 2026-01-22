@@ -533,17 +533,8 @@ function rscValidateMacro(p){
 
   return { ok:true };
 }
-console.log("✅ RSC VALIDATOR LIVE v1");
-window.handleMacroUpdate = function(payload){
-  const v = rscValidateMacro(payload);
-  if (!v.ok){
-    console.warn("[RSC DROP]", v.why, payload);
-    return;
-  }
 
-  window.__RSC_LAST = payload;
-  console.log("[RSC HANDLE OK]", payload);
-};
+
 
 
     // ----------------------------
@@ -1022,15 +1013,30 @@ if (data && data.flow !== undefined && data.flow !== null){
     }
     
 // ----------------------------
-// RSC MOCK MODE (REMOVE LATER)
+// RSC VALIDATOR + ENTRY POINT
 // ----------------------------
-window.RSC_MOCK = true;
+window.__RSC_LAST = null;
 
-window.emitMockMacro = function(payload){
-  if (!window.RSC_MOCK) return;
-  console.log("[RSC MOCK]", payload);
-  window.handleMacroUpdate(payload);
-};
+function rscValidateMacro(p){
+  if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
+
+  const req = ["cycle","flow","vol","sahm","count","ticker"];
+  for (const k of req){
+    if (!(k in p)) return { ok:false, why:`missing_${k}` };
+  }
+
+  if (typeof p.ticker !== "string") return { ok:false, why:"ticker_not_string" };
+
+  // optional freshness guard
+  if ("_server_ts" in p && typeof p._server_ts === "number"){
+    const ageMs = Date.now() - p._server_ts;
+    if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
+  }
+
+  return { ok:true };
+}
+
+console.log("✅ RSC VALIDATOR LIVE v1");
 
 window.handleMacroUpdate = function(payload){
   const v = rscValidateMacro(payload);
@@ -1042,11 +1048,15 @@ window.handleMacroUpdate = function(payload){
   window.__RSC_LAST = payload;
   console.log("[RSC HANDLE OK]", payload);
 
-  // Drive the UI
+  // Drive the UI (this is the whole point of locking the entry point)
   if (typeof applyAllFromState === "function") {
     applyAllFromState(payload);
+  } else {
+    console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
   }
 };
+
+
 
     // ----------------------------
     // SOCKET.IO
