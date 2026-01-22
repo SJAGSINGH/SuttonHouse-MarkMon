@@ -104,8 +104,13 @@ def _load_state_from_disk() -> None:
             return
 
         ts = cached.get("_server_ts")
-        if isinstance(ts, (int, float)) and (time.time() - ts > STATE_MAX_AGE_SECS):
-            return
+       if isinstance(ts, (int, float)):
+    age_secs = time.time() - (ts / 1000.0)  # ts is ms
+    if age_secs > STATE_MAX_AGE_SECS:
+        return
+
+
+
 
         with STATE_LOCK:
             for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
@@ -383,6 +388,7 @@ def webhook():
         _recompute_war_from_secret()
 
     _save_state_to_disk()
+
     payload = copy.deepcopy(STATE)
 
 socketio.emit("macro_update", payload)
