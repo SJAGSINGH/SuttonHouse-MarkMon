@@ -703,7 +703,7 @@
   }
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
-  window.RSC_MOCK = true;
+  window.RSC_MOCK = false;
   function emitMockMacro(payload){
     if (!window.RSC_MOCK) return;
     console.log("[RSC MOCK]", payload);
@@ -757,15 +757,26 @@
   }
   window.applyAllFromState = applyAllFromState;
 
-  // ============================================================
+   // ============================================================
   // VALIDATOR + SINGLE ENTRY POINT (FREEZE)
   // ============================================================
   function rscValidateMacro(p){
-    if (!p || typeof p !== "object") return { ok:false, why:'payload_not_object' };
-    if ('_server_ts' in p && typeof p._server_ts === 'number'){
-      const ageMs = Date.now() - p._server_ts;
-      if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
+    if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
+
+    // tolerate server timestamp in SECONDS or MILLISECONDS
+    if (p._server_ts !== undefined && p._server_ts !== null){
+      let ts = Number(p._server_ts);
+      if (Number.isFinite(ts)){
+        // if it's seconds (10 digits-ish), convert to ms
+        if (ts < 1e12) ts = ts * 1000;
+
+        const ageMs = Date.now() - ts;
+
+        // if clock skew puts it in the future, don't drop it
+        if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
+      }
     }
+
     return { ok:true };
   }
 
@@ -773,20 +784,29 @@
   console.log("BUILD_STAMP_ABC123");
 
   window.handleMacroUpdate = function(payload){
+    let v;
     try{
-      const v = rscValidateMacro(payload);
-      if (!v.ok){ console.warn("[RSC DROP]", v.why, payload); return; }
-    } catch(e){ console.warn("[RSC WARN] validator error, proceeding", e); }
+      v = rscValidateMacro(payload);
+      if (!v.ok){
+        console.warn("[RSC DROP]", v.why, payload);
+        return;
+      }
+    } catch(e){
+      console.warn("[RSC WARN] validator error, proceeding", e);
+    }
 
     window.__RSC_LAST = payload;
     console.log("[RSC HANDLE OK]", payload);
 
-    if (typeof window.applyAllFromState === "function") window.applyAllFromState(payload);
-else if (typeof applyAllFromState === "function") applyAllFromState(payload);
-else console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
-
+    // Always paint via the locked UI entrypoint
+    if (typeof window.applyAllFromState === "function") {
+      window.applyAllFromState(payload);
+    } else if (typeof applyAllFromState === "function") {
+      applyAllFromState(payload);
+    } else {
+      console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+    }
   };
-
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
   // ============================================================
