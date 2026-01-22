@@ -783,30 +783,41 @@
   console.log("✅ RSC VALIDATOR LIVE v1");
   console.log("BUILD_STAMP_ABC123");
 
-  window.handleMacroUpdate = function(payload){
-    let v;
-    try{
-      v = rscValidateMacro(payload);
-      if (!v.ok){
-        console.warn("[RSC DROP]", v.why, payload);
-        return;
-      }
-    } catch(e){
-      console.warn("[RSC WARN] validator error, proceeding", e);
-    }
+// ============================================================
+// HANDLE MACRO UPDATE — unified + resilient
+// ============================================================
+window.handleMacroUpdate = function(payload){
+  // ---- normalize common server shapes ----
+  let p = payload;
 
-    window.__RSC_LAST = payload;
-    console.log("[RSC HANDLE OK]", payload);
+  if (p && typeof p === "object") {
+    if (p.state && typeof p.state === "object") p = p.state;
+    else if (p.payload && typeof p.payload === "object") p = p.payload;
+    else if (p.data && typeof p.data === "object") p = p.data;
+  }
 
-    // Always paint via the locked UI entrypoint
-    if (typeof window.applyAllFromState === "function") {
-      window.applyAllFromState(payload);
-    } else if (typeof applyAllFromState === "function") {
-      applyAllFromState(payload);
-    } else {
-      console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+  try {
+    const v = rscValidateMacro(p);
+    if (!v.ok){
+      console.warn("[RSC DROP]", v.why, p);
+      return;
     }
-  };
+  } catch(e) {
+    console.warn("[RSC WARN] validator error, proceeding", e);
+  }
+
+  // store + paint
+  window.__RSC_LAST = p;
+  console.log("[RSC HANDLE OK]", p);
+
+  if (typeof window.applyAllFromState === "function") {
+    window.applyAllFromState(p);
+  } else if (typeof applyAllFromState === "function") {
+    applyAllFromState(p);
+  } else {
+    console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+  }
+};
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
   // ============================================================
