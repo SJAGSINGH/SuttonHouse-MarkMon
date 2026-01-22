@@ -6,7 +6,7 @@
   <title>Sutton House | Master Terminal</title>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-//
+
   <style>
     :root{
       --bg:#050505; --card:#111111; --text:#ffffff;
@@ -403,668 +403,386 @@
   </div>
 
   <script>
-    // ----------------------------
-    // CLOCK
-    // ----------------------------
-    function tick(){
-      const now = new Date();
-      const clock = document.getElementById('digital-clock');
-      if (clock) clock.innerText = now.toLocaleTimeString('en-GB', {hour12:false});
+  // ----------------------------
+  // CLOCK
+  // ----------------------------
+  function tick(){
+    const now = new Date();
+    const clock = document.getElementById('digital-clock');
+    if (clock) clock.innerText = now.toLocaleTimeString('en-GB', {hour12:false});
 
-      const hrs = now.getUTCHours();
-      const setCity = (id, open) => {
-        const el = document.getElementById(id);
-        if (el) el.className = open ? 'city-item city-open' : 'city-item';
-      };
-
-      setCity('city-lon', hrs >= 8 && hrs < 16);
-      setCity('city-ny',  hrs >= 13 && hrs < 21);
-      setCity('city-tor', hrs >= 13 && hrs < 21);
-      setCity('city-syd', hrs >= 22 || hrs < 6);
-    }
-    tick();
-    setInterval(tick, 1000);
-
-    function triggerPulse(){
-      document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
-      setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
-    }
-
-    // ----------------------------
-    // COLOR PALETTES (rhyme with Pine)
-    // ----------------------------
-    const XY_COL = {
-      1:  'rgb(255, 6, 6)',
-      2:  'rgb(252, 72, 0)',
-      3:  'rgb(244, 106, 0)',
-      4:  'rgb(230, 135, 0)',
-      5:  'rgb(215, 159, 0)',
-      6:  'rgb(197, 181, 0)',
-      7:  'rgb(176, 200, 0)',
-      8:  'rgb(149, 219, 0)',
-      9:  'rgb(106, 238, 0)',
-      10: 'rgb(0, 255, 26)',
-    };
-
-    const BUY_COL = {
-      1:  'rgb(228, 250, 242)',
-      2:  'rgb(175, 240, 217)',
-      3:  'rgb(121, 230, 191)',
-      4:  'rgb(67, 220, 165)',
-      5:  'rgb(35, 188, 134)',
-      6:  'rgb(25, 134, 95)',
-      7:  'rgb(15, 80, 57)',
-      8:  'rgb(5, 27, 19)',
-      9:  'rgb(5, 27, 19)',
-      10: 'rgb(5, 27, 19)',
-    };
-
-    const SELL_COL = {
-      1:  'rgb(250, 228, 228)',
-      2:  'rgb(240, 175, 175)',
-      3:  'rgb(230, 121, 121)',
-      4:  'rgb(220, 67, 67)',
-      5:  'rgb(188, 35, 35)',
-      6:  'rgb(134, 25, 25)',
-      7:  'rgb(80, 15, 15)',
-      8:  'rgb(27, 5, 5)',
-      9:  'rgb(27, 5, 5)',
-      10: 'rgb(27, 5, 5)',
-    };
-
-    function clampLevel(lv){
-      const n = Number(lv);
-      if (!Number.isFinite(n)) return null;
-      return Math.max(0, Math.min(10, Math.round(n)));
-    }
-
-    function segStyle(color){
-      return `background:${color};border-color:${color};box-shadow:0 0 12px rgba(255,255,255,.06);`;
-    }
-
-    function mkSingleBars(level, palette){
-      const lv = clampLevel(level);
-      let bars = '';
-      for (let i=1;i<=10;i++){
-        if (lv !== null && i <= lv){
-          const col = palette[i] || palette[10] || 'rgba(31,166,122,.35)';
-          bars += `<div class="gseg" style="${segStyle(col)}"></div>`;
-        } else {
-          bars += `<div class="gseg"></div>`;
-        }
-      }
-      return bars;
-    }
-
-    function mkDualBars(level, palette){
-      const lv = clampLevel(level) || 0;
-      let bars = '';
-      for (let i=1;i<=10;i++){
-        if (i <= lv){
-          const col = palette[i] || palette[10] || 'rgba(31,166,122,.35)';
-          bars += `<div class="gseg" style="${segStyle(col)}"></div>`;
-        } else {
-          bars += `<div class="gseg"></div>`;
-        }
-      }
-      return bars;
-    }
-
-
-
-
-
-
-    // ----------------------------
-    // STATE CACHE
-    // ----------------------------
-    let lastState = null;
-
-    function setText(id, txt){
+    const hrs = now.getUTCHours();
+    const setCity = (id, open) => {
       const el = document.getElementById(id);
-      if (el) el.innerText = txt;
-    }
-    function _extract6mRor(flowRaw){
-  // Looks for patterns like "6M ROR: 12.3%" or "6M RoR -1.2%" etc.
-  if (!flowRaw) return null;
-  const s = String(flowRaw);
-  const m = s.match(/6M\s*R(?:O)?R\s*[:\-]?\s*([+\-]?\d+(\.\d+)?)\s*%/i);
-  if (!m) return null;
-  const v = parseFloat(m[1]);
-  return Number.isFinite(v) ? v : null;
-}
+      if (el) el.className = open ? 'city-item city-open' : 'city-item';
+    };
 
-function _classifyRor(r){
-  if (r === null) return 'UNKNOWN';
-  if (r < 0) return 'NEGATIVE';
-  if (r >= 0 && r <= 2) return 'FLAT';
-  return 'RISING';
-}
+    setCity('city-lon', hrs >= 8 && hrs < 16);
+    setCity('city-ny',  hrs >= 13 && hrs < 21);
+    setCity('city-tor', hrs >= 13 && hrs < 21);
+    setCity('city-syd', hrs >= 22 || hrs < 6);
+  }
+  tick();
+  setInterval(tick, 1000);
 
-function _clockBucket(count){
-  const c = parseInt(count, 10);
-  if (!Number.isFinite(c)) return null;
-  return (c <= 40) ? 'LOW' : 'HIGH';
-}
-
-function _card2Interpretation(rorClass, clockBucket){
-  // If we don't have enough info, return a neutral "pending" state
-  if (!clockBucket) return { label:'CYCLE CLOCK PENDING', tone:'', rule:'Waiting for Cycle Clock…' };
-  if (rorClass === 'UNKNOWN') return { label:'6M RoR PENDING', tone:'', rule:'Waiting for 6M RoR…' };
-
-  // Your table — now returns the matching rule line only
-  if (rorClass === 'RISING' && clockBucket === 'LOW')
-    return { label:'TREND CONFIRMATION', tone:'badge-good', rule:'Rising RoR + Low clock → trend confirmation.' };
-
-  if (rorClass === 'FLAT' && clockBucket === 'LOW')
-    return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn', rule:'Flat/slowing RoR + Low clock → consolidation / opportunity.' };
-
-  if (rorClass === 'NEGATIVE' && clockBucket === 'HIGH')
-    return { label:'DISTRIBUTION RISK', tone:'badge-bad', rule:'Negative RoR + High clock → distribution risk.' };
-
-  if (rorClass === 'FLAT' && clockBucket === 'HIGH')
-    return { label:'LATE CYCLE WARNING', tone:'badge-warn', rule:'Flat/slowing RoR + High clock → late-cycle warning.' };
-
-  if (rorClass === 'RISING' && clockBucket === 'HIGH')
-    return { label:'LATE CYCLE — WATCH', tone:'badge-warn', rule:'Rising RoR + High clock → strong trend, but late-cycle watch.' };
-
-  // If you still use MID
-  if (clockBucket === 'MID'){
-    if (rorClass === 'RISING')   return { label:'TREND HEALTHY', tone:'badge-good', rule:'Rising RoR + Mid clock → trend healthy.' };
-    if (rorClass === 'FLAT')     return { label:'PAUSE / DIGESTION', tone:'badge-warn', rule:'Flat RoR + Mid clock → pause / digestion.' };
-    if (rorClass === 'NEGATIVE') return { label:'RISK RISING', tone:'badge-bad', rule:'Negative RoR + Mid clock → risk rising.' };
+  function triggerPulse(){
+    document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
+    setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
 
-  return { label:'CONTEXT ACTIVE', tone:'', rule:'Context active.' };
-}
+  // ----------------------------
+  // COLOR PALETTES (rhyme with Pine)
+  // ----------------------------
+  const XY_COL = { 1:'rgb(255, 6, 6)',2:'rgb(252, 72, 0)',3:'rgb(244, 106, 0)',4:'rgb(230, 135, 0)',5:'rgb(215, 159, 0)',6:'rgb(197, 181, 0)',7:'rgb(176, 200, 0)',8:'rgb(149, 219, 0)',9:'rgb(106, 238, 0)',10:'rgb(0, 255, 26)' };
+  const BUY_COL = { 1:'rgb(228,250,242)',2:'rgb(175,240,217)',3:'rgb(121,230,191)',4:'rgb(67,220,165)',5:'rgb(35,188,134)',6:'rgb(25,134,95)',7:'rgb(15,80,57)',8:'rgb(5,27,19)',9:'rgb(5,27,19)',10:'rgb(5,27,19)' };
+  const SELL_COL= { 1:'rgb(250,228,228)',2:'rgb(240,175,175)',3:'rgb(230,121,121)',4:'rgb(220,67,67)',5:'rgb(188,35,35)',6:'rgb(134,25,25)',7:'rgb(80,15,15)',8:'rgb(27,5,5)',9:'rgb(27,5,5)',10:'rgb(27,5,5)' };
 
-function _renderCard2Meta(flowRaw, count){
-  const host = document.getElementById('card2-meta');
-  if (!host) return;
+  function clampLevel(lv){ const n = Number(lv); if (!Number.isFinite(n)) return null; return Math.max(0, Math.min(10, Math.round(n))); }
+  function segStyle(color){ return `background:${color};border-color:${color};box-shadow:0 0 12px rgba(255,255,255,.06);`; }
 
-  const r = _extract6mRor(flowRaw);
-  const rClass = _classifyRor(r);
-
-  const cb = _clockBucket(count);
-  const out = _card2Interpretation(rClass, cb);
-
-  const rTxt = (r === null) ? '—' : (r.toFixed(2) + '%');
-  const cVal = parseInt(count, 10);
-  const cTxt = Number.isFinite(cVal) ? (cVal + '%') : '—';
-
-  const pill = out.tone
-    ? `<span class="badge ${out.tone}">${out.label}</span>`
-    : `<span class="badge">${out.label}</span>`;
-
-  host.innerHTML = `
-    <div><strong>6M RoR:</strong> ${rTxt} &nbsp; <strong>CYCLE CLOCK:</strong> ${cTxt}</div>
-    <div style="margin-top:10px;">${pill}</div>
-    <div style="margin-top:10px;opacity:.85;">${out.rule || ''}</div>
-  `;
-}
-    function hideGauge(containerId){
-      const host = document.getElementById(containerId);
-      if (host){ host.style.display = 'none'; host.innerHTML = ''; }
-    }
-
-    function showGauge(containerId, level, title, metaLines, palette){
-      const host = document.getElementById(containerId);
-      if (!host) return;
-
-      const bars = mkSingleBars(level, palette || XY_COL);
-
-      let metaHtml = '';
-      if (Array.isArray(metaLines) && metaLines.length){
-        metaHtml = `<div class="gmeta">${metaLines.map(x => `<div>${x}</div>`).join('')}</div>`;
+  function mkSingleBars(level, palette){
+    const lv = clampLevel(level);
+    let bars = '';
+    for (let i=1;i<=10;i++){
+      if (lv !== null && i <= lv){
+        const col = palette[i] || palette[10] || 'rgba(31,166,122,.35)';
+        bars += `<div class="gseg" style="${segStyle(col)}"></div>`;
+      } else {
+        bars += `<div class="gseg"></div>`;
       }
-
-      host.innerHTML = `
-        <div class="gauge">
-          <div class="gauge-title">${title}</div>
-          <div class="gauge-bars">${bars}</div>
-        </div>
-        ${metaHtml}
-      `;
-      host.style.display = 'block';
     }
+    return bars;
+  }
 
-    function showDualGauge(containerId, buyLevel, sellLevel, title, metaLines){
-      const host = document.getElementById(containerId);
-      if (!host) return;
+  function mkDualBars(level, palette){
+    const lv = clampLevel(level) || 0;
+    let bars = '';
+    for (let i=1;i<=10;i++){
+      if (i <= lv){
+        const col = palette[i] || palette[10] || 'rgba(31,166,122,.35)';
+        bars += `<div class="gseg" style="${segStyle(col)}"></div>`;
+      } else bars += `<div class="gseg"></div>`;
+    }
+    return bars;
+  }
 
-      const buyBars  = mkDualBars(buyLevel, BUY_COL);
-      const sellBars = mkDualBars(sellLevel, SELL_COL);
+  // ----------------------------
+  // STATE CACHE + helpers
+  // ----------------------------
+  let lastState = null;
 
-      const metaHtml = Array.isArray(metaLines) && metaLines.length
-        ? `<div class="gmeta">${metaLines.map(x => `<div>${x}</div>`).join('')}</div>`
-        : '';
+  function setText(id, txt){ const el = document.getElementById(id); if (el) el.innerText = txt; }
 
-      host.innerHTML = `
-        <div class="gauge">
-          <div class="gauge-title">${title}</div>
-          <div style="width:100%;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">BUY</div>
-              <div class="gauge-bars">${buyBars}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">SELL</div>
-              <div class="gauge-bars">${sellBars}</div>
-            </div>
+  function _extract6mRor(flowRaw){
+    if (!flowRaw) return null;
+    const s = String(flowRaw);
+    const m = s.match(/6M\s*R(?:O)?R\s*[:\-]?\s*([+\-]?\d+(\.\d+)?)\s*%/i);
+    if (!m) return null;
+    const v = parseFloat(m[1]);
+    return Number.isFinite(v) ? v : null;
+  }
+  function _classifyRor(r){ if (r === null) return 'UNKNOWN'; if (r < 0) return 'NEGATIVE'; if (r <= 2) return 'FLAT'; return 'RISING'; }
+  function _clockBucket(count){ const c = parseInt(count, 10); if (!Number.isFinite(c)) return null; return (c <= 40) ? 'LOW' : 'HIGH'; }
+  function _card2Interpretation(rorClass, clockBucket){
+    if (!clockBucket) return { label:'CYCLE CLOCK PENDING', tone:'', rule:'Waiting for Cycle Clock…' };
+    if (rorClass === 'UNKNOWN') return { label:'6M RoR PENDING', tone:'', rule:'Waiting for 6M RoR…' };
+    if (rorClass === 'RISING'   && clockBucket === 'LOW')  return { label:'TREND CONFIRMATION', tone:'badge-good', rule:'Rising RoR + Low clock → trend confirmation.' };
+    if (rorClass === 'FLAT'     && clockBucket === 'LOW')  return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn', rule:'Flat/slowing RoR + Low clock → consolidation / opportunity.' };
+    if (rorClass === 'NEGATIVE' && clockBucket === 'HIGH') return { label:'DISTRIBUTION RISK', tone:'badge-bad', rule:'Negative RoR + High clock → distribution risk.' };
+    if (rorClass === 'FLAT'     && clockBucket === 'HIGH') return { label:'LATE CYCLE WARNING', tone:'badge-warn', rule:'Flat/slowing RoR + High clock → late-cycle warning.' };
+    if (rorClass === 'RISING'   && clockBucket === 'HIGH') return { label:'LATE CYCLE — WATCH', tone:'badge-warn', rule:'Rising RoR + High clock → strong trend, but late-cycle watch.' };
+    return { label:'CONTEXT ACTIVE', tone:'', rule:'Context active.' };
+  }
+  function _renderCard2Meta(flowRaw, count){
+    const host = document.getElementById('card2-meta'); if (!host) return;
+    const r = _extract6mRor(flowRaw); const rClass = _classifyRor(r); const cb = _clockBucket(count); const out = _card2Interpretation(rClass, cb);
+    const rTxt = (r === null) ? '—' : (r.toFixed(2) + '%'); const cVal = parseInt(count, 10); const cTxt = Number.isFinite(cVal) ? (cVal + '%') : '—';
+    const pill = out.tone ? `<span class="badge ${out.tone}">${out.label}</span>` : `<span class="badge">${out.label}</span>`;
+    host.innerHTML = `
+      <div><strong>6M RoR:</strong> ${rTxt} &nbsp; <strong>CYCLE CLOCK:</strong> ${cTxt}</div>
+      <div style="margin-top:10px;">${pill}</div>
+      <div style="margin-top:10px;opacity:.85;">${out.rule || ''}</div>`;
+  }
+
+  function hideGauge(id){ const host = document.getElementById(id); if (host){ host.style.display='none'; host.innerHTML=''; } }
+  function showGauge(id, level, title, metaLines, palette){
+    const host = document.getElementById(id); if (!host) return;
+    const bars = mkSingleBars(level, palette || XY_COL);
+    const metaHtml = (Array.isArray(metaLines) && metaLines.length) ? `<div class="gmeta">${metaLines.map(x=>`<div>${x}</div>`).join('')}</div>` : '';
+    host.innerHTML = `
+      <div class="gauge">
+        <div class="gauge-title">${title}</div>
+        <div class="gauge-bars">${bars}</div>
+      </div>
+      ${metaHtml}`;
+    host.style.display='block';
+  }
+  function showDualGauge(id, buyLevel, sellLevel, title, metaLines){
+    const host = document.getElementById(id); if (!host) return;
+    const buyBars = mkDualBars(buyLevel, BUY_COL); const sellBars = mkDualBars(sellLevel, SELL_COL);
+    const metaHtml = (Array.isArray(metaLines) && metaLines.length) ? `<div class="gmeta">${metaLines.map(x=>`<div>${x}</div>`).join('')}</div>` : '';
+    host.innerHTML = `
+      <div class="gauge">
+        <div class="gauge-title">${title}</div>
+        <div style="width:100%;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">BUY</div>
+            <div class="gauge-bars">${buyBars}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">SELL</div>
+            <div class="gauge-bars">${sellBars}</div>
           </div>
         </div>
-        ${metaHtml}
-      `;
-      host.style.display = 'block';
-    }
-
-    // ----------------------------
-    // SECRET MODE
-    // ----------------------------
-    let secretMode = false;
-
-    function enableSecretMode(){
-      secretMode = true;
-
-      const exitBtn = document.getElementById('vault-exit');
-      if (exitBtn) exitBtn.style.display = 'inline-flex';
-
-      setText('h3-1', 'Institutional X');
-      setText('h3-2', 'Institutional Y');
-      setText('h3-3', 'Institutional Buyers / Sellers');
-
-      ['card-1','card-2','card-3'].forEach(id => {
-        const c = document.getElementById(id);
-        if (c) c.className = 'card halo-bg-secret';
-      });
-
-      const t3 = document.getElementById('track-3');
-      if (t3) t3.style.display = 'none';
-
-      if (lastState) applySecretFromState(lastState);
-    }
-
-    function closeVault(){
-      secretMode = false;
-
-      const exitBtn = document.getElementById('vault-exit');
-      if (exitBtn) exitBtn.style.display = 'none';
-
-      hideGauge('gauge-1');
-      hideGauge('gauge-2');
-      hideGauge('gauge-3');
-
-      setText('h3-1', 'Regime & Volatility');
-      setText('h3-2', 'Capital Rotation');
-      setText('h3-3', 'CYCLE CLOCK');
-
-      if (lastState) applyPublicFromState(lastState);
-      else applyPublicFromState({});
-    }
-    window.closeVault = closeVault;
-
-    function setWarBadge(active){
-      const badge = document.getElementById('war-badge');
-      if (!badge) return;
-      badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
-    }
-
-    // ----------------------------
-    // PUBLIC APPLY
-    // ----------------------------
-    function applyPublicFromState(data){
-      const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-
-      document.body.classList.toggle('war-room', warActive);
-      setWarBadge(warActive);
-
-      ['card-1','card-2','card-3'].forEach(id => {
-        const c = document.getElementById(id);
-        if (c) c.className = 'card';
-      });
-      setText('val-1', 'AWAITING'); setText('sub-1','');
-      setText('val-2', 'AWAITING'); setText('sub-2','');
-      setText('val-3', 'AWAITING'); setText('sub-3','');
-
-      const t3 = document.getElementById('track-3');
-      const f3 = document.getElementById('fill-3');
-      if (t3) t3.style.display = 'none';
-      if (f3) f3.style.width = '0%';
-
-      // Card 1
-      if (data && data.cycle){
-        const v1 = document.getElementById('val-1');
-        const c1 = document.getElementById('card-1');
-        const isCom = String(data.cycle).toLowerCase().includes('commodities');
-        if (v1){
-          v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase();
-          v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
-        }
-        if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
-      }
-
-      if (data && data.vol){
-        const s1 = document.getElementById('sub-1');
-        if (s1){
-          s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase();
-          s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
-        }
-      }
-
-      // Card 2 (MOD: bulletproof + always show a detail line)
-if (data && data.flow !== undefined && data.flow !== null){
-  const v2 = document.getElementById('val-2');
-  const s2 = document.getElementById('sub-2');
-  const c2 = document.getElementById('card-2');
-
-  const flowRaw = String(data.flow || '').trim();
-
-  const parts = flowRaw
-    .split('|')
-    .map(x => (x || '').trim())
-    .filter(x => x.length > 0);
-
-  const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
-
-  let detail = '';
-  if (parts.length >= 2) {
-    detail = parts.slice(1).join(' | ').trim();
-  } else {
-    detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
+      </div>
+      ${metaHtml}`;
+    host.style.display='block';
   }
 
-  const intoCom = flowRaw.toLowerCase().includes('into commodities');
-  const intoEq  = flowRaw.toLowerCase().includes('into equities');
+  // ----------------------------
+  // SECRET MODE
+  // ----------------------------
+  let secretMode = false;
 
-  const cycleStr = String(data.cycle || '').toLowerCase();
-  const isComCycle = cycleStr.includes('commod');
-  const makeGold = intoCom || isComCycle;
+  function enableSecretMode(){
+    secretMode = true;
+    const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'inline-flex';
+    setText('h3-1', 'Institutional X'); setText('h3-2', 'Institutional Y'); setText('h3-3', 'Institutional Buyers / Sellers');
+    ['card-1','card-2','card-3'].forEach(id => { const c = document.getElementById(id); if (c) c.className = 'card halo-bg-secret'; });
+    const t3 = document.getElementById('track-3'); if (t3) t3.style.display = 'none';
+    if (lastState) applySecretFromState(lastState);
+  }
+  function closeVault(){
+    secretMode = false;
+    const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'none';
+    hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
+    setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
+    if (lastState) applyPublicFromState(lastState); else applyPublicFromState({});
+  }
+  window.closeVault = closeVault;
 
-  if (v2){
-    v2.innerText = headline.toUpperCase();
-    v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+  function setWarBadge(active){
+    const badge = document.getElementById('war-badge'); if (!badge) return;
+    badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
   }
 
-  if (s2){
-    const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
-    s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback;
-    s2.style.color = 'var(--text)';
-    s2.style.display = 'block';
-  }
+  // ----------------------------
+  // PUBLIC APPLY
+  // ----------------------------
+  function applyPublicFromState(data){
+    const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+    document.body.classList.toggle('war-room', warActive); setWarBadge(warActive);
 
-  if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
+    ['card-1','card-2','card-3'].forEach(id => { const c = document.getElementById(id); if (c) c.className = 'card'; });
+    setText('val-1','AWAITING'); setText('sub-1','');
+    setText('val-2','AWAITING'); setText('sub-2','');
+    setText('val-3','AWAITING'); setText('sub-3','');
 
-  // Render the RoR/Clock interpretation panel
-  _renderCard2Meta(flowRaw, data ? data.count : null);
+    const t3 = document.getElementById('track-3'); const f3 = document.getElementById('fill-3');
+    if (t3) t3.style.display = 'none'; if (f3) f3.style.width = '0%';
 
-
-} else {
-  // If flow is missing, still render the panel in neutral "awaiting" state
-  _renderCard2Meta(null, data ? data.count : null);
-}
-
-      // Card 3 maturity
-      if (data && data.count !== undefined && data.count !== null){
-        const count = Number.parseInt(data.count, 10);
-
-        const v3 = document.getElementById('val-3');
-        const s3 = document.getElementById('sub-3');
-        const c3 = document.getElementById('card-3');
-        const t3 = document.getElementById('track-3');
-        const f3 = document.getElementById('fill-3');
-
-        if (Number.isFinite(count)){
-          if (t3) t3.style.display = 'block';
-          if (f3) f3.style.width = count + '%';
-          if (s3) s3.innerText = 'MATURITY: ' + count + '%';
-
-          const cycleStr = String(data.cycle || '').toLowerCase();
-          const isCommodities = cycleStr.includes('commod');
-
-          if (count <= 0){
-            if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; }
-            if (c3) c3.className = 'card';
-            if (f3) f3.style.background = 'var(--dim)';
-          } else if (count <= 25){
-            if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; }
-            if (c3) c3.className = 'card glow-lime';
-            if (f3) f3.style.background = 'var(--lime)';
-          } else if (count <= 70){
-            if (v3) v3.innerText = 'ESTABLISHED CYCLE';
-            if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)';
-            if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver';
-            if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)';
-          } else {
-            const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)';
-            if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; }
-            if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning';
-            if (f3) f3.style.background = endCol;
-          }
-        }
-      }
+    // Card 1: regime + vol
+    if (data && data.cycle){
+      const v1 = document.getElementById('val-1'); const c1 = document.getElementById('card-1');
+      const isCom = String(data.cycle).toLowerCase().includes('commodities');
+      if (v1){ v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase(); v1.style.color = isCom ? 'var(--gold)' : 'var(--text)'; }
+      if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
     }
-
-    // ----------------------------
-    // SECRET APPLY (unchanged)
-    // ----------------------------
-    function applySecretFromState(data){
-      const secret = (data && data.secret) ? data.secret : {};
-      const vix = secret.vix || {};
-      const gvz = secret.gvz || {};
-      const buy = secret.buy || {};
-      const sell = secret.sell || {};
-      const vold = secret.vold || {};
-      const warActive = !!(secret && secret.war && secret.war.active);
-
-      document.body.classList.toggle('war-room', warActive);
-      setWarBadge(false);
-
-      const v1 = document.getElementById('val-1');
+    if (data && data.vol){
       const s1 = document.getElementById('sub-1');
-      const v2 = document.getElementById('val-2');
-      const s2 = document.getElementById('sub-2');
-      const v3 = document.getElementById('val-3');
-      const s3 = document.getElementById('sub-3');
-
-      const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
-      setText('val-1', xVal);
-      setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
-      if (v1) v1.style.color = 'var(--text)';
-      if (s1) s1.style.color = 'var(--text)';
-
-      showGauge(
-        'gauge-1',
-        vix.level,
-        'LEVEL',
-        [
-          `<strong>Institutional X</strong>`,
-          `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`
-        ],
-        XY_COL
-      );
-
-      const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
-      setText('val-2', yVal);
-      setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
-      if (v2) v2.style.color = 'var(--text)';
-      if (s2) s2.style.color = 'var(--text)';
-
-      showGauge(
-        'gauge-2',
-        gvz.level,
-        'LEVEL',
-        [
-          `<strong>Institutional Y</strong>`,
-          `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`
-        ],
-        XY_COL
-      );
-
-      const buyVal = (buy.value !== null && buy.value !== undefined) ? String(buy.value) : '—';
-      const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
-
-      setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-      setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-      if (v3) v3.style.color = 'var(--text)';
-      if (s3) s3.style.color = 'var(--text)';
-
-      const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-      const sellL = Number.isFinite(sell.level) ? sell.level : 0;
-
-      showDualGauge(
-        'gauge-3',
-        buyL,
-        sellL,
-        'PRESSURE',
-        [
-          `<strong>Institutional Buyers / Sellers</strong>`,
-          `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
-        ]
-      );
+      if (s1){ s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase(); s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)'; }
     }
 
-    // ----------------------------
-    // MONITORING STATE APPLY (unchanged)
-    // ----------------------------
-    function applyMonitoringFromState(data){
-      const m = data && data.monitor ? data.monitor : {};
+    // Card 2: rotation + meta
+    if (data && data.flow !== undefined && data.flow !== null){
+      const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const c2 = document.getElementById('card-2');
+      const flowRaw = String(data.flow || '').trim();
+      const parts = flowRaw.split('|').map(x => (x || '').trim()).filter(x => x.length > 0);
+      const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
+      let detail = '';
+      if (parts.length >= 2) detail = parts.slice(1).join(' | ').trim(); else detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
 
-      const ticker   = (m.ticker || '').toUpperCase();
-      const trigger  = (m.trigger || '').toUpperCase();
-      const status   = m.status || '';
-      const setup    = m.setup;
-      const trend    = (m.trend || '').toUpperCase();
-      const strategy = (m.strategy || '').toUpperCase();
-      const updated  = m.updated || '';
+      const intoCom = flowRaw.toLowerCase().includes('into commodities');
+      const intoEq  = flowRaw.toLowerCase().includes('into equities');
+      const isComCycle = String(data.cycle || '').toLowerCase().includes('commod');
+      const makeGold = intoCom || isComCycle;
 
-      const tickerEl = document.getElementById('mon-ticker');
-      const trigEl   = document.getElementById('mon-trigger');
-      const statusEl = document.getElementById('mon-status');
+      if (v2){ v2.innerText = headline.toUpperCase(); v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)'); }
+      if (s2){ const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
+        s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback; s2.style.color = 'var(--text)'; s2.style.display = 'block'; }
+      if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
 
-      if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
-      if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
-      if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
-
-      const setupEl = document.getElementById('mon-setup');
-      if (setupEl){
-        setupEl.className = 'badge';
-        if (setup === true || setup === 'ON'){
-          setupEl.classList.add('badge-warn');
-          setupEl.innerText = 'SETUP: ACTIVE';
-        } else {
-          setupEl.innerText = 'SETUP: INACTIVE';
-        }
-      }
-
-      const trendEl = document.getElementById('mon-trend');
-      if (trendEl){
-        trendEl.className = 'badge';
-        if (trend === 'ALIGNED'){
-          trendEl.classList.add('badge-good');
-          trendEl.innerText = 'TREND: ALIGNED';
-        } else if (trend === 'MISALIGNED'){
-          trendEl.classList.add('badge-bad');
-          trendEl.innerText = 'TREND: MISALIGNED';
-        } else {
-          trendEl.innerText = 'TREND: —';
-        }
-      }
-
-      const stratEl = document.getElementById('mon-strategy');
-      if (stratEl){
-        stratEl.className = 'badge';
-        stratEl.innerText = `STRATEGY: ${strategy || '—'}`;
-      }
-
-      const updEl = document.getElementById('mon-updated');
-      if (updEl){
-        updEl.innerText = `UPDATED: ${updated || '—'}`;
-      }
-
-      const card = document.getElementById('monitor-card');
-      if (card){
-        card.className = 'card card-wide';
-        const setupOn = (setup === true || setup === 'ON');
-        if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
-        if (trend === 'MISALIGNED') card.classList.add('glow-danger');
-        if (setupOn && trend !== 'ALIGNED') card.classList.add('glow-warning');
-      }
+      _renderCard2Meta(flowRaw, data ? data.count : null);
+    } else {
+      _renderCard2Meta(null, data ? data.count : null);
     }
 
-/* === RSC MOCK MODE (REMOVE LATER) === */
-window.RSC_MOCK = true;
-
-function emitMockMacro(payload){
-  if(!window.RSC_MOCK) return;
-  console.log("[RSC MOCK]", payload);
-  window.handleMacroUpdate(payload);
-}
-
-
-    // ----------------------------
-    // SOCKET.IO
-    // ----------------------------
-    let socket = null;
-    try{
-      if (window.io){
-        socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-        socket.on('connect', () => console.log('CONNECTED'));
-        socket.on('connect_error', (e) => console.log('SOCKET ERROR', e));
-      } else {
-        console.log('Socket.IO not loaded; clock will still run.');
+    // Card 3: cycle clock / maturity
+    if (data && data.count !== undefined && data.count !== null){
+      const count = Number.parseInt(data.count, 10);
+      const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3'); const c3 = document.getElementById('card-3'); const t3b = document.getElementById('track-3'); const f3 = document.getElementById('fill-3');
+      if (Number.isFinite(count)){
+        if (t3b) t3b.style.display = 'block'; if (f3) f3.style.width = count + '%'; if (s3) s3.innerText = 'MATURITY: ' + count + '%';
+        const isCommodities = String(data.cycle || '').toLowerCase().includes('commod');
+        if (count <= 0){ if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; } if (c3) c3.className = 'card'; if (f3) f3.style.background = 'var(--dim)'; }
+        else if (count <= 25){ if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; } if (c3) c3.className = 'card glow-lime'; if (f3) f3.style.background = 'var(--lime)'; }
+        else if (count <= 70){ if (v3) v3.innerText = 'ESTABLISHED CYCLE'; if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)'; if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver'; if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)'; }
+        else { const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)'; if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; } if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning'; if (f3) f3.style.background = endCol; }
       }
-    } catch(e){
-      console.log('Socket init failed; clock will still run.', e);
     }
+  }
+
+  // ----------------------------
+  // SECRET APPLY (unchanged)
+  // ----------------------------
+  function applySecretFromState(data){
+    const secret = (data && data.secret) ? data.secret : {};
+    const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
+    const warActive = !!(secret && secret.war && secret.war.active);
+    document.body.classList.toggle('war-room', warActive); setWarBadge(false);
+
+    const v1 = document.getElementById('val-1'); const s1 = document.getElementById('sub-1'); const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3');
+
+    const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
+    setText('val-1', xVal); setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL'); if (v1) v1.style.color = 'var(--text)'; if (s1) s1.style.color = 'var(--text)';
+    showGauge('gauge-1', vix.level, 'LEVEL', [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`], XY_COL);
+
+    const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
+    setText('val-2', yVal); setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL'); if (v2) v2.style.color = 'var(--text)'; if (s2) s2.style.color = 'var(--text)';
+    showGauge('gauge-2', gvz.level, 'LEVEL', [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`], XY_COL);
+
+    const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
+    const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
+    setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
+    setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
+    if (v3) v3.style.color = 'var(--text)'; if (s3) s3.style.color = 'var(--text)';
+
+    const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
+    const sellL = Number.isFinite(sell.level) ? sell.level : 0;
+    showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
+  }
+
+  // ----------------------------
+  // MONITORING STATE APPLY (unchanged)
+  // ----------------------------
+  function applyMonitoringFromState(data){
+    const m = data && data.monitor ? data.monitor : {};
+    const ticker   = (m.ticker || '').toUpperCase();
+    const trigger  = (m.trigger || '').toUpperCase();
+    const status   = m.status || '';
+    const setup    = m.setup;
+    const trend    = (m.trend || '').toUpperCase();
+    const strategy = (m.strategy || '').toUpperCase();
+    const updated  = m.updated || '';
+
+    const tickerEl = document.getElementById('mon-ticker');
+    const trigEl   = document.getElementById('mon-trigger');
+    const statusEl = document.getElementById('mon-status');
+    if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
+    if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
+    if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
+
+    const setupEl = document.getElementById('mon-setup');
+    if (setupEl){ setupEl.className = 'badge'; if (setup === true || setup === 'ON'){ setupEl.classList.add('badge-warn'); setupEl.innerText = 'SETUP: ACTIVE'; } else { setupEl.innerText = 'SETUP: INACTIVE'; } }
+
+    const trendEl = document.getElementById('mon-trend');
+    if (trendEl){ trendEl.className = 'badge'; if (trend === 'ALIGNED'){ trendEl.classList.add('badge-good'); trendEl.innerText = 'TREND: ALIGNED'; } else if (trend === 'MISALIGNED'){ trendEl.classList.add('badge-bad'); trendEl.innerText = 'TREND: MISALIGNED'; } else { trendEl.innerText = 'TREND: —'; } }
+
+    const stratEl = document.getElementById('mon-strategy'); if (stratEl){ stratEl.className = 'badge'; stratEl.innerText = `STRATEGY: ${strategy || '—'}`; }
+    const updEl   = document.getElementById('mon-updated');  if (updEl){   updEl.innerText   = `UPDATED: ${updated || '—'}`; }
+
+    const card = document.getElementById('monitor-card');
+    if (card){
+      card.className = 'card card-wide';
+      const setupOn = (setup === true || setup === 'ON');
+      if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
+      if (trend === 'MISALIGNED')          card.classList.add('glow-danger');
+      if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
+    }
+  }
+
+  /* === RSC MOCK MODE (REMOVE LATER) === */
+  window.RSC_MOCK = true;
+  function emitMockMacro(payload){
+    if (!window.RSC_MOCK) return;
+    console.log("[RSC MOCK]", payload);
+    if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
+    else applyAllFromState(payload);
+  }
+
+  // ----------------------------
+  // SOCKET.IO
+  // ----------------------------
+  let socket = null;
+  try{
+    if (window.io){
+      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+      socket.on('connect',      () => console.log('CONNECTED'));
+      socket.on('connect_error',(e) => console.log('SOCKET ERROR', e));
+    } else {
+      console.log('Socket.IO not loaded; clock will still run.');
+    }
+  } catch(e){
+    console.log('Socket init failed; clock will still run.', e);
+  }
 
   // ============================================================
   // APPLY ALL (PAINT)
   // ============================================================
   function applyAllFromState(data){
     lastState = data || {};
-
     const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
     setWarBadge(warActive);
-
-    if (!secretMode) applyPublicFromState(data);
-    else applySecretFromState(data);
-
+    if (!secretMode) applyPublicFromState(data); else applySecretFromState(data);
     applyMonitoringFromState(data);
 
     if (data && data.sahm !== undefined && data.sahm !== null){
       const s = parseFloat(data.sahm) || 0;
-      const v4 = document.getElementById('val-4');
-      const c4 = document.getElementById('card-4');
-      const node = document.getElementById('led-node');
-
+      const v4 = document.getElementById('val-4'); const c4 = document.getElementById('card-4'); const node = document.getElementById('led-node');
       if (s <= 0.34){
         if (v4) v4.innerText = 'EXPANSION PHASE';
         if (c4) c4.className = 'card glow-lime';
-        if (node){
-          node.className = 'pulse-node pulse-slow';
-          node.style.background = 'var(--lime)';
-          node.style.boxShadow = '0 0 40px var(--lime)';
-        }
+        if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
       } else if (s <= 0.49){
         if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
         if (c4) c4.className = 'card glow-warning';
-        if (node){
-          node.className = 'pulse-node pulse-mid';
-          node.style.background = 'var(--orange)';
-          node.style.boxShadow = '0 0 40px var(--orange)';
-        }
+        if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
       } else {
         if (v4) v4.innerText = 'CONTRACTION';
         if (c4) c4.className = 'card glow-danger';
-        if (node){
-          node.className = 'pulse-node pulse-fast';
-          node.style.background = 'var(--red)';
-          node.style.boxShadow = '0 0 60px var(--red)';
-        }
+        if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
       }
     }
   }
-  window.applyAllFromState = applyAllFromState; // ensures entry-point can see it
+  window.applyAllFromState = applyAllFromState;
+
+  // ============================================================
+  // VALIDATOR + SINGLE ENTRY POINT (FREEZE)
+  // ============================================================
+  function rscValidateMacro(p){
+    if (!p || typeof p !== "object") return { ok:false, why:'payload_not_object' };
+    if ('_server_ts' in p && typeof p._server_ts === 'number'){
+      const ageMs = Date.now() - p._server_ts;
+      if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
+    }
+    return { ok:true };
+  }
+
+  console.log("✅ RSC VALIDATOR LIVE v1");
+  console.log("BUILD_STAMP_ABC123");
+
+  window.handleMacroUpdate = function(payload){
+    try{
+      const v = rscValidateMacro(payload);
+      if (!v.ok){ console.warn("[RSC DROP]", v.why, payload); return; }
+    } catch(e){ console.warn("[RSC WARN] validator error, proceeding", e); }
+
+    window.__RSC_LAST = payload;
+    console.log("[RSC HANDLE OK]", payload);
+
+    if (typeof window.applyAllFromState === "function") applyAllFromState(payload);
+    else console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+  };
 
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
@@ -1072,12 +790,8 @@ function emitMockMacro(payload){
   if (socket){
     socket.on('macro_update', (data) => {
       triggerPulse();
-      if (typeof window.handleMacroUpdate === "function") {
-        window.handleMacroUpdate(data);
-      } else {
-        console.warn("[RSC WARN] handleMacroUpdate missing — fallback paint");
-        applyAllFromState(data);
-      }
+      if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
+      else applyAllFromState(data);
     });
   }
 
@@ -1120,7 +834,6 @@ function emitMockMacro(payload){
   async function checkPass(){
     const input = document.getElementById('pass-input');
     const pwd = input ? input.value : '';
-
     try{
       const r = await fetch('/verify_secret', {
         method:'POST',
