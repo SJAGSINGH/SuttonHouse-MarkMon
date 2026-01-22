@@ -795,7 +795,8 @@ if (data && data.flow !== undefined && data.flow !== null){
   if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
 
   // Render the RoR/Clock interpretation panel
-  _renderCard2Meta(null, data ? data.count : null);
+  _renderCard2Meta(flowRaw, data ? data.count : null);
+
 
 } else {
   // If flow is missing, still render the panel in neutral "awaiting" state
@@ -1085,18 +1086,27 @@ window.handleMacroUpdate = function(payload){
     }
 
     if (socket){
-      socket.on('macro_update', (data) => {
-        triggerPulse();
-        applyAllFromState(data);
-      });
+  socket.on('macro_update', (data) => {
+    triggerPulse();
+    if (typeof window.handleMacroUpdate === "function") {
+      window.handleMacroUpdate(data);
+    } else {
+      console.warn("[RSC WARN] handleMacroUpdate missing — fallback paint");
+      applyAllFromState(data);
     }
+  });
+}
+
 
     (async function warmStart(){
       try{
         const r = await fetch('/health', { cache:'no-store' });
         if (!r.ok) return;
         const j = await r.json();
-        if (j && j.state) applyAllFromState(j.state);
+       if (j && j.state){
+  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
+  else applyAllFromState(j.state);
+}
       } catch(e){}
     })();
 
