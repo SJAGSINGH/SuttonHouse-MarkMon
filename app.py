@@ -384,7 +384,8 @@ def webhook():
 
             _save_state_to_disk()
             payload = copy.deepcopy(STATE)
-
+        import time
+        payload["_server_ts"] = int(time.time() * 1000)
         socketio.emit("macro_update", payload)
         return "SUCCESS", 200
 
