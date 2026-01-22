@@ -369,26 +369,22 @@ def webhook():
             abort(400)
 
         with STATE_LOCK:
-            STATE["_server_ts"] = time.time()
+    now_ms = int(time.time() * 1000)
+    STATE["_server_ts"] = now_ms
 
-            # Card-based parsing (optional)
-            if "card" in data:
-                _parse_card_payload(data)
+    if "card" in data:
+        _parse_card_payload(data)
 
-            # Field-based merge (optional)
-            _merge_field_payload(data)
+    _merge_field_payload(data)
 
-            # Ensure war recompute if vix/gvz already exist but war missing
-            if STATE["secret"].get("war") is None:
-                _recompute_war_from_secret()
+    if STATE["secret"].get("war") is None:
+        _recompute_war_from_secret()
 
-            _save_state_to_disk()
-            payload = copy.deepcopy(STATE)
-        import time
-        payload["_server_ts"] = int(time.time() * 1000)
-        socketio.emit("macro_update", payload)
-        return "SUCCESS", 200
+    _save_state_to_disk()
+    payload = copy.deepcopy(STATE)
 
+socketio.emit("macro_update", payload)
+return "SUCCESS", 200
     except Exception as e:
         print("Webhook error:", e)
         return str(e), 400
