@@ -104,13 +104,11 @@ def _load_state_from_disk() -> None:
             return
 
         ts = cached.get("_server_ts")
-       if isinstance(ts, (int, float)):
-    age_secs = time.time() - (ts / 1000.0)  # ts is ms
-    if age_secs > STATE_MAX_AGE_SECS:
-        return
 
-
-
+        if isinstance(ts, (int, float)):
+            age_secs = time.time() - (ts / 1000.0)  # ts is ms
+            if age_secs > STATE_MAX_AGE_SECS:
+                return
 
         with STATE_LOCK:
             for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
@@ -124,6 +122,7 @@ def _load_state_from_disk() -> None:
 
     except Exception as e:
         print("State load error:", e)
+
 
 
 def _save_state_to_disk() -> None:
