@@ -1024,16 +1024,33 @@ if (data && data.flow !== undefined && data.flow !== null){
         if (setupOn && trend !== 'ALIGNED') card.classList.add('glow-warning');
       }
     }
-<script>
-/* === RSC MOCK MODE (REMOVE LATER) === */
+    
+// ----------------------------
+// RSC MOCK MODE (REMOVE LATER)
+// ----------------------------
 window.RSC_MOCK = true;
 
-function emitMockMacro(payload){
-  if(!window.RSC_MOCK) return;
+window.emitMockMacro = function(payload){
+  if (!window.RSC_MOCK) return;
   console.log("[RSC MOCK]", payload);
   window.handleMacroUpdate(payload);
-}
-</script>
+};
+
+window.handleMacroUpdate = function(payload){
+  const v = rscValidateMacro(payload);
+  if (!v.ok){
+    console.warn("[RSC DROP]", v.why, payload);
+    return;
+  }
+
+  window.__RSC_LAST = payload;
+  console.log("[RSC HANDLE OK]", payload);
+
+  // Drive the UI
+  if (typeof applyAllFromState === "function") {
+    applyAllFromState(payload);
+  }
+};
 
     // ----------------------------
     // SOCKET.IO
