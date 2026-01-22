@@ -24,7 +24,9 @@
       --gseg-off-b:#242424;
     }
 
+
     body{
+    
       background:var(--bg); color:var(--text);
       font-family:Inter,system-ui,sans-serif;
       margin:0; padding:40px;
@@ -32,6 +34,7 @@
       min-height:100vh; box-sizing:border-box;
       overflow-x:hidden;
       transition:background .35s ease;
+     
     }
 
     body.war-room{
@@ -290,6 +293,9 @@
 </head>
 
 <body>
+     <div id="build-stamp" style="position:fixed;bottom:10px;right:12px;z-index:9999;font:12px monospace;color:#00ff66;opacity:.85;">
+  BUILD: RSC_VALIDATOR_V1
+</div>
   <header class="header">
     <div class="logo-area">
       <img src="/static/logo.png" class="logo-img" alt="Logo" />
