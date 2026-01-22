@@ -523,7 +523,7 @@ function rscValidateMacro(p){
 
   return { ok:true };
 }
-
+console.log("✅ RSC VALIDATOR LIVE v1");
 window.handleMacroUpdate = function(payload){
   const v = rscValidateMacro(payload);
   if (!v.ok){
