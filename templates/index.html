@@ -771,9 +771,9 @@
         if (ts < 1e12) ts = ts * 1000;
 
         const ageMs = Date.now() - ts;
-
+         console.log("[TS DEBUG]", { now: Date.now(), _server_ts: p._server_ts, ageMs: Date.now() - p._server_ts });
         // if clock skew puts it in the future, don't drop it
-        if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
+        if (ageMs > 30 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
       }
     }
 
