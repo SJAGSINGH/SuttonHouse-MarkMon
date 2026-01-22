@@ -103,7 +103,12 @@ def _load_state_from_disk() -> None:
             return
 
         ts = cached.get("_server_ts")
-        if isinstance(ts, (int, float)) and time.time() - ts > STATE_MAX_AGE_SECS:
+        ts = cached.get("_server_ts")
+if isinstance(ts, (int, float)):
+    # accept either seconds or milliseconds
+    ts_sec = (ts / 1000.0) if ts > 1e12 else ts
+    if time.time() - ts_sec > STATE_MAX_AGE_SECS:
+        return
             return
 
         with STATE_LOCK:
@@ -409,6 +414,8 @@ def verify_secret():
 @socketio.on("connect")
 def on_connect():
     with STATE_LOCK:
+        if not isinstance(STATE.get("_server_ts"), (int, float)):
+            STATE["_server_ts"] = int(time.time() * 1000)
         emit("macro_update", copy.deepcopy(STATE))
 
 
