@@ -357,13 +357,6 @@ def health():
         "state_file_exists": os.path.exists(STATE_FILE),
     }), 200
 
-@app.route("/state", methods=["GET"])
-def state():
-    # handy debug endpoint
-    with STATE_LOCK:
-        return jsonify(copy.deepcopy(STATE)), 200
-
-
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if not _authorised_webhook(request):
@@ -375,26 +368,30 @@ def webhook():
             abort(400)
 
         with STATE_LOCK:
-    now_ms = int(time.time() * 1000)
-    STATE["_server_ts"] = now_ms
+            now_ms = int(time.time() * 1000)
+            STATE["_server_ts"] = now_ms
 
-    if "card" in data:
-        _parse_card_payload(data)
+            # Card-based parsing (optional)
+            if "card" in data:
+                _parse_card_payload(data)
 
-    _merge_field_payload(data)
+            # Field-based merge (optional)
+            _merge_field_payload(data)
 
-    if STATE["secret"].get("war") is None:
-        _recompute_war_from_secret()
+            # Ensure war recompute if vix/gvz already exist but war missing
+            if STATE["secret"].get("war") is None:
+                _recompute_war_from_secret()
 
-    _save_state_to_disk()
+            _save_state_to_disk()
+            payload = copy.deepcopy(STATE)
 
-    payload = copy.deepcopy(STATE)
+        socketio.emit("macro_update", payload)
+        return "SUCCESS", 200
 
-socketio.emit("macro_update", payload)
-return "SUCCESS", 200
     except Exception as e:
         print("Webhook error:", e)
         return str(e), 400
+
 
 
 @app.route("/verify_secret", methods=["POST"])
