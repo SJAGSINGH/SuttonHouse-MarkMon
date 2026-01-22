@@ -781,8 +781,10 @@
     window.__RSC_LAST = payload;
     console.log("[RSC HANDLE OK]", payload);
 
-    if (typeof window.applyAllFromState === "function") applyAllFromState(payload);
-    else console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+    if (typeof window.applyAllFromState === "function") window.applyAllFromState(payload);
+else if (typeof applyAllFromState === "function") applyAllFromState(payload);
+else console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+
   };
 
   // ============================================================
