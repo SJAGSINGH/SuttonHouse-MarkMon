@@ -991,170 +991,199 @@ if (data && data.flow !== undefined && data.flow !== null){
       }
     }
  //   
-// ----------------------------
-// RSC VALIDATOR + ENTRY POINT
-// ----------------------------
-window.__RSC_LAST = null;
+<!-- ✅ DROP-IN REPLACEMENT (paste over your current bottom section) -->
+<script>
+  // ============================================================
+  // RSC VALIDATOR + ENTRY POINT (SINGLE SOURCE OF TRUTH)
+  // ============================================================
+  (function(){
+    window.__RSC_LAST = null;
 
-function rscValidateMacro(p){
-  if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
+    function rscValidateMacro(p){
+      if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
 
-  const req = ["cycle","flow","vol","sahm","count","ticker"];
-  for (const k of req){
-    if (!(k in p)) return { ok:false, why:`missing_${k}` };
-  }
-
-  if (typeof p.ticker !== "string") return { ok:false, why:"ticker_not_string" };
-
-  // optional freshness guard
-  if ("_server_ts" in p && typeof p._server_ts === "number"){
-    const ageMs = Date.now() - p._server_ts;
-    if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
-  }
-
-  return { ok:true };
-}
-
-console.log("✅ RSC VALIDATOR LIVE v1");
-console.log("BUILD_STAMP_ABC123");
-window.handleMacroUpdate = function(payload){
-  const v = rscValidateMacro(payload);
-  if (!v.ok){
-    console.warn("[RSC DROP]", v.why, payload);
-    return;
-  }
-
-  window.__RSC_LAST = payload;
-  console.log("[RSC HANDLE OK]", payload);
-
-  // Drive the UI (this is the whole point of locking the entry point)
-  if (typeof applyAllFromState === "function") {
-    applyAllFromState(payload);
-  } else {
-    console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
-  }
-};
-
-
-
-    // ----------------------------
-    // SOCKET.IO
-    // ----------------------------
-    let socket = null;
-    try{
-      if (window.io){
-        socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-        socket.on('connect', () => console.log('CONNECTED'));
-        socket.on('connect_error', (e) => console.log('SOCKET ERROR', e));
-      } else {
-        console.log('Socket.IO not loaded; clock will still run.');
+      const req = ["cycle","flow","vol","sahm","count","ticker"];
+      for (const k of req){
+        if (!(k in p)) return { ok:false, why:`missing_${k}` };
       }
-    } catch(e){
-      console.log('Socket init failed; clock will still run.', e);
+
+      if (typeof p.ticker !== "string") return { ok:false, why:"ticker_not_string" };
+
+      // optional freshness guard
+      if ("_server_ts" in p && typeof p._server_ts === "number"){
+        const ageMs = Date.now() - p._server_ts;
+        if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
+      }
+
+      return { ok:true };
     }
 
-    function applyAllFromState(data){
-      lastState = data || {};
-      const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-      setWarBadge(warActive);
+    // expose for debugging if you want
+    window.rscValidateMacro = rscValidateMacro;
 
-      if (!secretMode) applyPublicFromState(data);
-      else applySecretFromState(data);
+    console.log("✅ RSC VALIDATOR LIVE v1");
+    console.log("BUILD_STAMP_ABC123");
 
-      applyMonitoringFromState(data);
+    window.handleMacroUpdate = function(payload){
+      const v = rscValidateMacro(payload);
+      if (!v.ok){
+        console.warn("[RSC DROP]", v.why, payload);
+        return;
+      }
 
-      if (data && data.sahm !== undefined && data.sahm !== null){
-        const s = parseFloat(data.sahm) || 0;
-        const v4 = document.getElementById('val-4');
-        const c4 = document.getElementById('card-4');
-        const node = document.getElementById('led-node');
+      window.__RSC_LAST = payload;
+      console.log("[RSC HANDLE OK]", payload);
 
-        if (s <= 0.34){
-          if (v4) v4.innerText = 'EXPANSION PHASE';
-          if (c4) c4.className = 'card glow-lime';
-          if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
-        } else if (s <= 0.49){
-          if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
-          if (c4) c4.className = 'card glow-warning';
-          if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
-        } else {
-          if (v4) v4.innerText = 'CONTRACTION';
-          if (c4) c4.className = 'card glow-danger';
-          if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
+      // Drive the UI (single entry point)
+      if (typeof window.applyAllFromState === "function") {
+        window.applyAllFromState(payload);
+      } else {
+        console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
+      }
+    };
+  })();
+
+  // ============================================================
+  // SOCKET.IO
+  // ============================================================
+  let socket = null;
+  try{
+    if (window.io){
+      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+      socket.on('connect', () => console.log('CONNECTED'));
+      socket.on('connect_error', (e) => console.log('SOCKET ERROR', e));
+    } else {
+      console.log('Socket.IO not loaded; clock will still run.');
+    }
+  } catch(e){
+    console.log('Socket init failed; clock will still run.', e);
+  }
+
+  // ============================================================
+  // APPLY ALL (PAINT)
+  // ============================================================
+  function applyAllFromState(data){
+    lastState = data || {};
+
+    const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+    setWarBadge(warActive);
+
+    if (!secretMode) applyPublicFromState(data);
+    else applySecretFromState(data);
+
+    applyMonitoringFromState(data);
+
+    if (data && data.sahm !== undefined && data.sahm !== null){
+      const s = parseFloat(data.sahm) || 0;
+      const v4 = document.getElementById('val-4');
+      const c4 = document.getElementById('card-4');
+      const node = document.getElementById('led-node');
+
+      if (s <= 0.34){
+        if (v4) v4.innerText = 'EXPANSION PHASE';
+        if (c4) c4.className = 'card glow-lime';
+        if (node){
+          node.className = 'pulse-node pulse-slow';
+          node.style.background = 'var(--lime)';
+          node.style.boxShadow = '0 0 40px var(--lime)';
+        }
+      } else if (s <= 0.49){
+        if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
+        if (c4) c4.className = 'card glow-warning';
+        if (node){
+          node.className = 'pulse-node pulse-mid';
+          node.style.background = 'var(--orange)';
+          node.style.boxShadow = '0 0 40px var(--orange)';
+        }
+      } else {
+        if (v4) v4.innerText = 'CONTRACTION';
+        if (c4) c4.className = 'card glow-danger';
+        if (node){
+          node.className = 'pulse-node pulse-fast';
+          node.style.background = 'var(--red)';
+          node.style.boxShadow = '0 0 60px var(--red)';
         }
       }
     }
+  }
+  window.applyAllFromState = applyAllFromState; // ensures entry-point can see it
 
-    if (socket){
-  socket.on('macro_update', (data) => {
-    triggerPulse();
-    if (typeof window.handleMacroUpdate === "function") {
-      window.handleMacroUpdate(data);
-    } else {
-      console.warn("[RSC WARN] handleMacroUpdate missing — fallback paint");
-      applyAllFromState(data);
-    }
-  });
-}
+  // ============================================================
+  // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
+  // ============================================================
+  if (socket){
+    socket.on('macro_update', (data) => {
+      triggerPulse();
+      if (typeof window.handleMacroUpdate === "function") {
+        window.handleMacroUpdate(data);
+      } else {
+        console.warn("[RSC WARN] handleMacroUpdate missing — fallback paint");
+        applyAllFromState(data);
+      }
+    });
+  }
 
+  // ============================================================
+  // WARM START (HEALTH)
+  // ============================================================
+  (async function warmStart(){
+    try{
+      const r = await fetch('/health', { cache:'no-store' });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j && j.state){
+        if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
+        else applyAllFromState(j.state);
+      }
+    } catch(e){}
+  })();
 
-    (async function warmStart(){
-      try{
-        const r = await fetch('/health', { cache:'no-store' });
-        if (!r.ok) return;
-        const j = await r.json();
-       if (j && j.state){
-  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
-  else applyAllFromState(j.state);
-}
-      } catch(e){}
-    })();
-
-    // ----------------------------
-    // PASSWORD MODAL
-    // ----------------------------
-    const tor = document.getElementById('city-tor');
-    if (tor){
-      tor.addEventListener('dblclick', () => {
-        const modal = document.getElementById('password-modal');
-        const input = document.getElementById('pass-input');
-        if (modal) modal.style.display = 'flex';
-        if (input) input.focus();
-      });
-    }
-
-    function closeModal(){
+  // ============================================================
+  // PASSWORD MODAL
+  // ============================================================
+  const tor = document.getElementById('city-tor');
+  if (tor){
+    tor.addEventListener('dblclick', () => {
       const modal = document.getElementById('password-modal');
       const input = document.getElementById('pass-input');
-      if (modal) modal.style.display = 'none';
-      if (input) input.value = '';
-    }
-    window.closeModal = closeModal;
+      if (modal) modal.style.display = 'flex';
+      if (input) input.focus();
+    });
+  }
 
-    async function checkPass(){
-      const input = document.getElementById('pass-input');
-      const pwd = input ? input.value : '';
+  function closeModal(){
+    const modal = document.getElementById('password-modal');
+    const input = document.getElementById('pass-input');
+    if (modal) modal.style.display = 'none';
+    if (input) input.value = '';
+  }
+  window.closeModal = closeModal;
 
-      try{
-        const r = await fetch('/verify_secret', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ password: pwd })
-        });
-        closeModal();
-        if (r.ok) enableSecretMode();
-      } catch(e){
-        closeModal();
-      }
-    }
-    window.checkPass = checkPass;
+  async function checkPass(){
+    const input = document.getElementById('pass-input');
+    const pwd = input ? input.value : '';
 
-    const passInput = document.getElementById('pass-input');
-    if (passInput){
-      passInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') checkPass();
+    try{
+      const r = await fetch('/verify_secret', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pwd })
       });
+      closeModal();
+      if (r.ok) enableSecretMode();
+    } catch(e){
+      closeModal();
     }
-  </script>
+  }
+  window.checkPass = checkPass;
+
+  const passInput = document.getElementById('pass-input');
+  if (passInput){
+    passInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') checkPass();
+    });
+  }
+</script>
 </body>
 </html>
+
