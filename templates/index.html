@@ -510,29 +510,7 @@
       return bars;
     }
 
-// ----------------------------
-// RSC VALIDATOR + ENTRY POINT
-// ----------------------------
-window.__RSC_LAST = null;
 
-function rscValidateMacro(p){
-  if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
-
-  const req = ["cycle","flow","vol","sahm","count","ticker"];
-  for (const k of req){
-    if (!(k in p)) return { ok:false, why:`missing_${k}` };
-  }
-
-  if (typeof p.ticker !== "string") return { ok:false, why:"ticker_not_string" };
-
-  // optional freshness guard
-  if ("_server_ts" in p && typeof p._server_ts === "number"){
-    const ageMs = Date.now() - p._server_ts;
-    if (ageMs > 2 * 60 * 1000) return { ok:false, why:`stale_${ageMs}ms` };
-  }
-
-  return { ok:true };
-}
 
 
 
