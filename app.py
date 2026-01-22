@@ -96,6 +96,7 @@ def _load_state_from_disk() -> None:
     try:
         if not os.path.exists(STATE_FILE):
             return
+
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             cached = json.load(f)
 
@@ -103,18 +104,14 @@ def _load_state_from_disk() -> None:
             return
 
         ts = cached.get("_server_ts")
-        ts = cached.get("_server_ts")
-if isinstance(ts, (int, float)):
-    # accept either seconds or milliseconds
-    ts_sec = (ts / 1000.0) if ts > 1e12 else ts
-    if time.time() - ts_sec > STATE_MAX_AGE_SECS:
-        return
+        if isinstance(ts, (int, float)) and (time.time() - ts > STATE_MAX_AGE_SECS):
             return
 
         with STATE_LOCK:
             for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
                 if k in cached:
                     STATE[k] = cached.get(k)
+
             if isinstance(cached.get("secret"), dict):
                 for sk in STATE["secret"]:
                     if sk in cached["secret"]:
