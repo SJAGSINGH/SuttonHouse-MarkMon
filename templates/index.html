@@ -598,6 +598,7 @@ function rscClockStage(count){
 
   function enableSecretMode(){
     secretMode = true;
+    founderMode = true
     const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'inline-flex';
     setText('h3-1', 'Institutional X'); setText('h3-2', 'Institutional Y'); setText('h3-3', 'Institutional Buyers / Sellers');
     ['card-1','card-2','card-3'].forEach(id => { const c = document.getElementById(id); if (c) c.className = 'card halo-bg-secret'; });
