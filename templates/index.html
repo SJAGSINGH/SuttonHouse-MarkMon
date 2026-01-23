@@ -497,6 +497,28 @@
   // STATE CACHE + helpers
   // ----------------------------
   let lastState = null;
+    
+function rscRegimeDirection(cycleStr){
+  const s = String(cycleStr || '').toLowerCase();
+
+  // Real asset regime keywords
+  if (s.includes('commod') || s.includes('real asset') || s.includes('hard asset') || s.includes('gold')) return 'REAL';
+
+  // Financial asset regime keywords
+  if (s.includes('financial') || s.includes('equities') || s.includes('risk-on') || s.includes('stocks')) return 'FIN';
+
+  return null; // no regime / unknown
+}
+
+function rscClockStage(count){
+  const c = Number.parseInt(count, 10);
+  if (!Number.isFinite(c)) return null;
+  if (c <= 0)  return 'INITIATING';
+  if (c <= 25) return 'EARLY';
+  if (c <= 70) return 'MID';
+  if (c <= 85) return 'LATE';
+  return 'END';
+}
 
   function setText(id, txt){ const el = document.getElementById(id); if (el) el.innerText = txt; }
 
@@ -596,69 +618,149 @@
   // ----------------------------
   // PUBLIC APPLY
   // ----------------------------
-  function applyPublicFromState(data){
-    const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-    document.body.classList.toggle('war-room', warActive); setWarBadge(warActive);
+ function applyPublicFromState(data){
+  const warActive = !!(data?.secret?.war?.active);
+  document.body.classList.toggle('war-room', warActive);
+  setWarBadge(warActive);
 
-    ['card-1','card-2','card-3'].forEach(id => { const c = document.getElementById(id); if (c) c.className = 'card'; });
-    setText('val-1','AWAITING'); setText('sub-1','');
-    setText('val-2','AWAITING'); setText('sub-2','');
-    setText('val-3','AWAITING'); setText('sub-3','');
+  // ---------- reset ----------
+  ['card-1','card-2','card-3'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) c.className = 'card';
+  });
 
-    const t3 = document.getElementById('track-3'); const f3 = document.getElementById('fill-3');
-    if (t3) t3.style.display = 'none'; if (f3) f3.style.width = '0%';
+  setText('val-1','AWAITING'); setText('sub-1','');
+  setText('val-2','AWAITING'); setText('sub-2','');
+  setText('val-3','AWAITING'); setText('sub-3','');
 
-    // Card 1: regime + vol
-    if (data && data.cycle){
-      const v1 = document.getElementById('val-1'); const c1 = document.getElementById('card-1');
-      const isCom = String(data.cycle).toLowerCase().includes('commodities');
-      if (v1){ v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : String(data.cycle).toUpperCase(); v1.style.color = isCom ? 'var(--gold)' : 'var(--text)'; }
-      if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
+  const t3 = document.getElementById('track-3');
+  const fill3 = document.getElementById('fill-3');
+  if (t3) t3.style.display = 'none';
+  if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
+
+  // ============================================================
+  // CARD 1 — REGIME + VOL
+  // ============================================================
+  if (data?.cycle){
+    const v1 = document.getElementById('val-1');
+    const c1 = document.getElementById('card-1');
+
+    const cycleRaw = String(data.cycle);
+    const isCom = cycleRaw.toLowerCase().includes('commod');
+
+    if (v1){
+      v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : cycleRaw.toUpperCase();
+      v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
     }
-    if (data && data.vol){
-      const s1 = document.getElementById('sub-1');
-      if (s1){ s1.innerText = 'VOLATILITY: ' + String(data.vol).toUpperCase(); s1.style.color = (String(data.vol).toUpperCase() === 'ELEVATED') ? 'var(--red)' : 'var(--lime)'; }
-    }
+    if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
+  }
 
-    // Card 2: rotation + meta
-    if (data && data.flow !== undefined && data.flow !== null){
-      const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const c2 = document.getElementById('card-2');
-      const flowRaw = String(data.flow || '').trim();
-      const parts = flowRaw.split('|').map(x => (x || '').trim()).filter(x => x.length > 0);
-      const headline = (parts.length >= 1 ? parts[0] : 'ROTATION ACTIVE').trim();
-      let detail = '';
-      if (parts.length >= 2) detail = parts.slice(1).join(' | ').trim(); else detail = (flowRaw.toUpperCase() === headline.toUpperCase()) ? '' : flowRaw;
+  if (data?.vol){
+    const s1 = document.getElementById('sub-1');
+    const vol = String(data.vol).toUpperCase();
 
-      const intoCom = flowRaw.toLowerCase().includes('into commodities');
-      const intoEq  = flowRaw.toLowerCase().includes('into equities');
-      const isComCycle = String(data.cycle || '').toLowerCase().includes('commod');
-      const makeGold = intoCom || isComCycle;
-
-      if (v2){ v2.innerText = headline.toUpperCase(); v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)'); }
-      if (s2){ const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
-        s2.innerText = (detail && detail.length) ? detail.toUpperCase() : fallback; s2.style.color = 'var(--text)'; s2.style.display = 'block'; }
-      if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
-
-      _renderCard2Meta(flowRaw, data ? data.count : null);
-    } else {
-      _renderCard2Meta(null, data ? data.count : null);
-    }
-
-    // Card 3: cycle clock / maturity
-    if (data && data.count !== undefined && data.count !== null){
-      const count = Number.parseInt(data.count, 10);
-      const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3'); const c3 = document.getElementById('card-3'); const t3b = document.getElementById('track-3'); const f3 = document.getElementById('fill-3');
-      if (Number.isFinite(count)){
-        if (t3b) t3b.style.display = 'block'; if (f3) f3.style.width = count + '%'; if (s3) s3.innerText = 'MATURITY: ' + count + '%';
-        const isCommodities = String(data.cycle || '').toLowerCase().includes('commod');
-        if (count <= 0){ if (v3){ v3.innerText = 'INITIATING'; v3.style.color = 'var(--dim)'; } if (c3) c3.className = 'card'; if (f3) f3.style.background = 'var(--dim)'; }
-        else if (count <= 25){ if (v3){ v3.innerText = 'EARLY CYCLE'; v3.style.color = 'var(--lime)'; } if (c3) c3.className = 'card glow-lime'; if (f3) f3.style.background = 'var(--lime)'; }
-        else if (count <= 70){ if (v3) v3.innerText = 'ESTABLISHED CYCLE'; if (v3) v3.style.color = isCommodities ? 'var(--gold)' : 'var(--silver)'; if (c3) c3.className = isCommodities ? 'card halo-bg-gold' : 'card halo-bg-silver'; if (f3) f3.style.background = isCommodities ? 'var(--gold)' : 'var(--silver)'; }
-        else { const endCol = (count > 85) ? 'var(--red)' : 'var(--orange)'; if (v3){ v3.innerText = 'CYCLE END APPROACHING'; v3.style.color = endCol; } if (c3) c3.className = (count > 85) ? 'card glow-danger' : 'card glow-warning'; if (f3) f3.style.background = endCol; }
-      }
+    if (s1){
+      s1.innerText = `VOLATILITY: ${vol}`;
+      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
     }
   }
 
+  // ============================================================
+  // CARD 2 — ROTATION + META
+  // ============================================================
+  const hasFlow = (data?.flow !== undefined && data?.flow !== null && String(data.flow).trim() !== '');
+  if (hasFlow){
+    const v2 = document.getElementById('val-2');
+    const s2 = document.getElementById('sub-2');
+    const c2 = document.getElementById('card-2');
+
+    const flowRaw = String(data.flow).trim();
+    const parts = flowRaw.split('|').map(x => (x || '').trim()).filter(Boolean);
+    const headline = (parts[0] || 'ROTATION ACTIVE').trim();
+    const detail = (parts.length >= 2) ? parts.slice(1).join(' | ').trim() : '';
+
+    const flowLower = flowRaw.toLowerCase();
+    const intoCom = flowLower.includes('into commodities');
+    const intoEq  = flowLower.includes('into equities');
+
+    const cycleLower = String(data?.cycle || '').toLowerCase();
+    const isComCycle = cycleLower.includes('commod');
+
+    const makeGold = intoCom || isComCycle;
+
+    if (v2){
+      v2.innerText = headline.toUpperCase();
+      v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+    }
+
+    if (s2){
+      const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
+      const line = detail ? detail : fallback;
+      s2.innerText = line.toUpperCase();
+      s2.style.color = 'var(--text)';
+      s2.style.display = 'block';
+    }
+
+    if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
+
+    _renderCard2Meta(flowRaw, data?.count ?? null);
+  } else {
+    _renderCard2Meta(null, data?.count ?? null);
+  }
+
+  // ============================================================
+  // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
+  // Requires: rscClockStage(count) and rscRegimeDirection(data.cycle)
+  // ============================================================
+  if (data?.count === undefined || data?.count === null) return;
+
+  const count = Number.parseInt(data.count, 10);
+  if (!Number.isFinite(count)) return;
+
+  const v3 = document.getElementById('val-3');
+  const s3 = document.getElementById('sub-3');
+  const c3 = document.getElementById('card-3');
+  const t3b = document.getElementById('track-3');
+  const f3b = document.getElementById('fill-3');
+
+  // bar
+  if (t3b) t3b.style.display = 'block';
+  if (f3b) f3b.style.width = `${count}%`;
+  if (s3)  s3.innerText = `MATURITY: ${count}%`;
+
+  const stage = rscClockStage(count) || 'INITIATING';
+  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+
+  let headline = `NO REGIME → ${stage}`;
+  let cardClass = 'card halo-bg-silver';
+  let fillCol = 'var(--silver)';
+
+  if (dir === 'REAL'){
+    headline = `REAL ASSET REGIME → ${stage}`;
+    cardClass = 'card halo-bg-gold';
+    fillCol = 'var(--gold)';
+  } else if (dir === 'FIN'){
+    headline = `FINANCIAL ASSET REGIME → ${stage}`;
+    cardClass = 'card halo-bg-steel';
+    fillCol = 'var(--steel)';
+  }
+
+  // late/end overlays dominate regime color
+  if (count >= 86){
+    cardClass = 'card glow-danger';
+    fillCol = 'var(--red)';
+  } else if (count >= 71){
+    cardClass = 'card glow-warning';
+    fillCol = 'var(--orange)';
+  }
+
+  if (v3){
+    v3.innerText = headline;
+    v3.style.color = (count >= 71) ? fillCol : 'var(--text)';
+  }
+  if (c3) c3.className = cardClass;
+  if (f3b) f3b.style.background = fillCol;
+}
   // ----------------------------
   // SECRET APPLY (unchanged)
   // ----------------------------
