@@ -592,6 +592,9 @@ function rscClockStage(count){
   // SECRET MODE
   // ----------------------------
   let secretMode = false;
+  let founderMode = false;
+  //if (founderMode && dir === 'FIN' && c3) c3.classList.add('haze-steel');
+  //if (founderMode && dir === 'REAL' && c3) c3.classList.add('haze-gold');  
 
   function enableSecretMode(){
     secretMode = true;
@@ -608,6 +611,19 @@ function rscClockStage(count){
     setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
     if (lastState) applyPublicFromState(lastState); else applyPublicFromState({});
   }
+  function applyFounderHaze(dir){
+    const c3 = document.getElementById('card-3');
+    if (!c3) return;
+
+    // always clean first
+    c3.classList.remove('haze-gold','haze-steel');
+
+    if (!founderMode || !dir) return;
+
+    if (dir === 'REAL') c3.classList.add('haze-gold');
+    if (dir === 'FIN')  c3.classList.add('haze-steel');
+   }
+  
   window.closeVault = closeVault;
 
   function setWarBadge(active){
@@ -730,7 +746,7 @@ function rscClockStage(count){
 
   const stage = rscClockStage(count) || 'INITIATING';
   const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
-
+  applyFounderHaze(dir);
   let headline = `NO REGIME → ${stage}`;
   let cardClass = 'card halo-bg-silver';
   let fillCol = 'var(--silver)';
