@@ -591,20 +591,48 @@ function rscClockStage(count){
   // ----------------------------
   // SECRET MODE
   // ----------------------------
-  let secretMode = false;
-  let founderMode = false;
-  //if (founderMode && dir === 'FIN' && c3) c3.classList.add('haze-steel');
-  //if (founderMode && dir === 'REAL' && c3) c3.classList.add('haze-gold');  
+  // ----------------------------
+// FOUNDER SESSION GATE
+// ----------------------------
+const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only (clears on tab close/reload session)
+
+function isFounderUnlocked(){
+  return sessionStorage.getItem(FOUNDER_KEY) === "1";
+}
+
+function setFounderUnlocked(v){
+  if (v) sessionStorage.setItem(FOUNDER_KEY, "1");
+  else sessionStorage.removeItem(FOUNDER_KEY);
+}
+
+// ----------------------------
+// VAULT VIEW (UI MODE)
+// ----------------------------
+let secretMode = false; // this is "vault open", NOT "founder unlocked"
+
 
   function enableSecretMode(){
-    secretMode = true;
-    founderMode = true
-    const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'inline-flex';
-    setText('h3-1', 'Institutional X'); setText('h3-2', 'Institutional Y'); setText('h3-3', 'Institutional Buyers / Sellers');
-    ['card-1','card-2','card-3'].forEach(id => { const c = document.getElementById(id); if (c) c.className = 'card halo-bg-secret'; });
-    const t3 = document.getElementById('track-3'); if (t3) t3.style.display = 'none';
-    if (lastState) applySecretFromState(lastState);
-  }
+  setFounderUnlocked(true);   // <-- ADD THIS
+  secretMode = true;
+
+  const exitBtn = document.getElementById('vault-exit'); 
+  if (exitBtn) exitBtn.style.display = 'inline-flex';
+
+  setText('h3-1', 'Institutional X'); 
+  setText('h3-2', 'Institutional Y'); 
+  setText('h3-3', 'Institutional Buyers / Sellers');
+
+  ['card-1','card-2','card-3'].forEach(id => { 
+    const c = document.getElementById(id); 
+    if (c) c.className = 'card halo-bg-secret'; 
+  });
+
+  const t3 = document.getElementById('track-3'); 
+  if (t3) t3.style.display = 'none';
+
+  if (lastState) applySecretFromState(lastState);
+}
+
   function closeVault(){
     secretMode = false;
     const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'none';
@@ -995,11 +1023,18 @@ window.handleMacroUpdate = function(payload){
   const tor = document.getElementById('city-tor');
   if (tor){
     tor.addEventListener('dblclick', () => {
-      const modal = document.getElementById('password-modal');
-      const input = document.getElementById('pass-input');
-      if (modal) modal.style.display = 'flex';
-      if (input) input.focus();
-    });
+  // If already unlocked this session, skip password prompt
+  if (isFounderUnlocked()){
+    enableSecretMode();
+    return;
+  }
+
+  const modal = document.getElementById('password-modal');
+  const input = document.getElementById('pass-input');
+  if (modal) modal.style.display = 'flex';
+  if (input) input.focus();
+});
+
   }
 
   function closeModal(){
