@@ -392,7 +392,150 @@ def webhook():
         print("Webhook error:", e)
         return str(e), 400
 
+# ============================================================
+# INGEST MACRO (Python feeder endpoint)
+# ============================================================
+# This is the new canonical ingest route for your Python macro engine.
+# Use it when you want to POST state updates from Python → server → UI.
+#
+# Call example:
+#   POST /ingest_macro?secret=WEBHOOK_SECRET   (or header X-Webhook-Secret)
+#   JSON body: {"cycle":"...", "vol":"...", "flow":"...", "count":45, "sahm":0.33, "secret": {...}}
+#
+# IMPORTANT:
+# - This reuses the same merge + emit logic you already trust.
+# - It is tolerant to payload shapes: {state:{...}}, {payload:{...}}, {data:{...}}.
+# - It stamps _server_ts in ms for your RSC validator.
+# ============================================================
 
+@app.route("/ingest_macro", methods=["POST"])
+def ingest_macro():
+    if not _authorised_webhook(request):
+        abort(401)
+
+    try:
+        data = _get_payload_any()
+        if not isinstance(data, dict):
+            abort(400)
+
+        # unwrap common envelopes
+        if "state" in data and isinstance(data["state"], dict):
+            data = data["state"]
+        elif "payload" in data and isinstance(data["payload"], dict):
+            data = data["payload"]
+        elif "data" in data and isinstance(data["data"], dict):
+            data = data["data"]
+
+        with STATE_LOCK:
+            now_ms = int(time.time() * 1000)
+            STATE["_server_ts"] = now_ms
+
+            # If your python feeder ever sends card packets, keep this.
+            # Otherwise harmless.
+            if "card" in data:
+                _parse_card_payload(data)
+
+            # Canonical merge for cycle/vol/flow/count/sahm (+ alternates)
+            _merge_field_payload(data)
+
+            # Optional: allow python feeder to send full secret block
+            # (safe merge — only overwrite when dict)
+            if isinstance(data.get("secret"), dict):
+                for sk in STATE["secret"].keys():
+                    if sk in data["secret"]:
+                        STATE["secret"][sk] = data["secret"][sk]
+
+            # Ensure war is always consistent with vix/gvz if missing
+            if STATE["secret"].get("war") is None:
+                _recompute_war_from_secret()
+            else:
+                # also keep it in sync if vix/gvz updated
+                _recompute_war_from_secret()
+
+            _save_state_to_disk()
+            payload = copy.deepcopy(STATE)
+
+        socketio.emit("macro_update", payload)
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        print("Ingest macro error:", e)
+        return str(e), 400
+
+
+# ============================================================
+# WEBHOOK (optional legacy TradingView ingest)
+# ============================================================
+# Keep this ONLY if you still want TradingView → server direct.
+# If your plan is Python-only, you can remove this route or leave it in place.
+# If leaving it: simplest is to forward internally to ingest_macro logic.
+# ============================================================
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    # If you still want TradingView direct → UI, keep this as-is.
+    # If you want to deprecate it, return 410 or redirect logic.
+    if not _authorised_webhook(request):
+        abort(401)
+
+    try:
+        data = _get_payload_any()
+        if not isinstance(data, dict):
+            abort(400)
+
+        with STATE_LOCK:
+            now_ms = int(time.time() * 1000)
+            STATE["_server_ts"] = now_ms
+
+            if "card" in data:
+                _parse_card_payload(data)
+
+            _merge_field_payload(data)
+
+            if STATE["secret"].get("war") is None:
+                _recompute_war_from_secret()
+            else:
+                _recompute_war_from_secret()
+
+            _save_state_to_disk()
+            payload = copy.deepcopy(STATE)
+
+        socketio.emit("macro_update", payload)
+        return "SUCCESS", 200
+
+    except Exception as e:
+        print("Webhook error:", e)
+        return str(e), 400
+
+
+@app.route("/verify_secret", methods=["POST"])
+def verify_secret():
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0]
+    now = time.time()
+    ATTEMPTS[ip] = [t for t in ATTEMPTS.get(ip, []) if now - t < ATTEMPT_WINDOW_SECS]
+
+    if len(ATTEMPTS[ip]) >= ATTEMPT_MAX:
+        return jsonify({"ok": False, "error": "rate_limited"}), 429
+
+    if (request.get_json(silent=True) or {}).get("password") == VAULT_PASSWORD:
+        return jsonify({"ok": True}), 200
+
+    ATTEMPTS[ip].append(now)
+    return jsonify({"ok": False}), 401
+
+
+@socketio.on("connect")
+def on_connect():
+    with STATE_LOCK:
+        # keep _server_ts as ms so the front-end validator behaves
+        if not isinstance(STATE.get("_server_ts"), (int, float)):
+            STATE["_server_ts"] = int(time.time() * 1000)
+        emit("macro_update", copy.deepcopy(STATE))
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    socketio.run(app, host="0.0.0.0", port=port)
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
