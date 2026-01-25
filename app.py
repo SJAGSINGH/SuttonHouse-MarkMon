@@ -389,9 +389,21 @@ def ingest_macro():
         abort(401)
 
     try:
-        data = _get_payload_any()
-        if not isinstance(data, dict):
-            abort(400)
+    data = _get_payload_any()
+except Exception as e:
+    return jsonify({
+        "ok": False,
+        "error": "payload_parse_failed",
+        "detail": str(e)
+    }), 400
+
+if not isinstance(data, dict):
+    return jsonify({
+        "ok": False,
+        "error": "payload_not_object",
+        "received_type": str(type(data))
+    }), 400
+
 
         # unwrap common envelopes: {state:{...}} / {payload:{...}} / {data:{...}}
         if isinstance(data.get("state"), dict):
