@@ -55,8 +55,10 @@ STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 # ----------------------------
 # Helpers
 # ----------------------------
+
 def _clamp_int(x: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, x))
+
 
 def _safe_float(v) -> Optional[float]:
     try:
@@ -66,6 +68,7 @@ def _safe_float(v) -> Optional[float]:
     except Exception:
         return None
 
+
 def _safe_int(v) -> Optional[int]:
     try:
         if v is None:
@@ -74,19 +77,73 @@ def _safe_int(v) -> Optional[int]:
     except Exception:
         return None
 
+
 def _normalise_str(v) -> Optional[str]:
     if v is None:
         return None
     s = str(v).strip()
-    return s if s != "" else None
+    return s if s else None
+
 
 def _authorised_webhook(req) -> bool:
+    """
+    Validates webhook secret via header or query param.
+    If no secret configured, allow all (dev-safe).
+    """
     if not WEBHOOK_SECRET:
         return True
     return (
         (req.headers.get("X-Webhook-Secret") or "").strip() == WEBHOOK_SECRET
         or (req.args.get("secret") or "").strip() == WEBHOOK_SECRET
     )
+
+
+def _get_payload_any() -> Dict[str, Any]:
+    """
+    Accepts:
+      • JSON body
+      • form-encoded payload
+      • JSON string inside a single form field
+    """
+    data = request.get_json(silent=True)
+    if isinstance(data, dict):
+        return data
+
+    if request.form:
+        d = dict(request.form)
+        if len(d) == 1:
+            only_val = next(iter(d.values()))
+            if isinstance(only_val, str) and only_val.strip().startswith("{"):
+                try:
+                    parsed = json.loads(only_val)
+                    if isinstance(parsed, dict):
+                        return parsed
+                except Exception:
+                    pass
+        return d
+
+    raw = (request.data or b"").decode("utf-8", errors="ignore").strip()
+    if raw.startswith("{") and raw.endswith("}"):
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+
+    raise ValueError("No valid payload found (expected JSON or form fields)")
+
+
+def _normalise_server_ts(ts) -> Optional[int]:
+    """
+    Accepts seconds or milliseconds.
+    Always returns milliseconds or None.
+    """
+    try:
+        ts = int(ts)
+        if ts < 1_000_000_000_000:  # seconds → ms
+            ts *= 1000
+        return ts
+    except Exception:
+        return None
+
 
 def _load_state_from_disk() -> None:
     try:
@@ -99,10 +156,9 @@ def _load_state_from_disk() -> None:
         if not isinstance(cached, dict):
             return
 
-        ts = cached.get("_server_ts")
-        # We store _server_ts in ms. If present, check age.
-        if isinstance(ts, (int, float)):
-            age_secs = time.time() - (ts / 1000.0)
+        ts = _normalise_server_ts(cached.get("_server_ts"))
+        if ts:
+            age_secs = time.time() - (ts / 1000)
             if age_secs > STATE_MAX_AGE_SECS:
                 return
 
@@ -113,11 +169,11 @@ def _load_state_from_disk() -> None:
 
             if isinstance(cached.get("secret"), dict):
                 for sk in STATE["secret"]:
-                    if sk in cached["secret"]:
-                        STATE["secret"][sk] = cached["secret"].get(sk)
+                    STATE["secret"][sk] = cached["secret"].get(sk)
 
     except Exception as e:
         print("State load error:", e)
+
 
 def _save_state_to_disk() -> None:
     try:
@@ -129,55 +185,30 @@ def _save_state_to_disk() -> None:
     except Exception as e:
         print("State save error:", e)
 
-def _recompute_war_from_secret() -> None:
-    """Ensure war.active always reflects current vix/gvz levels."""
-    vixL = (STATE["secret"]["vix"] or {}).get("level")
-    gvzL = (STATE["secret"]["gvz"] or {}).get("level")
 
-    war = False
+def _recompute_war_from_secret() -> None:
+    """
+    Founder-only haze trigger (formerly 'war').
+    Driven solely by institutional extremes.
+    """
+    vixL = (STATE["secret"].get("vix") or {}).get("level")
+    gvzL = (STATE["secret"].get("gvz") or {}).get("level")
+
+    active = False
     reasons = []
 
     if isinstance(vixL, int) and vixL <= 4:
-        war = True
-        reasons.append(f"Institutional X: LEVEL {vixL}")
+        active = True
+        reasons.append(f"Institutional X: {vixL}")
 
     if isinstance(gvzL, int) and (gvzL <= 3 or gvzL >= 8):
-        war = True
-        reasons.append(f"Institutional Y: LEVEL {gvzL}")
+        active = True
+        reasons.append(f"Institutional Y: {gvzL}")
 
-    STATE["secret"]["war"] = {"active": war, "reason": ", ".join(reasons)}
-
-def _get_payload_any() -> Dict[str, Any]:
-    """
-    Accepts:
-      - JSON
-      - form-encoded (request.form)
-      - or JSON string in a single form field
-    """
-    data = request.get_json(silent=True)
-    if isinstance(data, dict):
-        return data
-
-    if request.form and len(request.form) > 0:
-        d = dict(request.form)
-        if len(d) == 1:
-            only_val = list(d.values())[0]
-            if isinstance(only_val, str) and only_val.strip().startswith("{"):
-                try:
-                    inner = json.loads(only_val)
-                    if isinstance(inner, dict):
-                        return inner
-                except Exception:
-                    pass
-        return d
-
-    raw = (request.data or b"").decode("utf-8", errors="ignore").strip()
-    if raw.startswith("{") and raw.endswith("}"):
-        parsed = json.loads(raw)
-        if isinstance(parsed, dict):
-            return parsed
-
-    raise ValueError("No valid payload found (expected JSON or form fields)")
+    STATE["secret"]["war"] = {
+        "active": active,
+        "reason": ", ".join(reasons)
+    }
 
 
 # ----------------------------
@@ -350,6 +381,11 @@ def ingest_macro():
         elif isinstance(data.get("data"), dict):
             data = data["data"]
 
+        # ============================
+# PATCH /ingest_macro  (inside with STATE_LOCK block)
+# Replace the middle of your handler with this
+# ============================
+
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
@@ -364,9 +400,10 @@ def ingest_macro():
                     if sk in data["secret"]:
                         STATE["secret"][sk] = data["secret"][sk]
 
-            _recompute_war_from_secret()
-            _save_state_to_disk()
+            # ✅ NEW: enforce Sutton House clarity (single bias + consistent rotation wording)
+            _apply_sutton_house_normalisation()
 
+            _save_state_to_disk()
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
@@ -380,6 +417,7 @@ def ingest_macro():
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
 # ============================================================
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if not _authorised_webhook(request):
