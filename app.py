@@ -381,7 +381,7 @@ def state():
 
 
 # ============================================================
-# INGEST MACRO (Python feeder endpoint)  ✅ NEW
+# INGEST MACRO (Python feeder endpoint)
 # ============================================================
 @app.route("/ingest_macro", methods=["POST"])
 def ingest_macro():
@@ -389,23 +389,24 @@ def ingest_macro():
         abort(401)
 
     try:
-    data = _get_payload_any()
-except Exception as e:
-    return jsonify({
-        "ok": False,
-        "error": "payload_parse_failed",
-        "detail": str(e)
-    }), 400
+        # ---- Parse payload safely ----
+        try:
+            data = _get_payload_any()
+        except Exception as e:
+            return jsonify({
+                "ok": False,
+                "error": "payload_parse_failed",
+                "detail": str(e)
+            }), 400
 
-if not isinstance(data, dict):
-    return jsonify({
-        "ok": False,
-        "error": "payload_not_object",
-        "received_type": str(type(data))
-    }), 400
+        if not isinstance(data, dict):
+            return jsonify({
+                "ok": False,
+                "error": "payload_not_object",
+                "received_type": str(type(data))
+            }), 400
 
-
-        # unwrap common envelopes: {state:{...}} / {payload:{...}} / {data:{...}}
+        # ---- Unwrap common envelopes ----
         if isinstance(data.get("state"), dict):
             data = data["state"]
         elif isinstance(data.get("payload"), dict):
@@ -413,37 +414,15 @@ if not isinstance(data, dict):
         elif isinstance(data.get("data"), dict):
             data = data["data"]
 
-        # ============================
-# PATCH /ingest_macro  (inside with STATE_LOCK block)
-# Replace the middle of your handler with this
-# ============================
-
+        # ---- Merge into STATE ----
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
             if "card" in data:
                 _parse_card_payload(data)
 
-            _merge_field_payload(data)
+            _merge_field_payload(data
 
-            # Optional: allow python to send a "secret" dict
-            if isinstance(data.get("secret"), dict):
-                for sk in STATE["secret"].keys():
-                    if sk in data["secret"]:
-                        STATE["secret"][sk] = data["secret"][sk]
-
-            # ✅ NEW: enforce Sutton House clarity (single bias + consistent rotation wording)
-            _apply_sutton_house_normalisation()
-
-            _save_state_to_disk()
-            payload = copy.deepcopy(STATE)
-
-        socketio.emit("macro_update", payload)
-        return jsonify({"ok": True}), 200
-
-    except Exception as e:
-        print("Ingest macro error:", e)
-        return str(e), 400
 
 
 # ============================================================
