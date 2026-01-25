@@ -874,6 +874,89 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
       if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
     }
   }
+  function applyMessageFromState(data){
+  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+  const m = (data && data.monitor) ? data.monitor : {};
+
+  const headlineEl = document.getElementById('msg-headline');
+  const subEl      = document.getElementById('msg-subline');
+
+  const bReg = document.getElementById('msg-regime');
+  const bSet = document.getElementById('msg-setup');
+  const bSig = document.getElementById('msg-signal');
+  const bObs = document.getElementById('msg-observe');
+
+  const card = document.getElementById('msg-card');
+
+  // helpers
+  const setBadge = (el, text, tone) => {
+    if (!el) return;
+    el.className = 'badge';
+    if (tone) el.classList.add(tone);
+    el.innerText = text;
+  };
+
+  const setupOn = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
+  const trigRaw = String(m.trigger || '').trim();
+  const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
+
+  const ticker = String(m.ticker || '').toUpperCase();
+
+  // Default: neutral, no fanfare
+  if (card){
+    card.className = 'card card-wide halo-bg-silver';
+  }
+
+  // 1) WAITING — REGIME
+  if (!dir){
+    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
+    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
+    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
+    setBadge(bSet, 'WAITING — SETUP', '');
+    setBadge(bSig, 'WAITING — SIGNAL', '');
+    setBadge(bObs, 'OBSERVE: —', '');
+    return;
+  }
+
+  // Regime confirmed (direction is known)
+  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
+
+  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
+
+  // Founder-only: subtle haze behind message card (no action implication)
+  // Uses your existing halo classes (direction only)
+  if (founderMode && card){
+    if (dir === 'REAL') card.className = 'card card-wide halo-bg-gold';
+    if (dir === 'FIN')  card.className = 'card card-wide halo-bg-steel';
+  }
+
+  // 2) WAITING — SETUP
+  if (!setupOn){
+    if (headlineEl) headlineEl.innerText = 'WAITING — SETUP STATE';
+    if (subEl) subEl.innerText = 'Direction confirmed. Setup not active.';
+    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
+    setBadge(bSig, 'WAITING — SIGNAL', '');
+    setBadge(bObs, 'OBSERVE: —', '');
+    return;
+  }
+
+  setBadge(bSet, 'SETUP: ACTIVE', 'badge-good');
+
+  // 3) WAITING — SIGNAL
+  if (!hasSignal){
+    if (headlineEl) headlineEl.innerText = 'WAITING — SIGNAL STATE';
+    if (subEl) subEl.innerText = 'Setup active. Waiting for trigger.';
+    setBadge(bSig, 'WAITING — SIGNAL', 'badge-warn');
+    setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: WATCHLIST', '');
+    return;
+  }
+
+  // 4) SIGNAL DETECTED (still not action; “observe stock cards”)
+  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
+  if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
+  setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
+  setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
+}
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
   window.RSC_MOCK = false;
@@ -909,7 +992,8 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
     setWarBadge(warActive);
     if (!secretMode) applyPublicFromState(data); else applySecretFromState(data);
     applyMonitoringFromState(data);
-
+    applyMessageFromState(data);
+    
     if (data && data.sahm !== undefined && data.sahm !== null){
       const s = parseFloat(data.sahm) || 0;
       const v4 = document.getElementById('val-4'); const c4 = document.getElementById('card-4'); const node = document.getElementById('led-node');
