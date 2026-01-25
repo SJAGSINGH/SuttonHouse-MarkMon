@@ -390,14 +390,7 @@ def ingest_macro():
 
     try:
         # ---- Parse payload safely ----
-        try:
-            data = _get_payload_any()
-        except Exception as e:
-            return jsonify({
-                "ok": False,
-                "error": "payload_parse_failed",
-                "detail": str(e)
-            }), 400
+        data = _get_payload_any()
 
         if not isinstance(data, dict):
             return jsonify({
@@ -407,6 +400,7 @@ def ingest_macro():
             }), 400
 
         # ---- Unwrap common envelopes ----
+        # Accepts {state:{...}} / {payload:{...}} / {data:{...}}
         if isinstance(data.get("state"), dict):
             data = data["state"]
         elif isinstance(data.get("payload"), dict):
@@ -414,14 +408,45 @@ def ingest_macro():
         elif isinstance(data.get("data"), dict):
             data = data["data"]
 
-        # ---- Merge into STATE ----
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
+            # ---- Card-based payloads (TradingView etc.) ----
             if "card" in data:
                 _parse_card_payload(data)
 
-            _merge_field_payload(data
+            # ---- Field-based payloads (Python macro feeder) ----
+            _merge_field_payload(data)
+
+            # ---- Optional secret pack (institutional layer) ----
+            if isinstance(data.get("secret"), dict):
+                for sk in STATE["secret"].keys():
+                    if sk in data["secret"]:
+                        STATE["secret"][sk] = data["secret"][sk]
+
+            # ---- Recompute war state from VIX / GVZ ----
+            _recompute_war_from_secret()
+
+            # ---- Optional Sutton House normalisation (safe) ----
+            try:
+                _apply_sutton_house_normalisation()
+            except Exception:
+                pass
+
+            _save_state_to_disk()
+            payload = copy.deepcopy(STATE)
+
+        socketio.emit("macro_update", payload)
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        print("Ingest macro error:", e)
+        return jsonify({
+            "ok": False,
+            "error": "ingest_macro_failed",
+            "detail": str(e)
+        }), 400
+
 
 
 
