@@ -188,11 +188,22 @@ def _save_state_to_disk() -> None:
     try:
         os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
         tmp = STATE_FILE + ".tmp"
+
+        def _safe(obj):
+            try:
+                json.dumps(obj)
+                return obj
+            except Exception:
+                return str(obj)
+
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(STATE, f, ensure_ascii=False)
+            json.dump(_safe(STATE), f, ensure_ascii=False)
+
         os.replace(tmp, STATE_FILE)
+
     except Exception as e:
-        print("State save error:", e)
+        print("State save error:", repr(e))
+
 
 
 def _recompute_war_from_secret() -> None:
