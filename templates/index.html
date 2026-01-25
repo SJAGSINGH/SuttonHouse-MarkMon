@@ -594,8 +594,8 @@ function rscClockStage(count){
   // ----------------------------
 // FOUNDER SESSION GATE
 // ----------------------------
-let founderMode=false;    
-const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only (clears on tab close/reload session)
+let founderMode = false;
+const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only
 
 function isFounderUnlocked(){
   return sessionStorage.getItem(FOUNDER_KEY) === "1";
@@ -604,7 +604,12 @@ function isFounderUnlocked(){
 function setFounderUnlocked(v){
   if (v) sessionStorage.setItem(FOUNDER_KEY, "1");
   else sessionStorage.removeItem(FOUNDER_KEY);
+  founderMode = !!v; // <-- keep in sync
 }
+
+// boot: set founderMode from session storage
+setFounderUnlocked(isFounderUnlocked());
+
 
 // ----------------------------
 // VAULT VIEW (UI MODE)
