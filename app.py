@@ -15,7 +15,9 @@ app = Flask(__name__, static_folder="static")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Optional: lock webhook/ingest endpoints (set in Render env)
-WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
+# WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
+WEBHOOK_SECRET = ""
+
 
 # Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
