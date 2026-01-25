@@ -16,7 +16,14 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Optional: lock webhook/ingest endpoints (set in Render env)
 # WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
-WEBHOOK_SECRET = ""
+def _authorised_webhook(req) -> bool:
+    if not WEBHOOK_SECRET:
+        return True
+    return (
+        (req.headers.get("X-Webhook-Secret") or "").strip() == WEBHOOK_SECRET
+        or (req.args.get("secret") or "").strip() == WEBHOOK_SECRET
+    )
+
 
 
 # Server-side vault password (set in Render env)
