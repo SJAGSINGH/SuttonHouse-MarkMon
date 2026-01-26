@@ -14,18 +14,6 @@ app = Flask(__name__, static_folder="static")
 # Threading mode = compatible with Gunicorn gthreads on Render
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# Optional: lock webhook/ingest endpoints (set in Render env)
-# WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
-def _authorised_webhook(req) -> bool:
-    if not WEBHOOK_SECRET:
-        return True
-    return (
-        (req.headers.get("X-Webhook-Secret") or "").strip() == WEBHOOK_SECRET
-        or (req.args.get("secret") or "").strip() == WEBHOOK_SECRET
-    )
-
-
-
 # Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
 
@@ -93,7 +81,8 @@ def _normalise_str(v) -> Optional[str]:
     s = str(v).strip()
     return s if s else None
 
-
+# Optional: lock webhook/ingest endpoints (set in Render env)
+WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
 def _authorised_webhook(req) -> bool:
     """
     Validates webhook secret via header or query param.
