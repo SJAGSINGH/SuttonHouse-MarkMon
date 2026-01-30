@@ -66,7 +66,7 @@
 }
 
   .logo-area{ display:flex; align-items:center; gap:15px; }
-  .logo-img{ height:100px; width:auto; }
+  .logo-img{ height:115px; width:auto; }
 
   .gleam{
     font-weight:800; font-size:32px; letter-spacing:3px; margin:0;
@@ -1251,6 +1251,45 @@ document.addEventListener('keyup', (e) => {
   } catch(e){
     console.log('Socket init failed; clock will still run.', e);
   }
+  // ============================================================
+// SCADA COMMS (AGE / SOURCE / LAST)
+// ============================================================
+function rscSetComms(source, payload){
+  const elAge  = document.getElementById('scada-age');
+  const elSrc  = document.getElementById('scada-source');
+  const elLast = document.getElementById('scada-last');
+  const wrap   = document.getElementById('scada-comms');
+
+  if (!elAge || !elSrc || !elLast) return;
+
+  let ts = payload && payload._server_ts != null ? Number(payload._server_ts) : null;
+  if (Number.isFinite(ts) && ts < 1e12) ts = ts * 1000;
+
+  if (!Number.isFinite(ts)){
+    elAge.textContent  = 'AGE: —';
+    elSrc.textContent  = `SOURCE: ${source || '—'}`;
+    elLast.textContent = 'LAST: —';
+    return;
+  }
+
+  const dt = new Date(ts);
+  elSrc.textContent  = `SOURCE: ${source || '—'}`;
+  elLast.textContent = `LAST: ${dt.toISOString()}`;
+
+  const tick = () => {
+    const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    elAge.textContent = `AGE: ${s}s`;
+  };
+  tick();
+
+  clearInterval(window.__RSC_AGE_TMR);
+  window.__RSC_AGE_TMR = setInterval(tick, 1000);
+
+  if (wrap){
+    wrap.classList.add('flash');
+    setTimeout(() => wrap.classList.remove('flash'), 250);
+  }
+}
 
   // ============================================================
   // APPLY ALL (PAINT)
@@ -1349,6 +1388,7 @@ window.handleMacroUpdate = function(payload){
   // ============================================================
   if (socket){
    socket.on('macro_update', (data) => {
+  rscSetComms("socket.io macro_update", data);   
   triggerPulse();
   debugSource = "socket.io macro_update";
   rscUpdateHeaderHandshake(debugSource, data);
@@ -1370,6 +1410,7 @@ window.handleMacroUpdate = function(payload){
       if (!r.ok) return;
       const j = await r.json();
       if (j && j.state){
+        rscSetComms("warmstart /health", j.state);
         rscUpdateHeaderHandshake(debugSource, j.state);
         if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
         else applyAllFromState(j.state);
