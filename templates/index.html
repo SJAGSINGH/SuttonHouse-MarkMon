@@ -349,6 +349,14 @@
         <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
       </div>
     </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <button id="dbg-toggle"
+        style="background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
+              font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
+        Debug
+      </button>
+    </div>
+
   </header>
 
   <div class="macro-header">
@@ -512,7 +520,78 @@
   // STATE CACHE + helpers
   // ----------------------------
   let lastState = null;
-    
+  // ----------------------------
+// SCADA DEBUG (UI)
+// ----------------------------
+let debugOn = false;
+let debugSource = "—";
+
+function setDebugVisible(v){
+  debugOn = !!v;
+  const panel = document.getElementById("scada-debug");
+  if (panel) panel.style.display = debugOn ? "block" : "none";
+  if (debugOn) refreshDebugNow();
+}
+
+async function refreshDebugNow(){
+  if (!debugOn) return;
+
+  // Prefer server-side debug snapshot if available
+  try{
+    const r = await fetch("/debug.json", { cache:"no-store" });
+    if (r.ok){
+      const j = await r.json();
+      paintDebug(j?.state ?? j);
+      return;
+    }
+  } catch(e){}
+
+  // Fallback: use last known UI payload
+  if (window.__RSC_LAST) paintDebug(window.__RSC_LAST);
+}
+
+function paintDebug(stateObj){
+  const pre = document.getElementById("dbg-json");
+  if (pre) pre.textContent = JSON.stringify(stateObj, null, 2);
+
+  const tsRaw = stateObj?._server_ts ?? null;
+  let ts = (tsRaw === null || tsRaw === undefined) ? null : Number(tsRaw);
+  if (Number.isFinite(ts) && ts < 1e12) ts = ts * 1000;
+
+  const tsEl = document.getElementById("dbg-last-ts");
+  const ageEl = document.getElementById("dbg-age");
+  const srcEl = document.getElementById("dbg-path");
+
+  if (tsEl) tsEl.textContent = `LAST TS: ${ts ? new Date(ts).toISOString() : "—"}`;
+
+  if (ageEl){
+    if (!ts){
+      ageEl.textContent = "AGE: —";
+      ageEl.className = "badge";
+    } else {
+      const ageMs = Date.now() - ts;
+      const ageS = Math.round(ageMs/1000);
+      ageEl.textContent = `AGE: ${ageS}s`;
+
+      ageEl.className = "badge";
+      if (ageS <= 15) ageEl.classList.add("badge-good");
+      else if (ageS <= 60) ageEl.classList.add("badge-warn");
+      else ageEl.classList.add("badge-bad");
+    }
+  }
+
+  if (srcEl) srcEl.textContent = `SOURCE: ${debugSource || "—"}`;
+}
+
+// button hook
+const dbgBtn = document.getElementById("dbg-toggle");
+if (dbgBtn){
+  dbgBtn.addEventListener("click", () => setDebugVisible(!debugOn));
+}
+
+// keep updating while visible
+setInterval(() => { if (debugOn) refreshDebugNow(); }, 2000);
+  
 function rscRegimeDirection(cycleStr){
   const s = String(cycleStr || '').toLowerCase();
 
@@ -995,8 +1074,22 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
   try{
     if (window.io){
       socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-      socket.on('connect',      () => console.log('CONNECTED'));
-      socket.on('connect_error',(e) => console.log('SOCKET ERROR', e));
+      socket.on('connect', () => {
+        console.log('CONNECTED');
+      const el = document.getElementById("dbg-socket");
+      if (el){
+        el.textContent = "SOCKET: CONNECTED";
+        el.className = "badge badge-good";
+      }
+    });
+      socket.on('connect_error', (e) => {
+        console.log('SOCKET ERROR', e);
+        const el = document.getElementById("dbg-socket");
+        if (el){
+          el.textContent = "SOCKET: ERROR";
+          el.className = "badge badge-bad";
+      }
+    });
     } else {
       console.log('Socket.IO not loaded; clock will still run.');
     }
@@ -1100,12 +1193,16 @@ window.handleMacroUpdate = function(payload){
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
   // ============================================================
   if (socket){
-    socket.on('macro_update', (data) => {
-      triggerPulse();
-      if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
-      else applyAllFromState(data);
-    });
-  }
+   socket.on('macro_update', (data) => {
+  triggerPulse();
+  debugSource = "socket.io macro_update";
+
+  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
+  else applyAllFromState(data);
+
+  if (debugOn) refreshDebugNow();
+  });
+    }
 
   // ============================================================
   // WARM START (HEALTH)
@@ -1113,6 +1210,7 @@ window.handleMacroUpdate = function(payload){
   (async function warmStart(){
     try{
       const r = await fetch('/health', { cache:'no-store' });
+      debugSource = "warmstart /health";
       if (!r.ok) return;
       const j = await r.json();
       if (j && j.state){
