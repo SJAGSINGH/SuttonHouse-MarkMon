@@ -49,9 +49,22 @@
   }
 
   .header{
-    display:flex; justify-content:space-between; align-items:center;
-    border-bottom:1px solid #222; padding-bottom:30px;
-  }
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid #222;
+  padding-bottom:30px;
+  gap:40px;
+}
+
+.header > .logo-area{
+  flex:1 1 auto;
+}
+
+.header > div:last-child{
+  flex:0 0 360px;   /* 🔒 lock right column width */
+  text-align:right;
+}
+
   .logo-area{ display:flex; align-items:center; gap:15px; }
   .logo-img{ height:70px; width:auto; }
 
@@ -76,8 +89,8 @@
   }
   @keyframes pulse-lime{ 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
 
-  #digital-clock{ font-size:52px; font-weight:700; text-align:right; letter-spacing:-2px; line-height:1; }
-  .city-grid{ display:flex; gap:18px; margin-top:12px; justify-content:flex-end; }
+  #digital-clock{ font-size:52px; font-weight:700; text-align:right; letter-spacing:-1px; line-height:1; max-width:360px; }
+  .city-grid{ display:flex; gap:18px; margin-top:12px; justify-content:flex-end;flex-wrap:wrap; }
   .city-item{ font-size:10px; color:#fff; display:flex; align-items:center; gap:6px; font-weight:700; cursor:pointer; transition:color .3s; }
   .status-dot{ width:6px; height:6px; background:#fff; border-radius:50%; transition:.3s; }
 
