@@ -8,6 +8,8 @@ import atexit
 import copy
 from threading import Lock
 from typing import Any, Dict, Optional
+from collections import deque
+from datetime import datetime
 
 app = Flask(__name__, static_folder="static")
 
@@ -29,7 +31,11 @@ STATE: Dict[str, Any] = {
     "flow": None,
     "count": None,
     "sahm": None,
-    "monitor": None,  # optional if you add later
+    "monitor": {  # ✅ debug + integrity lane
+        "last_by_ref": {},     # ref_id -> {ts,type,ticker,tf,time}
+        "last_by_ticker": {},  # ticker -> {ts,type,ref_id,tf,time}
+        "last_hello": {},      # ticker -> {open_ts,close_ts,test_ts,ref_id}
+    },
     "secret": {
         "vix": None,
         "gvz": None,
@@ -38,11 +44,81 @@ STATE: Dict[str, Any] = {
         "vold": None,
         "war": None,
     },
-    "_server_ts": None,  # milliseconds
+    "_server_ts": None,
 }
 
 STATE_LOCK = Lock()
+from collections import deque
+from datetime import datetime
 
+DEBUG_MAX = 250
+DEBUG_LOG = deque(maxlen=DEBUG_MAX)
+DEBUG_LOCK = Lock()
+
+def _iso(ts_ms):
+    if not ts_ms:
+        return ""
+    return datetime.utcfromtimestamp(ts_ms / 1000).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+def _safe_short_json(obj, limit=2000):
+    try:
+        s = json.dumps(obj, ensure_ascii=False)
+        return s if len(s) <= limit else s[:limit] + "…"
+    except Exception:
+        return str(obj)[:limit]
+
+def _extract_meta(data):
+    return {
+        "type": str(data.get("type") or "NA"),
+        "ref_id": int(data["ref_id"]) if str(data.get("ref_id", "")).isdigit() else None,
+        "ticker": data.get("ticker"),
+        "tf": data.get("tf"),
+        "time": data.get("time"),
+    }
+
+def _log_debug(path, data, ok=True, err=None):
+    entry = {
+        "ts": int(time.time() * 1000),
+        "path": path,
+        "ok": ok,
+        "err": err,
+        "meta": _extract_meta(data) if isinstance(data, dict) else {},
+        "raw": _safe_short_json(data),
+    }
+    with DEBUG_LOCK:
+        DEBUG_LOG.appendleft(entry)
+
+def _update_monitor_lane(meta):
+    now = int(time.time() * 1000)
+
+    ref = meta.get("ref_id")
+    ticker = meta.get("ticker")
+    typ = meta.get("type")
+
+    if ref is not None:
+        STATE["monitor"]["last_by_ref"][str(ref)] = {
+            "ts": now,
+            "type": typ,
+            "ticker": ticker,
+        }
+
+    if ticker:
+        STATE["monitor"]["last_by_ticker"][ticker] = {
+            "ts": now,
+            "type": typ,
+            "ref_id": ref,
+        }
+
+    if typ.startswith("HELLO"):
+        rec = STATE["monitor"]["last_hello"].get(ticker, {})
+        if "OPEN" in typ:
+            rec["open"] = now
+        elif "CLOSE" in typ:
+            rec["close"] = now
+        else:
+            rec["test"] = now
+        rec["ref_id"] = ref
+        STATE["monitor"]["last_hello"][ticker] = rec
 # ---- State persistence (warm start cache) ----
 DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var/data") else "/tmp/marketmonitor_state.json"
 STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
@@ -368,6 +444,39 @@ def state():
     with STATE_LOCK:
         return jsonify(copy.deepcopy(STATE)), 200
 
+@app.route("/debug.json")
+def debug_json():
+    with STATE_LOCK:
+        snap = copy.deepcopy(STATE)
+    with DEBUG_LOCK:
+        logs = list(DEBUG_LOG)
+    return jsonify({
+        "state": snap,
+        "debug": logs[:50],
+        "server_ts": int(time.time() * 1000)
+    })
+
+@app.route("/debug")
+def debug_page():
+    return """
+    <html>
+    <head><title>Sutton House Debug</title></head>
+    <body style="font-family: monospace">
+    <h2>Sutton House – SCADA Debug</h2>
+    <pre id="out">loading…</pre>
+    <script>
+      async function tick(){
+        const r = await fetch('/debug.json');
+        const j = await r.json();
+        document.getElementById('out').textContent =
+          JSON.stringify(j, null, 2);
+      }
+      tick();
+      setInterval(tick, 3000);
+    </script>
+    </body>
+    </html>
+    """
 
 # ============================================================
 # INGEST MACRO (Python feeder endpoint)
@@ -380,7 +489,7 @@ def ingest_macro():
     try:
         # ---- Parse payload safely ----
         data = _get_payload_any()
-
+        meta = _extract_meta(data)
         if not isinstance(data, dict):
             return jsonify({
                 "ok": False,
@@ -426,10 +535,12 @@ def ingest_macro():
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
-        return jsonify({"ok": True}), 200
+        _log_debug("/ingest_macro", data, ok=True)
+        return jsonify({"ok": True}), 20
 
     except Exception as e:
         print("Ingest macro error:", e)
+        _log_debug("/ingest_macro", str(e), ok=False)
         return jsonify({
             "ok": False,
             "error": "ingest_macro_failed",
@@ -450,6 +561,7 @@ def webhook():
 
     try:
         data = _get_payload_any()
+        meta = _extract_meta(data)
         if not isinstance(data, dict):
             abort(400)
 
@@ -463,13 +575,16 @@ def webhook():
 
             _recompute_war_from_secret()
             _save_state_to_disk()
-
+             _update_monitor_lane(meta)
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
+       
+        _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
     except Exception as e:
+        _log_debug("/webhook", str(e), ok=False)
         print("Webhook error:", e)
         return str(e), 400
 
