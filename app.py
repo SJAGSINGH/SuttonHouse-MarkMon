@@ -575,7 +575,7 @@ def webhook():
 
             _recompute_war_from_secret()
             _save_state_to_disk()
-             _update_monitor_lane(meta)
+            _update_monitor_lane(meta)
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
