@@ -320,12 +320,7 @@
 </head>
 
 <body>
-   <div id="build-stamp"
-     style="position:fixed;top:10px;left:10px;z-index:2147483647;
-            font:16px monospace;background:#000;padding:6px 10px;
-            border:2px solid #00ff66;color:#00ff66;">
-  BUILD: RSC_VALIDATOR_V1
-</div>
+  
 
   <header class="header">
     <div class="logo-area">
@@ -340,22 +335,26 @@
       </div>
     </div>
 
-    <div>
-      <div id="digital-clock">00:00:00</div>
-      <div class="city-grid">
-        <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
-        <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-        <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
-        <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-      <button id="dbg-toggle"
-        style="background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
-              font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
-        Debug
-      </button>
-    </div>
+<div>
+  <div id="digital-clock">00:00:00</div>
+
+  <div class="city-grid">
+    <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
+    <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
+    <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
+    <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
+  </div>
+
+  <!-- ADD THIS -->
+  <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+    <button id="dbg-toggle"
+      style="display:none;background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
+             font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
+      DEBUG
+    </button>
+  </div>
+</div>
+
 
   </header>
 
@@ -709,11 +708,47 @@ setFounderUnlocked(isFounderUnlocked());
 // VAULT VIEW (UI MODE)
 // ----------------------------
 let secretMode = false; // this is "vault open", NOT "founder unlocked"
+// ----------------------------
+// DEBUG BUTTON (secret + shift only)
+// ----------------------------
+let _shiftDown = false;
+
+function _updateDebugBtn(){
+  const btn = document.getElementById('dbg-toggle');
+  if (!btn) return;
+
+  // show only when vault is open (secretMode) AND Shift is currently held
+  btn.style.display = (secretMode && _shiftDown) ? 'inline-block' : 'none';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Shift'){
+    _shiftDown = true;
+    _updateDebugBtn();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.key === 'Shift'){
+    _shiftDown = false;
+    _updateDebugBtn();
+  }
+});
+
+// click → open debug page in a new tab
+(function wireDebugBtn(){
+  const btn = document.getElementById('dbg-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    window.open('/debug', '_blank', 'noopener');
+  });
+})();
 
 
   function enableSecretMode(){
   setFounderUnlocked(true);   // <-- ADD THIS
   secretMode = true;
+  _updateDebugBtn();  
 
   const exitBtn = document.getElementById('vault-exit'); 
   if (exitBtn) exitBtn.style.display = 'inline-flex';
@@ -739,6 +774,7 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
     hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
     setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
     if (lastState) applyPublicFromState(lastState); else applyPublicFromState({});
+    _updateDebugBtn();
   }
   function applyFounderHaze(dir){
     const c3 = document.getElementById('card-3');
