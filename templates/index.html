@@ -52,37 +52,54 @@
    HEADER — CLEAN (LEFT / CENTER / RIGHT)
 ============================ */
 
+/* ============================
+   STEP B — HEADER (CLEAN)
+   Crest left, clock/cities center, SCADA man right
+============================ */
+
+/* HEADER GRID */
 .header{
   display:grid;
-  grid-template-columns: 340px 1fr 160px;  /* LEFT / CENTER / SCADA */
+  grid-template-columns: auto 1fr auto;
   align-items:center;
+  gap:40px;
   border-bottom:1px solid #222;
-  padding:14px 0 16px;                     /* border moved up */
-  gap:22px;
+  padding-bottom:18px;      /* border moved up slightly */
 }
 
-/* LEFT: crest above brand text */
+/* ============================
+   LEFT: CREST + BRAND STACK
+============================ */
+
 .logo-area{
   display:flex;
-  flex-direction:column;     /* crest above text */
+  flex-direction:column;     /* crest above brand */
   align-items:flex-start;
   gap:10px;
 }
 
+/* ✅ Crest size control */
 .logo-img{
-  height:150px;               /* crest size (tighter + more left authority) */
+  height:150px;              /* 👈 increase/decrease here */
   width:auto;
 }
 
+/* Brand stack */
 .brand-stack{
   padding-left:2px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
 }
 
-/* Sutton House stays gold shimmer (you already have .gleam) */
+/* Sutton House shimmer (kept) */
 .gleam{
   margin:0;
-}
-
+  font-weight:800;
+  font-size:32px;
+  letter-spacing:3px;
+  background:linear-gradient(to right,#BF953F 0%,#FCF6BA 25%,#B38728 50%,#FBF5B7 75%,
+ }
 /* Market Analytics BELOW Sutton House */
 .brand-subtitle{
   margin-top:10px;
@@ -459,17 +476,15 @@
   <div class="brand-left">
     <img src="/static/logo.png" class="logo-img" alt="Logo" />
 
-    <div class="brand-stack">
-      <h1 class="gleam">SUTTON HOUSE</h1>
-      <div class="brand-subtitle">MARKET ANALYTICS</div>
+   <div class="brand-stack">
+  <h1 class="gleam">SUTTON HOUSE</h1>
 
-      <div class="brand-bottom" id="terminal-line">
-        MARKET MONITOR
-        <div class="status-dot-active" id="term-dot"></div>
-        <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
-      </div>
-    </div>
+  <div class="brand-meta">
+    <span class="brand-subtitle">MARKET ANALYTICS</span>
+    <span class="terminal-pill" id="terminal-status">TERMINAL ACTIVE</span>
   </div>
+</div>
+
 
   <!-- CENTER: Clock + Cities (NO comms text) -->
   <div class="center-stack">
