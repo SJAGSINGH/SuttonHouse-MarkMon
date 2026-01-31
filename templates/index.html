@@ -34,7 +34,7 @@
   body{
     background:var(--bg); color:var(--text);
     font-family:Inter,system-ui,sans-serif;
-    margin:0; padding:40px;
+    margin:0; padding:22px 40px 40px;  /* pulls header up */
     display:flex; flex-direction:column; gap:40px;
     min-height:100vh; box-sizing:border-box;
     overflow-x:hidden;
@@ -57,17 +57,19 @@
   grid-template-columns: 340px 1fr 160px;  /* LEFT / CENTER / SCADA */
   align-items:center;
   border-bottom:1px solid #222;
-  padding:14px 0 16px;                     /* border moved up */
+  padding:6px 0 10px;                      /* border higher + tighter */                     /* border moved up */
   gap:22px;
 }
 
 /* LEFT: crest above brand text */
 .logo-area{
   display:flex;
-  flex-direction:column;     /* crest above text */
+  flex-direction:column;
   align-items:flex-start;
-  gap:10px;
+  gap:4px;                   /* crest closer to text */
+  transform: translateY(-10px); /* lift left block */
 }
+
 
 .logo-img{
   height:150px;              /* crest size LOCK */
@@ -85,7 +87,7 @@
 
 /* Market Analytics BELOW Sutton House */
 .brand-subtitle{
-  margin-top:10px;
+  margin-top:4px;
   color:#fff;
   font-size:12px;
   font-weight:300;
@@ -113,9 +115,10 @@
   align-items:center;
   justify-content:center;
   text-align:center;
-  gap:10px;
-  transform: translateY(2px); /* subtle vertical balance */
+  gap:6px;                    /* tighter */
+  transform: translateY(-10px);/* lift clock + cities */
 }
+
 
 /* clock reduced */
 #digital-clock{
@@ -161,6 +164,7 @@
   align-items:flex-start;
   justify-content:flex-end;
   pointer-events:none;
+  transform: translateY(-10px);
 }
 
 .scada-placeholder{
