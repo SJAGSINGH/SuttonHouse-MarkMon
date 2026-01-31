@@ -118,32 +118,31 @@
 
 /* clock */
 #digital-clock{
-  font-size:30px;                          /* slightly smaller */
+  font-size:34px;   /* slightly bigger */
   font-weight:700;
   letter-spacing:-1px;
   line-height:1;
   margin:0;
 }
 
+
 /* cities */
 .city-grid{
-  display:flex;
-  gap:14px;
-  justify-content:center;
-  flex-wrap:wrap;
-  margin:2px 0 0;
-  padding:0;
+  gap:12px;
+  margin:1px 0 0;
 }
+
 .city-item{
   display:flex;
   align-items:center;
-  gap:6px;
-  font-size:10px;              /* fixes huge city text */
-  letter-spacing:2px;
+  gap:5px;
+  font-size:9px;        /* smaller */
+  letter-spacing:1.6px; /* slightly tighter */
   text-transform:uppercase;
   color:#cfcfcf;
   opacity:.9;
 }
+
 
 .status-dot{
   width:5px;
@@ -620,9 +619,14 @@
   // ----------------------------
   // CLOCK
   // ----------------------------
-  // hide until we have live comms
-  const term = document.getElementById('terminal-line');
-  if (term) term.style.display = 'none';
+ // Terminal line should always be visible.
+// Status color/text will reflect comms freshness (OFFLINE until first timestamp).
+const term = document.getElementById('terminal-line');
+if (term) term.style.display = 'inline-flex';
+
+// default state on boot
+setTerminalStatus('OFFLINE');
+
   function tick(){
     const now = new Date();
     const clock = document.getElementById('digital-clock');
