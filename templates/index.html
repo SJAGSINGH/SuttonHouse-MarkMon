@@ -56,33 +56,34 @@
 .header{
   display:grid;
   grid-template-columns: 340px 1fr 160px;  /* LEFT / CENTER / SCADA */
-  align-items:center;                       /* KEY: vertical centering */
+  align-items:center;
   border-bottom:1px solid #222;
-  padding:0 0 6px;                          /* border sits higher */
+  padding:0 0 6px;                         /* border sits higher */
   gap:18px;
-  margin-top:-10px;                         /* lift the whole header slightly */
+  margin-top:-10px;                        /* lift the whole header slightly */
 }
 
 /* LEFT */
 .logo-area{
   display:flex;
   flex-direction:column;
-  align-items:center;                       /* crest centered over block */
-  gap:0;                                    /* kill gaps */
+  align-items:center;                      /* crest centered to wordmark */
+  justify-content:center;
+  gap:0;
 }
 
 .logo-img{
   height:150px;
   width:auto;
   display:block;
-  margin:0 0 -18px 0;                       /* pulls title closer to crest */
+  margin:0 0 -26px 0;                      /* pulls text closer + up */
 }
 
 .brand-stack{
-  width:100%;
-  text-align:left;                          /* text stays left */
-  margin-top:-6px;                          /* move Sutton House up a touch */
-  padding-left:2px;
+  width:fit-content;                       /* stops stretching */
+  text-align:center;                       /* centers SUTTON HOUSE under crest */
+  margin-top:-10px;                        /* move Sutton House up a touch */
+  padding:0;
 }
 
 .gleam{ margin:0; line-height:1; }
@@ -91,6 +92,7 @@
   margin-top:2px;
   display:flex;
   align-items:center;
+  justify-content:center;
   gap:12px;
   line-height:1;
 }
@@ -109,14 +111,14 @@
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;                   /* KEY: center clock/cities vertically */
+  justify-content:center;
   text-align:center;
   gap:6px;
-  transform:none;                           /* remove lifts that uncenter */
 }
 
+/* clock */
 #digital-clock{
-  font-size:34px;
+  font-size:30px;                          /* slightly smaller */
   font-weight:700;
   letter-spacing:-1px;
   line-height:1;
@@ -126,11 +128,43 @@
 /* cities */
 .city-grid{
   display:flex;
-  gap:14px;                                 /* slightly tighter */
+  gap:14px;
   justify-content:center;
   flex-wrap:wrap;
   margin:2px 0 0;
   padding:0;
+}
+.city-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:10px;              /* fixes huge city text */
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#cfcfcf;
+  opacity:.9;
+}
+
+.status-dot{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#333;
+  box-shadow:none;
+}
+
+.city-open{
+  color:var(--lime);
+}
+
+.city-open .status-dot{
+  background:var(--lime);
+  box-shadow:0 0 10px rgba(50,205,50,.35);
+}
+
+/* small comms pulse on receive */
+.comms-flash{
+  filter:brightness(1.35);
 }
 
 /* RIGHT */
@@ -138,17 +172,18 @@
   width:160px;
   height:160px;
   display:flex;
-  align-items:center;                       /* KEY: center SCADA to border height */
+  align-items:center;                      /* centered to border height */
   justify-content:flex-end;
   pointer-events:none;
-  margin:0;                                 /* remove old lifts */
+  margin:0;
 }
 
 /* comms stays hidden */
 #scada-comms{ display:none !important; }
 
-/* DEBUG HARD-KILL by default */
-#dbg-toggle{ display:none !important; }
+/* DEBUG hidden by default (JS will reveal ONLY in founder+vault) */
+#dbg-toggle{ display:none; }
+
 
 
 
@@ -836,7 +871,7 @@ function setFounderUnlocked(v){
 
 // boot: set founderMode from session storage
 setFounderUnlocked(isFounderUnlocked());
-
+_updateDebugBtn();
 
 // ----------------------------
 // VAULT VIEW (UI MODE)
@@ -851,7 +886,7 @@ function _updateDebugBtn(){
   const btn = document.getElementById('dbg-toggle');
   if (!btn) return;
 
-  // only show when vault is open AND founder is unlocked
+  // show ONLY when vault is open AND founder is unlocked
   btn.style.display = (secretMode && founderMode) ? 'inline-block' : 'none';
 }
 
