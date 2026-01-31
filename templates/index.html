@@ -505,41 +505,9 @@
     document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
-  function rscFormatIso(tsMs){
-  const d = new Date(tsMs);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toISOString();
-}
+ 
 
-function rscUpdateHeaderHandshake(sourceLabel, payload){
-  // payload may be {state:{...}} or direct
-  let p = payload;
-  if (p && typeof p === "object"){
-    if (p.state && typeof p.state === "object") p = p.state;
-    else if (p.payload && typeof p.payload === "object") p = p.payload;
-    else if (p.data && typeof p.data === "object") p = p.data;
-  }
-
-  const tsRaw = p?._server_ts;
-  let ts = Number(tsRaw);
-  if (Number.isFinite(ts) && ts < 1e12) ts *= 1000; // seconds -> ms
-
-  const ageMs = Number.isFinite(ts) ? (Date.now() - ts) : null;
-
-  const ageEl = document.getElementById("scada-age");
-  const srcEl = document.getElementById("scada-source");
-  const lastEl = document.getElementById("scada-last");
-  const host = document.getElementById("scada-comms");
-
-  if (ageEl)  ageEl.textContent  = `AGE: ${ageMs === null ? "—" : Math.max(0, Math.round(ageMs/1000)) + "s"}`;
-  if (srcEl)  srcEl.textContent  = `SOURCE: ${sourceLabel || "—"}`;
-  if (lastEl) lastEl.textContent = `LAST: ${Number.isFinite(ts) ? rscFormatIso(ts) : "—"}`;
-
-  if (host){
-    host.classList.add("flash");
-    setTimeout(()=>host.classList.remove("flash"), 180);
-  }
-}
+  
 
   // ----------------------------
   // COLOR PALETTES (rhyme with Pine)
@@ -581,63 +549,7 @@ function rscUpdateHeaderHandshake(sourceLabel, payload){
   // STATE CACHE + helpers
   // ----------------------------
   let lastState = null;
-  // ============================
-// SCADA COMMS HEADER
-// ============================
-const SCADA = {
-  lastTsMs: null,
-  lastIso: null,
-  lastSource: "—",
-  socketConnected: false
-};
 
-function _tsToMs(ts){
-  if (ts === undefined || ts === null) return null;
-  let n = Number(ts);
-  if (!Number.isFinite(n)) return null;
-  if (n < 1e12) n = n * 1000; // seconds → ms
-  return n;
-}
-
-function _fmtIso(ms){
-  try { return new Date(ms).toISOString(); } catch { return "—"; }
-}
-
-function _set(id, txt){
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt;
-}
-
-function scadaSetSocketStatus(ok){
-  SCADA.socketConnected = !!ok;
-  const btn = document.getElementById("dbg-toggle");
-  if (btn) btn.style.display = ok ? "inline-block" : "none";
-}
-
-function scadaUpdateFromPayload(payload, source){
-  const ts = _tsToMs(payload?._server_ts);
-  if (ts){
-    SCADA.lastTsMs = ts;
-    SCADA.lastIso = _fmtIso(ts);
-  }
-  if (source) SCADA.lastSource = source;
-  scadaPaint();
-}
-
-function scadaPaint(){
-  if (SCADA.lastTsMs){
-    const age = Math.floor((Date.now() - SCADA.lastTsMs) / 1000);
-    _set("scada-age", `AGE: ${age}s`);
-    _set("scada-last", `LAST: ${SCADA.lastIso}`);
-  } else {
-    _set("scada-age", "AGE: —");
-    _set("scada-last", "LAST: —");
-  }
-  _set("scada-source", `SOURCE: ${SCADA.lastSource}`);
-}
-
-setInterval(scadaPaint, 1000);
-  
   // ----------------------------
 // SCADA DEBUG (UI)
 // ----------------------------
@@ -1300,25 +1212,7 @@ function rscSetComms(source, payload){
   }
 }
 
-  const dt = new Date(ts);
-  elSrc.textContent  = `SOURCE: ${source || '—'}`;
-  elLast.textContent = `LAST: ${dt.toISOString()}`;
-
-  const tick = () => {
-    const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-    elAge.textContent = `AGE: ${s}s`;
-  };
-  tick();
-
-  clearInterval(window.__RSC_AGE_TMR);
-  window.__RSC_AGE_TMR = setInterval(tick, 1000);
-
-  if (wrap){
-    wrap.classList.add('flash');
-    setTimeout(() => wrap.classList.remove('flash'), 250);
-  }
-}
-
+ 
   // ============================================================
   // APPLY ALL (PAINT)
   // ============================================================
