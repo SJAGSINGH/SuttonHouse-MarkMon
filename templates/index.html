@@ -531,7 +531,8 @@ body.war-room .scada-man-wrap{
 <body>
   
 
-<header class="header">
+
+  <header class="header">
 
   <!-- LEFT: Crest + Brand -->
   <div class="logo-area">
@@ -539,29 +540,28 @@ body.war-room .scada-man-wrap{
 
     <div class="brand-stack">
       <h1 class="gleam">SUTTON HOUSE</h1>
-     <div class="brand-subtitle">
-  MARKET ANALYTICS
-  <span class="brand-bottom" id="terminal-line" style="margin-top:0;">
-    <span class="status-dot-active" id="term-dot"></span>
-    <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
-  </span>
-</div>
-
+      <div class="brand-subtitle">
+        MARKET ANALYTICS
+        <span class="brand-bottom" id="terminal-line">
+          <span class="status-dot-active" id="term-dot"></span>
+          <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
+        </span>
+      </div>
     </div>
   </div>
 
-  <!-- CENTER: Clock + Cities (NO comms text) -->
+  <!-- CENTER: Clock + Cities -->
   <div class="center-stack">
     <div id="digital-clock">00:00:00</div>
 
     <div class="city-grid">
-      <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
-      <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-      <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
-      <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
+      <div class="city-item" id="city-lon"><div class="status-dot"></div>LONDON</div>
+      <div class="city-item" id="city-ny"><div class="status-dot"></div>NEW YORK</div>
+      <div class="city-item" id="city-tor"><div class="status-dot"></div>TORONTO</div>
+      <div class="city-item" id="city-syd"><div class="status-dot"></div>SYDNEY</div>
     </div>
 
-    <!-- KEEP THESE ELEMENTS FOR JS, BUT HIDE THEM -->
+    <!-- Hidden comms (JS integrity) -->
     <div id="scada-comms" class="mono scada-comms-hidden">
       <span id="scada-age">AGE: —</span>
       <span id="scada-source">SOURCE: —</span>
@@ -571,11 +571,15 @@ body.war-room .scada-man-wrap{
     <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
   </div>
 
- <div class="scada-slot">
-  <div class="scada-man-wrap" aria-hidden="true">
-    <img src="/static/SCADA_Man.png" class="scada-man" alt="" />
+  <!-- RIGHT: SCADA Man -->
+  <div class="scada-slot">
+    <div class="scada-man-wrap" aria-hidden="true">
+      <img src="/static/SCADA_Man.png" class="scada-man" alt="" />
+    </div>
   </div>
-</div>
+
+</header>
+
 
 
 
