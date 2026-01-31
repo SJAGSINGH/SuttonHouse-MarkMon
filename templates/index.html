@@ -50,133 +50,108 @@
 
 
 /* ============================
-   HEADER — CLEAN (LOCKED)
+   HEADER — FINAL ALIGN (LOCKED)
 ============================ */
 
 .header{
   display:grid;
-  grid-template-columns: 340px 1fr 160px;    /* LEFT / CENTER / SCADA */
-  align-items:start;
+  grid-template-columns: 340px 1fr 160px;  /* LEFT / CENTER / SCADA */
+  align-items:center;                       /* KEY: vertical centering */
   border-bottom:1px solid #222;
-  padding:0 0 4px;                          /* border moves up */
+  padding:0 0 6px;                          /* border sits higher */
   gap:18px;
-  margin-top:-6px;                           /* lift whole header */
+  margin-top:-10px;                         /* lift the whole header slightly */
 }
 
-/* LEFT: crest + text */
+/* LEFT */
 .logo-area{
   display:flex;
   flex-direction:column;
-  align-items:flex-start;
-  gap:2px;                                   /* CLOSE crest + text */
-  margin-top:-4px;                            /* lift left block */
+  align-items:center;                       /* crest centered over block */
+  gap:0;                                    /* kill gaps */
 }
 
 .logo-img{
-  height:150px;                               /* crest size LOCK */
+  height:150px;
   width:auto;
   display:block;
-  margin:0;
-  margin-bottom:-10px;    /* pulls text closer to crest */
+  margin:0 0 -18px 0;                       /* pulls title closer to crest */
 }
 
 .brand-stack{
+  width:100%;
+  text-align:left;                          /* text stays left */
+  margin-top:-6px;                          /* move Sutton House up a touch */
   padding-left:2px;
-  margin-top:-6px;        /* lifts text block toward crest */
 }
 
 .gleam{ margin:0; line-height:1; }
 
 .brand-subtitle{
-  margin-top:2px;                             /* CLOSE title + subtitle */
+  margin-top:2px;
   display:flex;
   align-items:center;
   gap:12px;
   line-height:1;
 }
 
-/* terminal inline */
+/* terminal line */
 .brand-bottom{
   display:inline-flex;
   align-items:center;
   gap:10px;
-  margin:0;                                   /* kills extra gap */
+  margin:0 !important;
   line-height:1;
 }
 
-/* CENTER: clock + cities */
+/* CENTER */
 .center-stack{
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:flex-start;
+  justify-content:center;                   /* KEY: center clock/cities vertically */
   text-align:center;
   gap:6px;
-  margin-top:0;
-  transform: translateY(-6px);                /* lift center */
+  transform:none;                           /* remove lifts that uncenter */
 }
 
-/* clock */
 #digital-clock{
   font-size:34px;
   font-weight:700;
   letter-spacing:-1px;
   line-height:1;
   margin:0;
-  padding:0;
 }
 
 /* cities */
 .city-grid{
   display:flex;
-  gap:18px;
+  gap:14px;                                 /* slightly tighter */
   justify-content:center;
   flex-wrap:wrap;
-  margin:2px 0 0;                             /* CLOSE clock + cities */
+  margin:2px 0 0;
   padding:0;
 }
-/* city items (missing in this file — add) */
-.city-item{
-  font-size:9px;
-  letter-spacing:1.6px;
-  text-transform:uppercase;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-weight:700;
-  cursor:pointer;
-  transition:color .3s;
-}
 
-.status-dot{
-  width:5px;
-  height:5px;
-  background:#fff;
-  border-radius:50%;
-  transition:.3s;
-}
-
-.city-open{ color:var(--lime) !important; }
-.city-open .status-dot{
-  background:var(--lime) !important;
-  box-shadow:0 0 12px var(--lime);
-}
-.comms-flash{ color:var(--pink) !important; transition:.1s; }
-
-/* keep comms hidden */
-#scada-comms{ display:none !important; }
-
-/* RIGHT: scada slot */
+/* RIGHT */
 .scada-slot{
   width:160px;
   height:160px;
   display:flex;
-  align-items:flex-start;
+  align-items:center;                       /* KEY: center SCADA to border height */
   justify-content:flex-end;
   pointer-events:none;
-  margin-top:-6px;                            /* lift scada */
+  margin:0;                                 /* remove old lifts */
 }
+
+/* comms stays hidden */
+#scada-comms{ display:none !important; }
+
+/* DEBUG HARD-KILL by default */
+#dbg-toggle{ display:none !important; }
+
+
+
 
 .scada-placeholder{
   width:160px;
