@@ -48,86 +48,29 @@
       linear-gradient(145deg, var(--war-1), var(--war-2));
   }
 
-  .header{
-  display:flex;
-  align-items:center;
-  border-bottom:1px solid #222;
-  padding-bottom:30px;
-  gap:40px;
-}
-
 /* ============================
-   HEADER: RIGHT RAIL + SCADA SLOT
+   HEADER — CLEAN (LEFT / CENTER / RIGHT)
 ============================ */
 
 .header{
-  display:flex;
-  align-items:center;
-  border-bottom:1px solid #222;
-  padding-bottom:30px;
-  gap:40px;
-}
-.header{
   display:grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 340px 1fr 160px;  /* LEFT / CENTER / SCADA */
   align-items:center;
   border-bottom:1px solid #222;
-  padding-bottom:30px;
-  gap:40px;
+  padding:14px 0 16px;                     /* border moved up */
+  gap:22px;
 }
 
-/* Center column */
-.center-stack{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-}
-
-/* Ensure clock stays authoritative */
-#digital-clock{
-  font-size:40px;
-  font-weight:700;
-  letter-spacing:-1px;
-  line-height:1;
-}
-.center-stack{
-  transform: translateY(2px); /* subtle vertical balance */
-}
-
-/* Cities centered */
-.city-grid{
-  justify-content:center;
-}
-
-/* Comms centered but calm */
-#scada-comms{
-  max-width:720px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  opacity:.9;
-}
-
-
-.logo-area{ flex:1 1 auto; }
-
-/* Right side: 2 columns (stack + SCADA slot) */
-.right-rail{
-  flex:0 0 auto;
-  display:flex;
-  align-items:flex-start;
-  gap:26px;
-}
+/* LEFT: crest above brand text */
 .logo-area{
   display:flex;
-  flex-direction:column;     /* crest above brand */
+  flex-direction:column;     /* crest above text */
   align-items:flex-start;
   gap:10px;
 }
 
 .logo-img{
-  height:110px;              /* was 150px */
+  height:92px;               /* crest size (tighter + more left authority) */
   width:auto;
 }
 
@@ -135,54 +78,90 @@
   padding-left:2px;
 }
 
-.brand-subtitle{
-  color:#fff;
-  font-size:14px;
-  font-weight:300;
-  letter-spacing:1px;
-  text-transform:uppercase;
+/* Sutton House stays gold shimmer (you already have .gleam) */
+.gleam{
+  margin:0;
 }
 
+/* Market Analytics BELOW Sutton House */
+.brand-subtitle{
+  margin-top:10px;
+  color:#fff;
+  font-size:12px;
+  font-weight:300;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  opacity:.9;
+}
+
+/* terminal line (green by default, will be controlled by JS status) */
 .terminal-active{
   color:var(--lime);
-  font-family:monospace;
-  font-weight:bold;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight:700;
 }
 
-/* The existing clock/cities/comms sit here */
-.right-stack{
+/* CENTER: clock + cities */
+.center-stack{
   display:flex;
   flex-direction:column;
-  align-items:flex-end;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:10px;
+  transform: translateY(2px); /* subtle vertical balance */
 }
 
-/* Comms bar becomes clean CSS-driven (no inline) */
-#scada-comms{
+/* clock reduced */
+#digital-clock{
+  font-size:34px;            /* reduced from 52/40 */
+  font-weight:700;
+  letter-spacing:-1px;
+  line-height:1;
+}
+
+/* cities centered */
+.city-grid{
   display:flex;
-  gap:14px;
-  justify-content:flex-end;
-  margin-top:14px;
+  gap:18px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:0;
+}
+
+/* REMOVE the comms line visually (keep DOM for JS + debug integrity) */
+#scada-comms{
+  display:none !important;
+}
+
+/* debug button — no inline styles required */
+#dbg-toggle{
+  display:none;
+  background:#000;
+  border:1px solid #333;
+  color:#aaa;
+  padding:8px 12px;
   font-size:10px;
   letter-spacing:2px;
   text-transform:uppercase;
-  color:#8a8a8a;
+  cursor:pointer;
+  margin-top:8px;
 }
 
-/* Reserved space for SCADA man (top-right) */
+/* RIGHT: SCADA Man slot (bigger) */
 .scada-slot{
-  width:140px;        /* adjust later when we drop the real SCADA asset */
-  height:140px;
+  width:160px;
+  height:160px;
   display:flex;
   align-items:flex-start;
   justify-content:flex-end;
-  pointer-events:none; /* SCADA man is visual only */
+  pointer-events:none;
 }
 
-/* Placeholder only (safe to delete later) */
 .scada-placeholder{
-  width:140px;
-  height:140px;
-  border:1px solid rgba(191,149,63,.25);
+  width:160px;
+  height:160px;
+  border:1px solid rgba(191,149,63,.22);
   border-radius:14px;
   display:flex;
   align-items:center;
@@ -191,12 +170,16 @@
   letter-spacing:3px;
   text-transform:uppercase;
   color:rgba(191,149,63,.65);
-  background:rgba(0,0,0,.18);
+  background:rgba(0,0,0,.22);
+  box-shadow:0 0 26px rgba(191,149,63,.08);
 }
 
+/* kill old rail classes so they don't interfere if still in HTML */
+.right-rail,
+.right-stack{
+  display:contents !important;
+}
 
-  .logo-area{ display:flex; align-items:center; gap:15px; }
-  .logo-img{ height:150px; width:auto; }
 
   .gleam{
     font-weight:800; font-size:32px; letter-spacing:3px; margin:0;
@@ -472,27 +455,23 @@
 
 <header class="header">
 
-  <!-- LEFT: CREST + BRAND -->
- <div class="logo-area">
-  <img src="/static/logo.png" class="logo-img" alt="Logo" />
+  <!-- LEFT: Crest + Brand -->
+  <div class="brand-left">
+    <img src="/static/logo.png" class="logo-img" alt="Logo" />
 
-  <div class="brand-stack">
-    <div style="display:flex;align-items:baseline;gap:10px;">
+    <div class="brand-stack">
       <h1 class="gleam">SUTTON HOUSE</h1>
-      <span class="brand-subtitle">Market Analytics</span>
-    </div>
+      <div class="brand-subtitle">MARKET ANALYTICS</div>
 
-    <!-- Optional: keep this line, but we'll auto-hide it until comms is live -->
-    <div class="brand-bottom" id="terminal-line">
-      MARKET MONITOR
-      <div class="status-dot-active"></div>
-      <span class="terminal-active">TERMINAL ACTIVE</span>
+      <div class="brand-bottom" id="terminal-line">
+        MARKET MONITOR
+        <div class="status-dot-active" id="term-dot"></div>
+        <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
+      </div>
     </div>
   </div>
-</div>
 
-
-  <!-- CENTER: CLOCK + CITIES + COMMS -->
+  <!-- CENTER: Clock + Cities (NO comms text) -->
   <div class="center-stack">
     <div id="digital-clock">00:00:00</div>
 
@@ -503,19 +482,23 @@
       <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
     </div>
 
-    <div id="scada-comms" class="mono">
+    <!-- KEEP THESE ELEMENTS FOR JS, BUT HIDE THEM -->
+    <div id="scada-comms" class="mono scada-comms-hidden">
       <span id="scada-age">AGE: —</span>
       <span id="scada-source">SOURCE: —</span>
       <span id="scada-last">LAST: —</span>
     </div>
+
+    <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
   </div>
 
-  <!-- RIGHT: SCADA MAN -->
+  <!-- RIGHT: SCADA Man slot -->
   <div class="scada-slot">
     <div class="scada-placeholder">SCADA</div>
   </div>
 
 </header>
+
 
 
   <div class="macro-header">
@@ -1299,6 +1282,39 @@ document.addEventListener('keyup', (e) => {
   } catch(e){
     console.log('Socket init failed; clock will still run.', e);
   }
+  function setTerminalStatus(mode){
+  const dot  = document.getElementById('term-dot');
+  const text = document.getElementById('term-text');
+  if (!dot || !text) return;
+
+  // reset
+  dot.style.boxShadow = '';
+  dot.style.background = '';
+  text.style.color = '';
+
+  if (mode === 'OK'){
+    dot.style.background = 'var(--lime)';
+    dot.style.boxShadow = '0 0 10px var(--lime)';
+    text.textContent = 'TERMINAL ACTIVE';
+    text.style.color = 'var(--lime)';
+    return;
+  }
+
+  if (mode === 'WARN'){
+    dot.style.background = 'var(--orange)';
+    dot.style.boxShadow = '0 0 10px var(--orange)';
+    text.textContent = 'TERMINAL STALE';
+    text.style.color = 'var(--orange)';
+    return;
+  }
+
+  // OFFLINE
+  dot.style.background = 'var(--red)';
+  dot.style.boxShadow = '0 0 10px var(--red)';
+  text.textContent = 'TERMINAL OFFLINE';
+  text.style.color = 'var(--red)';
+}
+  
   // ============================================================
 // SCADA COMMS (AGE / SOURCE / LAST)
 // ============================================================
@@ -1325,19 +1341,25 @@ function rscSetComms(source, payload){
   // Always show source even if ts missing
   elSrc.textContent = `SOURCE: ${source || '—'}`;
 
-  if (!Number.isFinite(ts)){
-    elLast.textContent = `LAST: —`;
-    elAge.textContent  = `AGE: —`;
-    return;
-  }
+if (!Number.isFinite(ts)){
+  elLast.textContent = `LAST: —`;
+  elAge.textContent  = `AGE: —`;
+  setTerminalStatus('OFFLINE');     // <--- ADD
+  return;
+}
 
   const dt = new Date(ts);
   elLast.textContent = `LAST: ${dt.toISOString()}`;
 
-  const tick = () => {
-    const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-    elAge.textContent = `AGE: ${s}s`;
-  };
+ const tick = () => {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  elAge.textContent = `AGE: ${s}s`;
+
+  // status logic
+  if (s <= 15) setTerminalStatus('OK');
+  else if (s <= 60) setTerminalStatus('WARN');
+  else setTerminalStatus('OFFLINE');
+};
   tick();
 
   clearInterval(window.__RSC_AGE_TMR);
