@@ -67,6 +67,40 @@
   padding-bottom:30px;
   gap:40px;
 }
+.header{
+  display:grid;
+  grid-template-columns: auto 1fr auto;
+  align-items:center;
+  border-bottom:1px solid #222;
+  padding-bottom:30px;
+  gap:40px;
+}
+
+/* Center column */
+.center-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+/* Ensure clock stays authoritative */
+#digital-clock{
+  font-size:52px;
+  font-weight:700;
+  letter-spacing:-1px;
+  line-height:1;
+}
+
+/* Cities centered */
+.city-grid{
+  justify-content:center;
+}
+
+/* Comms centered but calm */
+#scada-comms{
+  justify-content:center;
+}
 
 .logo-area{ flex:1 1 auto; }
 
@@ -399,14 +433,31 @@
 <body>
   
 
-  <header class="header">
-    <div class="logo-area">
-      <img src="/static/logo.png" class="logo-img" alt="Logo" />
-      <div style="width:1px;height:55px;background:#222;margin:0 20px;"></div>
-     <div class="right-rail">
+<header class="header">
 
-  <!-- LEFT SIDE OF RAIL: your existing clock/cities/comms/debug -->
-  <div class="right-stack">
+  <!-- LEFT: CREST + BRAND -->
+  <div class="logo-area">
+    <img src="/static/logo.png" class="logo-img" alt="Logo" />
+    <div style="width:1px;height:55px;background:#222;margin:0 20px;"></div>
+    <div>
+      <div style="display:flex;align-items:baseline;gap:10px;">
+        <h1 class="gleam">SUTTON HOUSE</h1>
+        <span style="color:#fff;font-size:16px;font-weight:300;letter-spacing:1px;text-transform:uppercase;">
+          Market Analytics
+        </span>
+      </div>
+      <div class="brand-bottom">
+        MARKET MONITOR
+        <div class="status-dot-active"></div>
+        <span style="color:var(--lime);font-family:monospace;font-weight:bold;">
+          TERMINAL ACTIVE
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: CLOCK + CITIES + COMMS -->
+  <div class="center-stack">
     <div id="digital-clock">00:00:00</div>
 
     <div class="city-grid">
@@ -421,27 +472,15 @@
       <span id="scada-source">SOURCE: —</span>
       <span id="scada-last">LAST: —</span>
     </div>
-
-    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-      <button id="dbg-toggle"
-        style="display:none;background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
-               font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
-        DEBUG
-      </button>
-    </div>
   </div>
 
-  <!-- RIGHT SIDE OF RAIL: reserved space for SCADA man -->
+  <!-- RIGHT: SCADA MAN -->
   <div class="scada-slot">
-    <!-- placeholder for now; tomorrow we drop the real asset here -->
     <div class="scada-placeholder">SCADA</div>
   </div>
 
-</div>
+</header>
 
-
-
-  </header>
 
   <div class="macro-header">
     <div>Macro Analysis</div>
