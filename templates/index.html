@@ -70,7 +70,7 @@
 }
 
 .logo-img{
-  height:92px;               /* crest size (tighter + more left authority) */
+  height:150px;              /* crest size LOCK */
   width:auto;
 }
 
@@ -92,7 +92,12 @@
   letter-spacing:2px;
   text-transform:uppercase;
   opacity:.9;
+
+  display:flex;              /* allow status inline */
+  align-items:center;
+  gap:12px;
 }
+
 
 /* terminal line (green by default, will be controlled by JS status) */
 .terminal-active{
@@ -461,13 +466,14 @@
 
     <div class="brand-stack">
       <h1 class="gleam">SUTTON HOUSE</h1>
-      <div class="brand-subtitle">MARKET ANALYTICS</div>
+     <div class="brand-subtitle">
+  MARKET ANALYTICS
+  <span class="brand-bottom" id="terminal-line" style="margin-top:0;">
+    <span class="status-dot-active" id="term-dot"></span>
+    <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
+  </span>
+</div>
 
-      <div class="brand-bottom" id="terminal-line">
-        MARKET MONITOR
-        <div class="status-dot-active" id="term-dot"></div>
-        <span class="terminal-active" id="term-text">TERMINAL ACTIVE</span>
-      </div>
     </div>
   </div>
 
@@ -1337,7 +1343,7 @@ function rscSetComms(source, payload){
   let ts = (p && p._server_ts != null) ? Number(p._server_ts) : null;
   if (Number.isFinite(ts) && ts < 1e12) ts *= 1000; // seconds -> ms
     const term = document.getElementById('terminal-line');
-    if (term) term.style.display = 'flex';
+    if (term) term.style.display = 'inline-flex';
   // Always show source even if ts missing
   elSrc.textContent = `SOURCE: ${source || '—'}`;
 
