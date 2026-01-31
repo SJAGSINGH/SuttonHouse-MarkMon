@@ -113,12 +113,12 @@
   align-items:center;
   justify-content:center;
   text-align:center;
-  gap:6px;
+  gap:4px;
 }
 
 /* clock */
 #digital-clock{
-  font-size:34px;   /* slightly bigger */
+  font-size:38px;
   font-weight:700;
   letter-spacing:-1px;
   line-height:1;
@@ -126,40 +126,48 @@
 }
 
 
+
 /* cities */
+/* CITY LINE — HORIZONTAL */
 .city-grid{
-  gap:12px;
-  margin:1px 0 0;
+  display:flex;
+  flex-direction:row;
+  justify-content:center;
+  align-items:center;
+  gap:14px;
+  margin-top:6px;
+  font-size:10px;
+  letter-spacing:1.5px;
 }
 
 .city-item{
   display:flex;
   align-items:center;
-  gap:5px;
-  font-size:9px;        /* smaller */
-  letter-spacing:1.6px; /* slightly tighter */
+  gap:6px;
+  font-size:10px;
+  font-weight:700;
   text-transform:uppercase;
-  color:#cfcfcf;
-  opacity:.9;
+  color:#9a9a9a;
+  transition:color .25s ease;
 }
 
+/* active market */
+.city-open{
+  color:var(--lime) !important;
+}
 
-.status-dot{
+.city-item .status-dot{
   width:5px;
   height:5px;
   border-radius:50%;
-  background:#333;
-  box-shadow:none;
-}
-
-.city-open{
-  color:var(--lime);
+  background:#666;
 }
 
 .city-open .status-dot{
   background:var(--lime);
-  box-shadow:0 0 10px rgba(50,205,50,.35);
+  box-shadow:0 0 10px rgba(50,205,50,.8);
 }
+
 
 /* small comms pulse on receive */
 .comms-flash{
