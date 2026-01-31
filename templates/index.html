@@ -56,14 +56,73 @@
   gap:40px;
 }
 
-.header > .logo-area{
-  flex:1 1 auto;
+/* ============================
+   HEADER: RIGHT RAIL + SCADA SLOT
+============================ */
+
+.header{
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid #222;
+  padding-bottom:30px;
+  gap:40px;
 }
 
-.header > div:last-child{
-  flex:0 0 360px;   /* 🔒 lock right column width */
-  text-align:right;
+.logo-area{ flex:1 1 auto; }
+
+/* Right side: 2 columns (stack + SCADA slot) */
+.right-rail{
+  flex:0 0 auto;
+  display:flex;
+  align-items:flex-start;
+  gap:26px;
 }
+
+/* The existing clock/cities/comms sit here */
+.right-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+}
+
+/* Comms bar becomes clean CSS-driven (no inline) */
+#scada-comms{
+  display:flex;
+  gap:14px;
+  justify-content:flex-end;
+  margin-top:14px;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#8a8a8a;
+}
+
+/* Reserved space for SCADA man (top-right) */
+.scada-slot{
+  width:92px;        /* adjust later when we drop the real SCADA asset */
+  height:92px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-end;
+  pointer-events:none; /* SCADA man is visual only */
+}
+
+/* Placeholder only (safe to delete later) */
+.scada-placeholder{
+  width:92px;
+  height:92px;
+  border:1px solid rgba(191,149,63,.25);
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:rgba(191,149,63,.65);
+  background:rgba(0,0,0,.18);
+}
+
 
   .logo-area{ display:flex; align-items:center; gap:15px; }
   .logo-img{ height:150px; width:auto; }
@@ -344,43 +403,42 @@
     <div class="logo-area">
       <img src="/static/logo.png" class="logo-img" alt="Logo" />
       <div style="width:1px;height:55px;background:#222;margin:0 20px;"></div>
-      <div>
-        <div style="display:flex;align-items:baseline;gap:10px;">
-          <h1 class="gleam">SUTTON HOUSE</h1>
-          <span style="color:#fff;font-size:16px;font-weight:300;letter-spacing:1px;text-transform:uppercase;">Market Analytics</span>
-        </div>
-        <div class="brand-bottom">MARKET MONITOR <div class="status-dot-active"></div> <span style="color:var(--lime);font-family:monospace;font-weight:bold;">TERMINAL ACTIVE</span></div>
-      </div>
+     <div class="right-rail">
+
+  <!-- LEFT SIDE OF RAIL: your existing clock/cities/comms/debug -->
+  <div class="right-stack">
+    <div id="digital-clock">00:00:00</div>
+
+    <div class="city-grid">
+      <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
+      <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
+      <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
+      <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
     </div>
 
-<div>
-  <div id="digital-clock">00:00:00</div>
+    <div id="scada-comms" class="mono">
+      <span id="scada-age">AGE: —</span>
+      <span id="scada-source">SOURCE: —</span>
+      <span id="scada-last">LAST: —</span>
+    </div>
 
-  <div class="city-grid">
-    <div class="city-item" id="city-lon"><div class="status-dot"></div> LONDON</div>
-    <div class="city-item" id="city-ny"><div class="status-dot"></div> NEW YORK</div>
-    <div class="city-item" id="city-tor"><div class="status-dot"></div> TORONTO</div>
-    <div class="city-item" id="city-syd"><div class="status-dot"></div> SYDNEY</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <button id="dbg-toggle"
+        style="display:none;background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
+               font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
+        DEBUG
+      </button>
+    </div>
   </div>
-  
- <div id="scada-comms"
-     class="mono"
-     style="display:flex;gap:14px;justify-content:flex-end;margin-top:14px;
-            font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8a8a8a;">
-  <span id="scada-age">AGE: —</span>
-  <span id="scada-source">SOURCE: —</span>
-  <span id="scada-last">LAST: —</span>
+
+  <!-- RIGHT SIDE OF RAIL: reserved space for SCADA man -->
+  <div class="scada-slot">
+    <!-- placeholder for now; tomorrow we drop the real asset here -->
+    <div class="scada-placeholder">SCADA</div>
+  </div>
+
 </div>
 
-  <!-- ADD THIS -->
-  <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-    <button id="dbg-toggle"
-      style="display:none;background:#000;border:1px solid #333;color:#aaa;padding:8px 12px;
-             font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">
-      DEBUG
-    </button>
-  </div>
-</div>
 
 
   </header>
