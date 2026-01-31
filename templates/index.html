@@ -195,20 +195,70 @@
 
 
 
-.scada-placeholder{
+
+/* ============================
+   SCADA MAN — glow + sway
+============================ */
+
+.scada-slot{
   width:160px;
   height:160px;
-  border:1px solid rgba(191,149,63,.22);
-  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  pointer-events:none;
+  margin:0;
+}
+
+/* container */
+.scada-man-wrap{
+  width:160px;
+  height:160px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:10px;
-  letter-spacing:3px;
-  text-transform:uppercase;
-  color:rgba(191,149,63,.65);
-  background:rgba(0,0,0,.22);
-  box-shadow:0 0 26px rgba(191,149,63,.08);
+  border-radius:14px;
+
+  /* subtle frame like your placeholder, but cleaner */
+  border:1px solid rgba(31,166,122,.22);
+  background:rgba(0,0,0,.18);
+
+  /* glow */
+  box-shadow:
+    0 0 28px rgba(31,166,122,.14),
+    inset 0 0 22px rgba(31,166,122,.10);
+
+  /* sway (very subtle) */
+  transform-origin: 50% 80%;
+  animation: scada-sway 6.8s ease-in-out infinite;
+}
+
+/* image */
+.scada-man{
+  width:132px;       /* adjust if needed */
+  height:auto;
+  display:block;
+
+  /* glow on the figure itself */
+  filter:
+    drop-shadow(0 0 14px rgba(31,166,122,.22))
+    drop-shadow(0 0 28px rgba(31,166,122,.12));
+
+  opacity:.95;
+}
+
+/* authoritative sway — tiny */
+@keyframes scada-sway{
+  0%   { transform: translateY(0px) rotate(-0.55deg); }
+  50%  { transform: translateY(-1px) rotate(0.55deg); }
+  100% { transform: translateY(0px) rotate(-0.55deg); }
+}
+
+/* optional: slightly stronger glow in war-room */
+body.war-room .scada-man-wrap{
+  box-shadow:
+    0 0 34px rgba(31,166,122,.18),
+    inset 0 0 24px rgba(31,166,122,.12);
 }
 
 /* kill old rail classes if still present */
@@ -521,12 +571,11 @@
     <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
   </div>
 
-  <!-- RIGHT: SCADA Man slot -->
-  <div class="scada-slot">
-    <div class="scada-placeholder">SCADA</div>
+ <div class="scada-slot">
+  <div class="scada-man-wrap" aria-hidden="true">
+    <img src="/static/scada-man.png" class="scada-man" alt="" />
   </div>
-
-</header>
+</div>
 
 
 
