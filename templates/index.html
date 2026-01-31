@@ -58,7 +58,7 @@
   grid-template-columns: 340px 1fr 160px;    /* LEFT / CENTER / SCADA */
   align-items:start;
   border-bottom:1px solid #222;
-  padding:0 0 10px;                          /* border moves up */
+  padding:0 0 4px;                          /* border moves up */
   gap:18px;
   margin-top:-6px;                           /* lift whole header */
 }
@@ -77,9 +77,13 @@
   width:auto;
   display:block;
   margin:0;
+  margin-bottom:-10px;    /* pulls text closer to crest */
 }
 
-.brand-stack{ padding-left:2px; }
+.brand-stack{
+  padding-left:2px;
+  margin-top:-6px;        /* lifts text block toward crest */
+}
 
 .gleam{ margin:0; line-height:1; }
 
@@ -131,6 +135,34 @@
   margin:2px 0 0;                             /* CLOSE clock + cities */
   padding:0;
 }
+/* city items (missing in this file — add) */
+.city-item{
+  font-size:9px;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-weight:700;
+  cursor:pointer;
+  transition:color .3s;
+}
+
+.status-dot{
+  width:5px;
+  height:5px;
+  background:#fff;
+  border-radius:50%;
+  transition:.3s;
+}
+
+.city-open{ color:var(--lime) !important; }
+.city-open .status-dot{
+  background:var(--lime) !important;
+  box-shadow:0 0 12px var(--lime);
+}
+.comms-flash{ color:var(--pink) !important; transition:.1s; }
 
 /* keep comms hidden */
 #scada-comms{ display:none !important; }
@@ -435,7 +467,7 @@
 <header class="header">
 
   <!-- LEFT: Crest + Brand -->
-  <div class="brand-left">
+  <div class="logo-area">
     <img src="/static/logo.png" class="logo-img" alt="Logo" />
 
     <div class="brand-stack">
@@ -712,11 +744,8 @@ function paintDebug(stateObj){
   if (srcEl) srcEl.textContent = `SOURCE: ${debugSource || "—"}`;
 }
 
-// button hook
-const dbgBtn = document.getElementById("dbg-toggle");
-if (dbgBtn){
-  dbgBtn.addEventListener("click", () => setDebugVisible(!debugOn));
-}
+
+
 
 // keep updating while visible
 setInterval(() => { if (debugOn) refreshDebugNow(); }, 2000);
@@ -841,29 +870,18 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
 // ----------------------------
 // DEBUG BUTTON (secret + shift only)
 // ----------------------------
-let _shiftDown = false;
+
 
 function _updateDebugBtn(){
   const btn = document.getElementById('dbg-toggle');
   if (!btn) return;
 
-  // show only when vault is open (secretMode) AND Shift is currently held
-  btn.style.display = (secretMode && _shiftDown) ? 'inline-block' : 'none';
+  // only show when vault is open AND founder is unlocked
+  btn.style.display = (secretMode && founderMode) ? 'inline-block' : 'none';
 }
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Shift'){
-    _shiftDown = true;
-    _updateDebugBtn();
-  }
-});
 
-document.addEventListener('keyup', (e) => {
-  if (e.key === 'Shift'){
-    _shiftDown = false;
-    _updateDebugBtn();
-  }
-});
+
 
 // click → open debug page in a new tab
 (function wireDebugBtn(){
