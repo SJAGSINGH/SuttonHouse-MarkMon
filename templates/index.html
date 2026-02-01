@@ -192,14 +192,12 @@ let founderMode = false;
 
 
 /* ============================
-   SCADA MAN — seated + contained (LOCK)
-   Forward / backward sway only
+   SCADA MAN — seated + contained (LOCK v2)
+   Fix: sits LOWER + centered
+   Sway: forward/back only
 ============================ */
 
-/* comms stays hidden */
 #scada-comms{ display:none !important; }
-
-/* DEBUG hidden by default (JS will reveal ONLY in founder+vault) */
 #dbg-toggle{ display:none; }
 
 /* RIGHT column container (header column 3) */
@@ -212,7 +210,7 @@ let founderMode = false;
   pointer-events:none;
 }
 
-/* OUTER card = the box he sits inside */
+/* OUTER card */
 .scada-card{
   width:160px;
   height:160px;
@@ -228,7 +226,7 @@ let founderMode = false;
   overflow:hidden;
 }
 
-/* INNER frame + forward/back sway */
+/* INNER frame */
 .scada-man-wrap{
   width:142px;
   height:142px;
@@ -238,57 +236,51 @@ let founderMode = false;
   box-shadow:
     0 0 26px rgba(31,166,122,.14),
     inset 0 0 20px rgba(31,166,122,.10);
-  display:flex;
-  align-items:center;
-  justify-content:center;
 
-  transform-origin:50% 85%;
+  /* KEY: seat him */
+  display:flex;
+  align-items:flex-end;        /* push to bottom */
+  justify-content:center;      /* keep centered */
+  padding-bottom:10px;         /* “seated” offset */
+  overflow:hidden;
+
+  /* forward/back sway */
+  transform-origin:50% 92%;
   animation:scada-sway-fb 7.2s ease-in-out infinite;
 }
 
-/* Image is always contained */
+/* Image contained + seated position */
 .scada-man{
   width:118px;
   height:auto;
   display:block;
   object-fit:contain;
+  margin:0 auto;               /* hard center */
+  transform: translateY(6px);  /* FINAL seat nudge */
   filter:
     drop-shadow(0 0 14px rgba(31,166,122,.22))
     drop-shadow(0 0 28px rgba(31,166,122,.12));
   opacity:.96;
 }
 
-/* FORWARD / BACKWARD sway (authority lean) */
+/* forward / backward sway (no rotate, no left/right) */
 @keyframes scada-sway-fb{
   0%{
-    transform:
-      translateY(0px)
-      scale(1)
-      skewX(0deg);
+    transform: translateY(0px) scale(1);
   }
   50%{
-    transform:
-      translateY(-2px)
-      scale(1.018)
-      skewX(0deg);
+    transform: translateY(-2px) scale(1.018);
   }
   100%{
-    transform:
-      translateY(0px)
-      scale(1)
-      skewX(0deg);
+    transform: translateY(0px) scale(1);
   }
 }
 
-/* WAR ROOM amplification (still restrained) */
 body.war-room .scada-card{
   box-shadow:
     0 0 30px rgba(31,166,122,.16),
     inset 0 0 20px rgba(31,166,122,.10);
 }
-
-
-
 
 
 
