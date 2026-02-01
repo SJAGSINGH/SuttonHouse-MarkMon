@@ -1450,8 +1450,8 @@ if (!Number.isFinite(ts)){
   elAge.textContent = `AGE: ${s}s`;
 
   // status logic
-  if (s <= 15) setTerminalStatus('OK');
-  else if (s <= 60) setTerminalStatus('WARN');
+  if (s <= 1200) setTerminalStatus('OK');
+  else if (s <= 4500) setTerminalStatus('WARN');
   else setTerminalStatus('OFFLINE');
 };
   tick();
