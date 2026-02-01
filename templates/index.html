@@ -6,21 +6,21 @@
   <title>Sutton House | Master Terminal</title>
 
   <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  // ===============================
-// HARD FAIL-SOFT GUARD (GLOBAL)
-// ===============================
-  window.onerror = function (msg, src, line, col, err) {
-  console.error("[UI ERROR]", msg, "at", src + ":" + line + ":" + col, err);
-  // UI continues regardless
-  return true;
-};
+ <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-  <!-- GLOBAL STATE (must exist before any JS uses it) -->
-  <script>
-    let secretMode = false;
-    let founderMode = false;
-  </script>
+<script>
+// HARD FAIL-SOFT GUARD (GLOBAL)
+window.onerror = function (msg, src, line, col, err) {
+  console.error("[UI ERROR]", msg, "at", src + ":" + line + ":" + col, err);
+  return true; // fail-soft
+};
+</script>
+
+<script>
+// GLOBAL STATE (must exist before any JS uses it)
+let secretMode = false;
+let founderMode = false;
+</script>
 
   <!-- Styles -->
 <style>
@@ -940,7 +940,7 @@ function rscClockStage(count){
   // ----------------------------
 // FOUNDER SESSION GATE
 // ----------------------------
-let founderMode = false;
+
 const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only
 
 function isFounderUnlocked(){
@@ -960,7 +960,7 @@ _updateDebugBtn();
 // ----------------------------
 // VAULT VIEW (UI MODE)
 // ----------------------------
-let secretMode = false; // this is "vault open", NOT "founder unlocked"
+
 // ----------------------------
 // DEBUG BUTTON (secret + shift only)
 // ----------------------------
@@ -969,7 +969,7 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
 function _updateDebugBtn() {
   if (typeof secretMode === "undefined") return;
 
-  const btn = document.getElementById("debug-btn");
+  const btn = document.getElementById("dbg-toggle");
   if (!btn) return;
 
   btn.style.display = secretMode ? "block" : "none";
@@ -1013,7 +1013,7 @@ function _updateDebugBtn() {
 }
 
   function closeVault(){
-    secretMode = false;
+    
     const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'none';
     hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
     setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
@@ -1526,19 +1526,6 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
-// ===============================
-// SOCKET → MACRO UPDATE BRIDGE
-// ===============================
-const socket = io();
-
-socket.on("connect", () => {
-  console.log("[SOCKET] Connected:", socket.id);
-});
-
-socket.on("macro_update", (data) => {
-  console.log("[MACRO UPDATE RECEIVED]", data);
-  window.handleMacroUpdate(data);
-});
 
 
 // ============================================================
