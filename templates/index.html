@@ -7,10 +7,19 @@
 
   <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  // ===============================
+// HARD FAIL-SOFT GUARD (GLOBAL)
+// ===============================
+  window.onerror = function (msg, src, line, col, err) {
+  console.error("[UI ERROR]", msg, "at", src + ":" + line + ":" + col, err);
+  // UI continues regardless
+  return true;
+};
 
   <!-- GLOBAL STATE (must exist before any JS uses it) -->
   <script>
     let secretMode = false;
+    let founderMode = false;
   </script>
 
   <!-- Styles -->
