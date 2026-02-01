@@ -174,16 +174,7 @@
   filter:brightness(1.35);
 }
 
-/* RIGHT */
-.scada-slot{
-  width:160px;
-  height:160px;
-  display:flex;
-  align-items:center;                      /* centered to border height */
-  justify-content:flex-end;
-  pointer-events:none;
-  margin:0;
-}
+
 
 /* comms stays hidden */
 #scada-comms{ display:none !important; }
@@ -200,24 +191,65 @@
    SCADA MAN — glow + sway
 ============================ */
 
+/* RIGHT column container */
 .scada-slot{
   width:160px;
-  height:160px;
   display:flex;
-  align-items:center;
   justify-content:flex-end;
+  align-items:center;
   pointer-events:none;
-  margin:0;
 }
 
-/* container */
-.scada-man-wrap{
+/* The "card" that SCADA-Man lives inside */
+.scada-card{
   width:160px;
   height:160px;
+  border-radius:12px;
+  border:1px solid #1f1f1f;
+  background:rgba(0,0,0,.18);
+  box-shadow:
+    0 0 18px rgba(31,166,122,.10),
+    inset 0 0 18px rgba(31,166,122,.08);
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:14px;
+  overflow:hidden;            /* KEY: prevents any bleed */
+}
+
+/* Inner wrap = the “frame” glow + sway */
+.scada-man-wrap{
+  width:142px;
+  height:142px;
+  border-radius:12px;
+  border:1px solid rgba(31,166,122,.22);
+  background:rgba(0,0,0,.12);
+  box-shadow:
+    0 0 28px rgba(31,166,122,.14),
+    inset 0 0 22px rgba(31,166,122,.10);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  transform-origin: 50% 80%;
+  animation: scada-sway 6.8s ease-in-out infinite;
+}
+
+/* Image always contained, never stretches outside */
+.scada-man{
+  width:118px;
+  height:auto;
+  display:block;
+  filter:
+    drop-shadow(0 0 14px rgba(31,166,122,.22))
+    drop-shadow(0 0 28px rgba(31,166,122,.12));
+  opacity:.96;
+}
+
+@keyframes scada-sway{
+  0%   { transform: translateY(0px) rotate(-0.55deg); }
+  50%  { transform: translateY(-1px) rotate(0.55deg); }
+  100% { transform: translateY(0px) rotate(-0.55deg); }
+}
 
   /* subtle frame like your placeholder, but cleaner */
   border:1px solid rgba(31,166,122,.22);
@@ -228,10 +260,6 @@
     0 0 28px rgba(31,166,122,.14),
     inset 0 0 22px rgba(31,166,122,.10);
 
-  /* sway (very subtle) */
-  transform-origin: 50% 80%;
-  animation: scada-sway 6.8s ease-in-out infinite;
-}
 
 /* image */
 .scada-man{
@@ -572,11 +600,14 @@ body.war-room .scada-man-wrap{
   </div>
 
   <!-- RIGHT: SCADA Man -->
-  <div class="scada-slot">
-    <div class="scada-man-wrap" aria-hidden="true">
+ <div class="scada-slot">
+  <div class="scada-card" aria-hidden="true">
+    <div class="scada-man-wrap">
       <img src="/static/SCADA_Man.png" class="scada-man" alt="" />
     </div>
   </div>
+</div>
+
 
 </header>
 
