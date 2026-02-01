@@ -176,47 +176,43 @@
 
 
 
+/* ============================
+   SCADA MAN — seated + contained (LOCK)
+============================ */
+
 /* comms stays hidden */
 #scada-comms{ display:none !important; }
 
 /* DEBUG hidden by default (JS will reveal ONLY in founder+vault) */
 #dbg-toggle{ display:none; }
 
-
-
-
-
-
-/* ============================
-   SCADA MAN — glow + sway
-============================ */
-
-/* RIGHT column container */
+/* RIGHT column container (header column 3) */
 .scada-slot{
   width:160px;
+  height:160px;
   display:flex;
-  justify-content:flex-end;
   align-items:center;
+  justify-content:flex-end;
   pointer-events:none;
 }
 
-/* The "card" that SCADA-Man lives inside */
+/* OUTER card = the box he sits inside */
 .scada-card{
   width:160px;
   height:160px;
-  border-radius:12px;
-  border:1px solid #1f1f1f;
+  border-radius:14px;
+  border:1px solid rgba(31,166,122,.18);
   background:rgba(0,0,0,.18);
   box-shadow:
-    0 0 18px rgba(31,166,122,.10),
+    0 0 24px rgba(31,166,122,.12),
     inset 0 0 18px rgba(31,166,122,.08);
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;            /* KEY: prevents any bleed */
+  overflow:hidden;
 }
 
-/* Inner wrap = the “frame” glow + sway */
+/* INNER frame + sway */
 .scada-man-wrap{
   width:142px;
   height:142px;
@@ -224,21 +220,22 @@
   border:1px solid rgba(31,166,122,.22);
   background:rgba(0,0,0,.12);
   box-shadow:
-    0 0 28px rgba(31,166,122,.14),
-    inset 0 0 22px rgba(31,166,122,.10);
+    0 0 26px rgba(31,166,122,.14),
+    inset 0 0 20px rgba(31,166,122,.10);
   display:flex;
   align-items:center;
   justify-content:center;
 
-  transform-origin: 50% 80%;
-  animation: scada-sway 6.8s ease-in-out infinite;
+  transform-origin:50% 80%;
+  animation:scada-sway 6.8s ease-in-out infinite;
 }
 
-/* Image always contained, never stretches outside */
+/* Image is always contained */
 .scada-man{
   width:118px;
   height:auto;
   display:block;
+  object-fit:contain;
   filter:
     drop-shadow(0 0 14px rgba(31,166,122,.22))
     drop-shadow(0 0 28px rgba(31,166,122,.12));
@@ -251,43 +248,18 @@
   100% { transform: translateY(0px) rotate(-0.55deg); }
 }
 
-  /* subtle frame like your placeholder, but cleaner */
-  border:1px solid rgba(31,166,122,.22);
-  background:rgba(0,0,0,.18);
-
-  /* glow */
+body.war-room .scada-card{
   box-shadow:
-    0 0 28px rgba(31,166,122,.14),
-    inset 0 0 22px rgba(31,166,122,.10);
-
-
-/* image */
-.scada-man{
-  width:132px;       /* adjust if needed */
-  height:auto;
-  display:block;
-
-  /* glow on the figure itself */
-  filter:
-    drop-shadow(0 0 14px rgba(31,166,122,.22))
-    drop-shadow(0 0 28px rgba(31,166,122,.12));
-
-  opacity:.95;
+    0 0 30px rgba(31,166,122,.16),
+    inset 0 0 20px rgba(31,166,122,.10);
 }
 
-/* authoritative sway — tiny */
-@keyframes scada-sway{
-  0%   { transform: translateY(0px) rotate(-0.55deg); }
-  50%  { transform: translateY(-1px) rotate(0.55deg); }
-  100% { transform: translateY(0px) rotate(-0.55deg); }
-}
 
-/* optional: slightly stronger glow in war-room */
-body.war-room .scada-man-wrap{
-  box-shadow:
-    0 0 34px rgba(31,166,122,.18),
-    inset 0 0 24px rgba(31,166,122,.12);
-}
+
+
+
+
+
 
 /* kill old rail classes if still present */
 .right-rail,
@@ -600,7 +572,7 @@ body.war-room .scada-man-wrap{
   </div>
 
   <!-- RIGHT: SCADA Man -->
- <div class="scada-slot">
+<div class="scada-slot">
   <div class="scada-card" aria-hidden="true">
     <div class="scada-man-wrap">
       <img src="/static/SCADA_Man.png" class="scada-man" alt="" />
