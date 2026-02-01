@@ -1,12 +1,19 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sutton House | Master Terminal</title>
 
+  <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<!-- Socket.IO loaded -->
+
+  <!-- GLOBAL STATE (must exist before any JS uses it) -->
+  <script>
+    let secretMode = false;
+  </script>
+
+  <!-- Styles -->
 <style>
   :root{
     --bg:#050505; --card:#111111; --text:#ffffff;
@@ -950,13 +957,15 @@ let secretMode = false; // this is "vault open", NOT "founder unlocked"
 // ----------------------------
 
 
-function _updateDebugBtn(){
-  const btn = document.getElementById('dbg-toggle');
+function _updateDebugBtn() {
+  if (typeof secretMode === "undefined") return;
+
+  const btn = document.getElementById("debug-btn");
   if (!btn) return;
 
-  // show ONLY when vault is open AND founder is unlocked
-  btn.style.display = (secretMode && founderMode) ? 'inline-block' : 'none';
+  btn.style.display = secretMode ? "block" : "none";
 }
+
 
 
 
@@ -1504,6 +1513,24 @@ if (!Number.isFinite(ts)){
 
   console.log("✅ RSC VALIDATOR LIVE v1");
   console.log("BUILD_STAMP_ABC123");
+window.addEventListener("DOMContentLoaded", () => {
+  _updateDebugBtn();
+});
+
+// ===============================
+// SOCKET → MACRO UPDATE BRIDGE
+// ===============================
+const socket = io();
+
+socket.on("connect", () => {
+  console.log("[SOCKET] Connected:", socket.id);
+});
+
+socket.on("macro_update", (data) => {
+  console.log("[MACRO UPDATE RECEIVED]", data);
+  window.handleMacroUpdate(data);
+});
+
 
 // ============================================================
 // HANDLE MACRO UPDATE — unified + resilient
