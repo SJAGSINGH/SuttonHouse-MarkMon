@@ -192,15 +192,14 @@ let founderMode = false;
 
 
 /* ============================
-   SCADA MAN — seated + contained (LOCK v2)
-   Fix: sits LOWER + centered
-   Sway: forward/back only
+   SCADA MAN — seated + contained (LOCK v3)
+   Fix: sits LOWER (strong seat)
+   Sway: forward/back (reduced lift)
 ============================ */
 
 #scada-comms{ display:none !important; }
 #dbg-toggle{ display:none; }
 
-/* RIGHT column container (header column 3) */
 .scada-slot{
   width:160px;
   height:160px;
@@ -210,7 +209,6 @@ let founderMode = false;
   pointer-events:none;
 }
 
-/* OUTER card */
 .scada-card{
   width:160px;
   height:160px;
@@ -237,43 +235,39 @@ let founderMode = false;
     0 0 26px rgba(31,166,122,.14),
     inset 0 0 20px rgba(31,166,122,.10);
 
-  /* KEY: seat him */
+  /* SEAT HIM HARDER */
   display:flex;
-  align-items:flex-end;        /* push to bottom */
-  justify-content:center;      /* keep centered */
-  padding-bottom:10px;         /* “seated” offset */
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:18px;          /* was 10 */
   overflow:hidden;
 
   /* forward/back sway */
-  transform-origin:50% 92%;
-  animation:scada-sway-fb 7.2s ease-in-out infinite;
+  transform-origin:50% 94%;
+  animation:scada-sway-fb 7.6s ease-in-out infinite;
 }
 
-/* Image contained + seated position */
 .scada-man{
   width:118px;
   height:auto;
   display:block;
   object-fit:contain;
-  margin:0 auto;               /* hard center */
-  transform: translateY(6px);  /* FINAL seat nudge */
+
+  /* FINAL seat nudge */
+  margin:0 auto;
+  transform: translateY(16px);  /* was 6 */
+
   filter:
     drop-shadow(0 0 14px rgba(31,166,122,.22))
     drop-shadow(0 0 28px rgba(31,166,122,.12));
   opacity:.96;
 }
 
-/* forward / backward sway (no rotate, no left/right) */
+/* forward/back sway — reduced lift so he doesn't climb */
 @keyframes scada-sway-fb{
-  0%{
-    transform: translateY(0px) scale(1);
-  }
-  50%{
-    transform: translateY(-2px) scale(1.018);
-  }
-  100%{
-    transform: translateY(0px) scale(1);
-  }
+  0%   { transform: translateY(0px) scale(1); }
+  50%  { transform: translateY(-1px) scale(1.012); }
+  100% { transform: translateY(0px) scale(1); }
 }
 
 body.war-room .scada-card{
@@ -281,6 +275,7 @@ body.war-room .scada-card{
     0 0 30px rgba(31,166,122,.16),
     inset 0 0 20px rgba(31,166,122,.10);
 }
+
 
 
 
