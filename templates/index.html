@@ -191,9 +191,9 @@ let founderMode = false;
 }
 
 
-
 /* ============================
    SCADA MAN — seated + contained (LOCK)
+   Forward / backward sway only
 ============================ */
 
 /* comms stays hidden */
@@ -228,7 +228,7 @@ let founderMode = false;
   overflow:hidden;
 }
 
-/* INNER frame + sway */
+/* INNER frame + forward/back sway */
 .scada-man-wrap{
   width:142px;
   height:142px;
@@ -242,8 +242,8 @@ let founderMode = false;
   align-items:center;
   justify-content:center;
 
-  transform-origin:50% 80%;
-  animation:scada-sway 6.8s ease-in-out infinite;
+  transform-origin:50% 85%;
+  animation:scada-sway-fb 7.2s ease-in-out infinite;
 }
 
 /* Image is always contained */
@@ -258,17 +258,35 @@ let founderMode = false;
   opacity:.96;
 }
 
-@keyframes scada-sway{
-  0%   { transform: translateY(0px) rotate(-0.55deg); }
-  50%  { transform: translateY(-1px) rotate(0.55deg); }
-  100% { transform: translateY(0px) rotate(-0.55deg); }
+/* FORWARD / BACKWARD sway (authority lean) */
+@keyframes scada-sway-fb{
+  0%{
+    transform:
+      translateY(0px)
+      scale(1)
+      skewX(0deg);
+  }
+  50%{
+    transform:
+      translateY(-2px)
+      scale(1.018)
+      skewX(0deg);
+  }
+  100%{
+    transform:
+      translateY(0px)
+      scale(1)
+      skewX(0deg);
+  }
 }
 
+/* WAR ROOM amplification (still restrained) */
 body.war-room .scada-card{
   box-shadow:
     0 0 30px rgba(31,166,122,.16),
     inset 0 0 20px rgba(31,166,122,.10);
 }
+
 
 
 
