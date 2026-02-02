@@ -1496,125 +1496,125 @@ if (!Number.isFinite(ts)){
 }
 
  
-  // ============================================================
-  // APPLY ALL (PAINT)
-  // ============================================================
-  function applyAllFromState(data){
-    lastState = data || {};
-    const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-    setWarBadge(warActive);
-    if (!secretMode) applyPublicFromState(data); else applySecretFromState(data);
-    applyMonitoringFromState(data);
-    applyMessageFromState(data);
-    
-// =============================
-// CARD 4 — RECESSION PULSE (LOCKED v1)
-// Sahm Rule:
-// < 0.35  = EXPANSION
-// 0.35–0.49 = STALLING
-// >= 0.50 = CONTRACTION
-// Contraction shows Market Weakness (SPX DD → 35%)
-// Observational only
-// =============================
-if (data && data.sahm != null) {
-  const s = Number(data.sahm);
+function applyAllFromState(data) {
+  lastState = data || {};
 
-  const v4   = document.getElementById('val-4');
-  const c4   = document.getElementById('card-4');
-  const node = document.getElementById('led-node');
+  const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+  setWarBadge(warActive);
 
-  const mwWrap = document.getElementById('mw-wrap');
-  const mwFill = document.getElementById('mw-fill');
-  const mwVal  = document.getElementById('mw-val');
-  const mwNote = document.getElementById('mw-note');
+  if (!secretMode) applyPublicFromState(data);
+  else applySecretFromState(data);
 
-  // reset
-  if (mwWrap) mwWrap.style.display = 'none';
-  if (mwNote) mwNote.style.display = 'none';
-  if (mwFill) mwFill.style.height = '0%';
-  window.__S3_ARMED = false;
+  applyMonitoringFromState(data);
+  applyMessageFromState(data);
 
-  // -------- EXPANSION --------
-  if (s < 0.35) {
-    if (v4) v4.innerText = 'EXPANSION';
-    if (c4) c4.className = 'card glow-lime';
+  // =============================
+  // CARD 4 — RECESSION PULSE (LOCKED v1)
+  // Sahm Rule:
+  // < 0.35   = EXPANSION
+  // 0.35–0.49 = STALLING
+  // >= 0.50  = CONTRACTION
+  // Contraction shows Market Weakness (SPX DD → 35%)
+  // Observational only — NO ACTION
+  // =============================
+  if (data && data.sahm != null) {
+    const s = Number(data.sahm);
+
+    const v4   = document.getElementById('val-4');
+    const c4   = document.getElementById('card-4');
+    const node = document.getElementById('led-node');
+
+    const mwWrap = document.getElementById('mw-wrap');
+    const mwFill = document.getElementById('mw-fill');
+    const mwVal  = document.getElementById('mw-val');
+    const mwNote = document.getElementById('mw-note');
+
+    // ---- Reset ----
+    if (mwWrap) mwWrap.style.display = 'none';
+    if (mwNote) mwNote.style.display = 'none';
+    if (mwFill) mwFill.style.height = '0%';
+    window.__S3_ARMED = false;
+
+    // -------- EXPANSION --------
+    if (s < 0.35) {
+      if (v4) v4.innerText = 'EXPANSION';
+      if (c4) c4.className = 'card glow-lime';
+      if (node) {
+        node.className = 'pulse-node pulse-slow';
+        node.style.background = 'var(--lime)';
+        node.style.boxShadow = '0 0 40px var(--lime)';
+      }
+      return;
+    }
+
+    // -------- STALLING --------
+    if (s < 0.50) {
+      if (v4) v4.innerText = 'STALLING';
+      if (c4) c4.className = 'card glow-warning';
+      if (node) {
+        node.className = 'pulse-node pulse-mid';
+        node.style.background = 'var(--orange)';
+        node.style.boxShadow = '0 0 40px var(--orange)';
+      }
+      return;
+    }
+
+    // -------- CONTRACTION --------
+    if (v4) v4.innerText = 'CONTRACTION';
+    if (c4) c4.className = 'card glow-danger';
     if (node) {
-      node.className = 'pulse-node pulse-slow';
-      node.style.background = 'var(--lime)';
-      node.style.boxShadow = '0 0 40px var(--lime)';
+      node.className = 'pulse-node pulse-fast';
+      node.style.background = 'var(--red)';
+      node.style.boxShadow = '0 0 60px var(--red)';
     }
-    return;
-  }
 
-  // -------- STALLING --------
-  if (s < 0.50) {
-    if (v4) v4.innerText = 'STALLING';
-    if (c4) c4.className = 'card glow-warning';
-    if (node) {
-      node.className = 'pulse-node pulse-mid';
-      node.style.background = 'var(--orange)';
-      node.style.boxShadow = '0 0 40px var(--orange)';
+    // -------- MARKET WEAKNESS --------
+    if (mwWrap) mwWrap.style.display = 'flex';
+
+    let dd =
+      data.spx_dd ??
+      data.spxDrawdown ??
+      data.dd ??
+      data.drawdown ??
+      null;
+
+    if (typeof dd === 'string') dd = Number(dd);
+
+    if (typeof dd !== 'number' || !Number.isFinite(dd)) {
+      if (mwVal) mwVal.innerText = 'SPX DD: —';
+      if (mwNote) {
+        mwNote.style.display = 'block';
+        mwNote.innerText = 'MARKET WEAKNESS: PENDING';
+      }
+      return;
     }
-    return;
-  }
 
-  // -------- CONTRACTION --------
-  if (v4) v4.innerText = 'CONTRACTION';
-  if (c4) c4.className = 'card glow-danger';
-  if (node) {
-    node.className = 'pulse-node pulse-fast';
-    node.style.background = 'var(--red)';
-    node.style.boxShadow = '0 0 60px var(--red)';
-  }
+    dd = Math.abs(dd);
+    if (dd <= 1) dd *= 100;
 
-  // -------- MARKET WEAKNESS --------
-  if (mwWrap) mwWrap.style.display = 'flex';
+    const CAP = 35;
+    const clipped = Math.min(CAP, dd);
+    const pct = Math.round((clipped / CAP) * 100);
 
-  let dd =
-    data.spx_dd ??
-    data.spxDrawdown ??
-    data.dd ??
-    data.drawdown ??
-    null;
+    if (mwFill) mwFill.style.height = pct + '%';
+    if (mwVal) mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
 
-  // dd can arrive as a string sometimes ("12.3")
-  if (typeof dd === 'string') dd = Number(dd);
-
-  if (typeof dd !== 'number' || !Number.isFinite(dd)) {
-    if (mwVal) mwVal.innerText = 'SPX DD: —';
-    if (mwNote) {
-      mwNote.style.display = 'block';
-      mwNote.innerText = 'MARKET WEAKNESS: PENDING';
-    }
-    return;
-  }
-
-  dd = Math.abs(dd);
-  if (dd <= 1) dd *= 100; // allow 0.12 or 12
-
-  const CAP = 35;
-  const clipped = Math.min(CAP, dd);
-  const pct = Math.round((clipped / CAP) * 100);
-
-  if (mwFill) mwFill.style.height = pct + '%';
-  if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
-
-  if (dd >= CAP) {
-    window.__S3_ARMED = true;
-    if (mwNote) {
-      mwNote.style.display = 'block';
-      mwNote.innerText = 'MARKET WEAKNESS THRESHOLD ACHIEVED';
-    }
-  } else {
-    if (mwNote) {
-      mwNote.style.display = 'block';
-      mwNote.innerText = 'MARKET WEAKNESS TRACKING';
+    if (dd >= CAP) {
+      window.__S3_ARMED = true;
+      if (mwNote) {
+        mwNote.style.display = 'block';
+        mwNote.innerText = 'MARKET WEAKNESS THRESHOLD ACHIEVED';
+      }
+    } else {
+      if (mwNote) {
+        mwNote.style.display = 'block';
+        mwNote.innerText = 'MARKET WEAKNESS TRACKING';
+      }
     }
   }
 }
 
-} // ✅ CLOSE applyAllFromState()
-
+// expose globally
 window.applyAllFromState = applyAllFromState;
 
 
