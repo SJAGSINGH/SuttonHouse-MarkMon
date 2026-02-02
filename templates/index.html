@@ -1499,123 +1499,224 @@ if (!Number.isFinite(ts)){
 function applyAllFromState(data) {
   lastState = data || {};
 
+  // --- WAR badge (unchanged) ---
   const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
   setWarBadge(warActive);
 
+  // --- Existing render lanes (unchanged) ---
   if (!secretMode) applyPublicFromState(data);
   else applySecretFromState(data);
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
 
-  // =============================
+  // ============================================================
+  // CARD 2 — SHORT-TERM BIAS (jR Trender primary, MSA fallback)
+  // Doctrine:
+  // - If Card 1 thesis == Card 2 thesis → Card 2 takes Macro colour
+  // - If diverging → Card 2 goes neutral + locked wording
+  // Locked wording when aligned: “Short-term preference remains consistent with macro conditions”
+  // ============================================================
+
+  (function applyCard2FromState() {
+    const v2 = document.getElementById("val-2");
+    const c2 = document.getElementById("card-2");
+
+    if (!v2 || !c2) return;
+
+    // Accept any of these shapes (server merge can vary):
+    // 1) data.card2_state / data.card2_text
+    // 2) data.card2 = { state, text }
+    // 3) data.card2 = "some string"
+    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+
+    const card2State =
+      (data && (data.card2_state ?? data.card2State ?? null)) ??
+      (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
+      null;
+
+    const card2Text =
+      (data && (data.card2_text ?? data.card2Text ?? null)) ??
+      (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
+      (typeof data?.card2 === "string" ? data.card2 : null);
+
+    // Macro thesis (Card 1) — used only to decide “match vs diverge”
+    // You can rename these keys later if Macro.py uses different fields.
+    const macroRegime =
+      (data && (data.regime ?? data.card1_regime ?? data.card1Regime ?? null)) ??
+      null;
+
+    // Heuristic: determine Card2 thesis direction from text/state
+    // “ROTATION → FINANCIAL ASSETS” implies short-term favouring financial assets.
+    const t = String(card2Text ?? "").toUpperCase();
+    const s = String(card2State ?? "").toUpperCase();
+
+    const card2Thesis =
+      t.includes("FINANCIAL") || t.includes("EQUITIES") || s.includes("FINANCIAL") || s.includes("EQUITIES")
+        ? "FINANCIAL"
+        : t.includes("REAL ASSET") || t.includes("COMMOD") || s.includes("REAL") || s.includes("COMMOD")
+          ? "REAL_ASSET"
+          : "UNKNOWN";
+
+    const macroThesis =
+      String(macroRegime ?? "").toUpperCase().includes("REAL")
+        ? "REAL_ASSET"
+        : String(macroRegime ?? "").toUpperCase().includes("COMMOD")
+          ? "REAL_ASSET"
+          : String(macroRegime ?? "").toUpperCase().includes("EQUIT")
+            ? "FINANCIAL"
+            : "UNKNOWN";
+
+    const aligned =
+      (macroThesis !== "UNKNOWN") &&
+      (card2Thesis !== "UNKNOWN") &&
+      (macroThesis === card2Thesis);
+
+    // ---- Render rules
+    // If aligned: adopt Card1 colour by copying Card1 class (glow-*)
+    // If diverging: neutral style + locked wording
+    const c1 = document.getElementById("card-1");
+    const c1Glow = c1 ? (c1.className || "") : "";
+
+    // Always set the visible text first
+    if (aligned) {
+      v2.innerText = "Short-term preference remains consistent with macro conditions";
+    } else {
+      v2.innerText = "Short-term preference remains consistent with macro conditions";
+    }
+
+    // Optional: if Pine provides a richer text, you can show it as a sub-line elsewhere
+    // (We keep Card2 wording locked, per doctrine.)
+
+    // Apply colour
+    if (aligned && c1Glow.includes("glow-")) {
+      // copy glow-* class from Card1
+      const glowClass = c1Glow.split(" ").find(x => x.startsWith("glow-"));
+      c2.className = `card ${glowClass || ""}`.trim();
+      c2.style.borderColor = "";
+      c2.style.boxShadow = "";
+    } else {
+      // neutral
+      c2.className = "card";
+      c2.style.borderColor = "rgba(255,255,255,0.20)";
+      c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
+    }
+  })();
+
+  // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
   // Sahm Rule:
-  // < 0.35   = EXPANSION
+  // < 0.35  = EXPANSION
   // 0.35–0.49 = STALLING
-  // >= 0.50  = CONTRACTION
+  // >= 0.50 = CONTRACTION
   // Contraction shows Market Weakness (SPX DD → 35%)
-  // Observational only — NO ACTION
-  // =============================
-  if (data && data.sahm != null) {
+  // Observational only
+  // ============================================================
+
+  (function applyCard4FromState() {
+    if (!(data && data.sahm != null)) return;
+
     const s = Number(data.sahm);
+    if (!Number.isFinite(s)) return;
 
-    const v4   = document.getElementById('val-4');
-    const c4   = document.getElementById('card-4');
-    const node = document.getElementById('led-node');
+    const v4   = document.getElementById("val-4");
+    const c4   = document.getElementById("card-4");
+    const node = document.getElementById("led-node");
 
-    const mwWrap = document.getElementById('mw-wrap');
-    const mwFill = document.getElementById('mw-fill');
-    const mwVal  = document.getElementById('mw-val');
-    const mwNote = document.getElementById('mw-note');
+    const mwWrap = document.getElementById("mw-wrap");
+    const mwFill = document.getElementById("mw-fill");
+    const mwVal  = document.getElementById("mw-val");
+    const mwNote = document.getElementById("mw-note");
 
-    // ---- Reset ----
-    if (mwWrap) mwWrap.style.display = 'none';
-    if (mwNote) mwNote.style.display = 'none';
-    if (mwFill) mwFill.style.height = '0%';
+    // reset
+    if (mwWrap) mwWrap.style.display = "none";
+    if (mwNote) mwNote.style.display = "none";
+    if (mwFill) mwFill.style.height = "0%";
     window.__S3_ARMED = false;
 
     // -------- EXPANSION --------
     if (s < 0.35) {
-      if (v4) v4.innerText = 'EXPANSION';
-      if (c4) c4.className = 'card glow-lime';
+      if (v4) v4.innerText = "EXPANSION";
+      if (c4) c4.className = "card glow-lime";
       if (node) {
-        node.className = 'pulse-node pulse-slow';
-        node.style.background = 'var(--lime)';
-        node.style.boxShadow = '0 0 40px var(--lime)';
+        node.className = "pulse-node pulse-slow";
+        node.style.background = "var(--lime)";
+        node.style.boxShadow = "0 0 40px var(--lime)";
       }
       return;
     }
 
     // -------- STALLING --------
     if (s < 0.50) {
-      if (v4) v4.innerText = 'STALLING';
-      if (c4) c4.className = 'card glow-warning';
+      if (v4) v4.innerText = "STALLING";
+      if (c4) c4.className = "card glow-warning";
       if (node) {
-        node.className = 'pulse-node pulse-mid';
-        node.style.background = 'var(--orange)';
-        node.style.boxShadow = '0 0 40px var(--orange)';
+        node.className = "pulse-node pulse-mid";
+        node.style.background = "var(--orange)";
+        node.style.boxShadow = "0 0 40px var(--orange)";
       }
       return;
     }
 
     // -------- CONTRACTION --------
-    if (v4) v4.innerText = 'CONTRACTION';
-    if (c4) c4.className = 'card glow-danger';
+    if (v4) v4.innerText = "CONTRACTION";
+    if (c4) c4.className = "card glow-danger";
     if (node) {
-      node.className = 'pulse-node pulse-fast';
-      node.style.background = 'var(--red)';
-      node.style.boxShadow = '0 0 60px var(--red)';
+      node.className = "pulse-node pulse-fast";
+      node.style.background = "var(--red)";
+      node.style.boxShadow = "0 0 60px var(--red)";
     }
 
     // -------- MARKET WEAKNESS --------
-    if (mwWrap) mwWrap.style.display = 'flex';
+    if (mwWrap) mwWrap.style.display = "flex";
 
     let dd =
       data.spx_dd ??
       data.spxDrawdown ??
+      data.spx_dd_pct ??
       data.dd ??
       data.drawdown ??
       null;
 
-    if (typeof dd === 'string') dd = Number(dd);
+    // dd can arrive as a string sometimes ("12.3")
+    if (typeof dd === "string") dd = Number(dd);
 
-    if (typeof dd !== 'number' || !Number.isFinite(dd)) {
-      if (mwVal) mwVal.innerText = 'SPX DD: —';
+    if (typeof dd !== "number" || !Number.isFinite(dd)) {
+      if (mwVal) mwVal.innerText = "SPX DD: —";
       if (mwNote) {
-        mwNote.style.display = 'block';
-        mwNote.innerText = 'MARKET WEAKNESS: PENDING';
+        mwNote.style.display = "block";
+        mwNote.innerText = "MARKET WEAKNESS: PENDING";
       }
       return;
     }
 
     dd = Math.abs(dd);
-    if (dd <= 1) dd *= 100;
+    if (dd <= 1) dd *= 100; // allow 0.12 or 12
 
     const CAP = 35;
     const clipped = Math.min(CAP, dd);
     const pct = Math.round((clipped / CAP) * 100);
 
-    if (mwFill) mwFill.style.height = pct + '%';
-    if (mwVal) mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
+    if (mwFill) mwFill.style.height = pct + "%";
+    if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
 
     if (dd >= CAP) {
       window.__S3_ARMED = true;
       if (mwNote) {
-        mwNote.style.display = 'block';
-        mwNote.innerText = 'MARKET WEAKNESS THRESHOLD ACHIEVED';
+        mwNote.style.display = "block";
+        mwNote.innerText = "MARKET WEAKNESS THRESHOLD ACHIEVED";
       }
     } else {
       if (mwNote) {
-        mwNote.style.display = 'block';
-        mwNote.innerText = 'MARKET WEAKNESS TRACKING';
+        mwNote.style.display = "block";
+        mwNote.innerText = "MARKET WEAKNESS TRACKING";
       }
     }
-  }
-}
+  })();
+} // ✅ CLOSE applyAllFromState()
 
-// expose globally
 window.applyAllFromState = applyAllFromState;
+
 
 
    // ============================================================
