@@ -1507,7 +1507,7 @@ if (!Number.isFinite(ts)){
     applyMonitoringFromState(data);
     applyMessageFromState(data);
     
-    // =============================
+// =============================
 // CARD 4 — RECESSION PULSE (LOCKED v1)
 // Sahm Rule:
 // < 0.35  = EXPANSION
@@ -1577,6 +1577,9 @@ if (data && data.sahm != null) {
     data.drawdown ??
     null;
 
+  // dd can arrive as a string sometimes ("12.3")
+  if (typeof dd === 'string') dd = Number(dd);
+
   if (typeof dd !== 'number' || !Number.isFinite(dd)) {
     if (mwVal) mwVal.innerText = 'SPX DD: —';
     if (mwNote) {
@@ -1610,7 +1613,10 @@ if (data && data.sahm != null) {
   }
 }
 
-  window.applyAllFromState = applyAllFromState;
+} // ✅ CLOSE applyAllFromState()
+
+window.applyAllFromState = applyAllFromState;
+
 
    // ============================================================
   // VALIDATOR + SINGLE ENTRY POINT (FREEZE)
