@@ -568,10 +568,28 @@ def webhook():
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
+            # Card-based payloads (unchanged)
             if "card" in data:
                 _parse_card_payload(data)
 
-            _merge_field_payload(data)
+            # ------------------------------------------------
+            # PINE AUTHORITY LOCK — Card 4 ONLY
+            # ------------------------------------------------
+            pine_allow = {}
+
+            if "sahm" in data:
+                pine_allow["sahm"] = data["sahm"]
+
+            if "spx_dd" in data:
+                pine_allow["spx_dd"] = data["spx_dd"]
+            elif "spxDrawdown" in data:
+                pine_allow["spx_dd"] = data["spxDrawdown"]
+            elif "dd" in data:
+                pine_allow["spx_dd"] = data["dd"]
+            elif "drawdown" in data:
+                pine_allow["spx_dd"] = data["drawdown"]
+
+            STATE.update(pine_allow)
 
             _recompute_war_from_secret()
             _save_state_to_disk()
@@ -579,7 +597,7 @@ def webhook():
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
-       
+
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
