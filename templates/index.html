@@ -423,7 +423,84 @@ body.war-room .scada-card{
   .pulse-fast{ animation:node-pulse .5s infinite ease-in-out; }
   @keyframes node-pulse{ 0%{transform:scale(.9);opacity:.5} 50%{transform:scale(1.1);opacity:1} 100%{transform:scale(.9);opacity:.5} }
   .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
+  /* ============================
+   CARD 4 — MARKET WEAKNESS BAR
+============================ */
+  .mw-wrap{
+    margin-top:14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
 
+  .mw-row{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:#bdbdbd;
+  }
+
+  .mw-title{ opacity:.9; }
+  .mw-val{ color:#fff; font-weight:700; }
+
+  .mw-bar{
+    position:relative;
+    width:18px;
+    height:96px;
+    border-radius:10px;
+    background:#0b0b0b;
+    border:1px solid #2a2a2a;
+    overflow:hidden;
+    box-shadow: inset 0 0 14px rgba(0,0,0,.45);
+  }
+
+  .mw-fill{
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:0%;
+    background:var(--red);
+    transition:height .9s ease;
+    box-shadow:0 0 18px rgba(255,68,68,.16);
+  }
+
+/* cap line at 35% (top of bar because we scale 0–35) */
+  .mw-capline{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:2px;
+    background:rgba(255,255,255,.16);
+  }
+
+.mw-caplabel{
+  margin-top:2px;
+  font-size:9px;
+  letter-spacing:2px;
+  color:#9a9a9a;
+  text-transform:uppercase;
+}
+
+.mw-note{
+  margin-top:4px;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--red);
+  border:1px solid rgba(255,68,68,.35);
+  background:rgba(0,0,0,.25);
+  padding:7px 10px;
+  border-radius:999px;
+  white-space:nowrap;
+}
   #password-modal{
     display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,.95); z-index:10000;
@@ -640,10 +717,44 @@ body.war-room .scada-card{
 
     <div class="card" id="card-4">
       <h3>Recession Pulse</h3>
-      <div class="pulse-container"><div id="led-node" class="pulse-node"></div></div>
-      <div class="primary-text recession-text" id="val-4">AWAITING</div>
-      <div class="secondary-text" id="sub-4" style="display:none;"></div>
+
+    <div class="pulse-container">
+      <div id="led-node" class="pulse-node"></div>
     </div>
+      
+    <!-- Market Weakness (only shown in contraction) -->
+  <div id="mw-wrap" style="display:none; gap:14px; align-items:center; justify-content:center; margin-top:10px;">
+    <div style="width:10px; height:92px; background:#1a1a1a; border-radius:6px; overflow:hidden; border:1px solid #2a2a2a;">
+      <div id="mw-fill" style="width:100%; height:0%; background:var(--red); transition:0.9s;"></div>
+  </div>
+
+  <div style="text-align:left;">
+    <div class="gmeta" id="mw-val" style="margin-top:0;">SPX DD: —</div>
+    <div class="gmeta" id="mw-note" style="margin-top:6px; display:none;">MARKET WEAKNESS: PENDING</div>
+  </div>
+</div>
+    <div class="primary-text recession-text" id="val-4">AWAITING</div>
+
+    <div class="gmeta" id="rec-meta" style="margin-top:12px; text-align:center;"></div>
+
+    <!-- Market Weakness (shows ONLY in Contraction) -->
+    <div class="mw-wrap" id="mw-wrap" style="display:none;">
+    <div class="mw-row">
+      <div class="mw-title">MARKET WEAKNESS</div>
+      <div class="mw-val" id="mw-val">—</div>
+    </div>
+
+    <div class="mw-bar" aria-hidden="true">
+      <div class="mw-fill" id="mw-fill"></div>
+      <div class="mw-capline"></div>
+      <div class="mw-caplabel">35%</div>
+    </div>
+
+    <div class="mw-note" id="mw-note" style="display:none;">
+      MARKET WEAKNESS THRESHOLD ACHIEVED
+      </div>
+    </div>
+  </div>
   </main>
 
   <div class="section-header">Message System</div>
@@ -1482,24 +1593,126 @@ if (!Number.isFinite(ts)){
     applyMonitoringFromState(data);
     applyMessageFromState(data);
     
-    if (data && data.sahm !== undefined && data.sahm !== null){
-      const s = parseFloat(data.sahm) || 0;
-      const v4 = document.getElementById('val-4'); const c4 = document.getElementById('card-4'); const node = document.getElementById('led-node');
-      if (s <= 0.34){
-        if (v4) v4.innerText = 'EXPANSION PHASE';
-        if (c4) c4.className = 'card glow-lime';
-        if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
-      } else if (s <= 0.49){
-        if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
-        if (c4) c4.className = 'card glow-warning';
-        if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
-      } else {
-        if (v4) v4.innerText = 'CONTRACTION';
-        if (c4) c4.className = 'card glow-danger';
-        if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
-      }
+    // =============================
+// CARD 4 — RECESSION PULSE (LOCKED)
+// Sahm thresholds:
+//   <0.35  = EXPANSION (green)
+//   0.35–0.49 = STALLING (amber)
+//   >=0.50 = CONTRACTION (red)
+// Contraction shows Market Weakness (SPX drawdown to 35%)
+// At 35%: label "Market Weakness Threshold Achieved" + internal S3 ARMED
+// Observational only.
+// =============================
+if (data && data.sahm !== undefined && data.sahm !== null){
+  const s = Number(data.sahm);
+
+  const v4   = document.getElementById('val-4');
+  const c4   = document.getElementById('card-4');
+  const node = document.getElementById('led-node');
+
+  // Optional Market Weakness UI (only used in contraction)
+  const mwWrap = document.getElementById('mw-wrap');
+  const mwFill = document.getElementById('mw-fill');
+  const mwVal  = document.getElementById('mw-val');
+  const mwNote = document.getElementById('mw-note');
+
+  // reset each paint
+  window.__S3_ARMED = false;
+  if (mwWrap) mwWrap.style.display = 'none';
+  if (mwNote) mwNote.style.display = 'none';
+  if (mwFill) mwFill.style.height = '0%';
+
+  // -------------------------
+  // EXPANSION  (< 0.35)
+  // -------------------------
+  if (s < 0.35){
+    if (v4) v4.innerText = 'EXPANSION';
+    if (c4) c4.className = 'card glow-lime';
+    if (node){
+      node.className = 'pulse-node pulse-slow';
+      node.style.background = 'var(--lime)';
+      node.style.boxShadow = '0 0 40px var(--lime)';
+    }
+    return;
+  }
+
+  // -------------------------
+  // STALLING (0.35–0.49)
+  // -------------------------
+  if (s < 0.50){
+    if (v4) v4.innerText = 'STALLING';
+    if (c4) c4.className = 'card glow-warning';
+    if (node){
+      node.className = 'pulse-node pulse-mid';
+      node.style.background = 'var(--orange)';
+      node.style.boxShadow = '0 0 40px var(--orange)';
+    }
+    return;
+  }
+
+  // -------------------------
+  // CONTRACTION (>= 0.50)
+  // -------------------------
+  if (v4) v4.innerText = 'CONTRACTION';
+  if (c4) c4.className = 'card glow-danger';
+  if (node){
+    node.className = 'pulse-node pulse-fast';
+    node.style.background = 'var(--red)';
+    node.style.boxShadow = '0 0 60px var(--red)';
+  }
+
+  // -------------------------
+  // MARKET WEAKNESS BAR (SPX DD -> 35%)
+  // Requires a drawdown field in payload (we accept several names safely)
+  // Recommended: data.spx_dd = 0..35 (percent) OR 0.00..0.35 (fraction)
+  // -------------------------
+  if (mwWrap) mwWrap.style.display = 'flex';
+
+  // accept multiple possible keys (safe / backwards compatible)
+  let dd =
+    data.spx_dd ??
+    data.spxDrawdown ??
+    data.dd ??
+    data.drawdown ??
+    null;
+
+  if (typeof dd !== 'number' || !Number.isFinite(dd)){
+    // No drawdown provided yet — show "pending" state without breaking UI
+    if (mwVal) mwVal.innerText = 'SPX DD: —';
+    if (mwFill) mwFill.style.height = '0%';
+    if (mwNote){
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS: PENDING';
+    }
+    return;
+  }
+
+  // normalize: allow negative values, allow fractions (0.12) or percent (12)
+  dd = Math.abs(dd);
+  if (dd <= 1) dd = dd * 100;
+
+  const CAP = 35;
+  const clipped = Math.max(0, Math.min(CAP, dd));
+  const pct = Math.round((clipped / CAP) * 100);
+
+  if (mwFill) mwFill.style.height = `${pct}%`;
+  if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
+
+  // Threshold achieved -> label + internal S3 armed
+  if (dd >= CAP){
+    window.__S3_ARMED = true;
+
+    if (mwNote){
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS THRESHOLD ACHIEVED';
+    }
+  } else {
+    if (mwNote){
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS TRACKING';
     }
   }
+}
   window.applyAllFromState = applyAllFromState;
 
    // ============================================================
