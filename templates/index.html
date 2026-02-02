@@ -637,13 +637,37 @@ body.war-room .scada-card{
       <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
       <div id="gauge-3" style="display:none;"></div>
     </div>
+    
+   <div class="card" id="card-4">
+  <h3>Recession Pulse</h3>
 
-    <div class="card" id="card-4">
-      <h3>Recession Pulse</h3>
-      <div class="pulse-container"><div id="led-node" class="pulse-node"></div></div>
-      <div class="primary-text recession-text" id="val-4">AWAITING</div>
-      <div class="secondary-text" id="sub-4" style="display:none;"></div>
+  <!-- Pulse node -->
+  <div class="pulse-container">
+    <div id="led-node" class="pulse-node"></div>
+  </div>
+
+  <!-- Market Weakness (ONLY shown during Contraction) -->
+  <div class="mw-wrap" id="mw-wrap" style="display:none;">
+    <div class="mw-row">
+      <div class="mw-title">MARKET WEAKNESS</div>
+      <div class="mw-val" id="mw-val">—</div>
     </div>
+
+    <div class="mw-bar" aria-hidden="true">
+      <div class="mw-fill" id="mw-fill"></div>
+      <div class="mw-capline"></div>
+      <div class="mw-caplabel">35%</div>
+    </div>
+
+    <div class="mw-note" id="mw-note" style="display:none;">
+      MARKET WEAKNESS THRESHOLD ACHIEVED
+    </div>
+  </div>
+
+  <!-- Sahm state text -->
+  <div class="primary-text recession-text" id="val-4">AWAITING</div>
+  <div class="secondary-text" id="sub-4" style="display:none;"></div>
+</div>
   </main>
 
   <div class="section-header">Message System</div>
@@ -1482,24 +1506,109 @@ if (!Number.isFinite(ts)){
     applyMonitoringFromState(data);
     applyMessageFromState(data);
     
-    if (data && data.sahm !== undefined && data.sahm !== null){
-      const s = parseFloat(data.sahm) || 0;
-      const v4 = document.getElementById('val-4'); const c4 = document.getElementById('card-4'); const node = document.getElementById('led-node');
-      if (s <= 0.34){
-        if (v4) v4.innerText = 'EXPANSION PHASE';
-        if (c4) c4.className = 'card glow-lime';
-        if (node){ node.className = 'pulse-node pulse-slow'; node.style.background = 'var(--lime)'; node.style.boxShadow = '0 0 40px var(--lime)'; }
-      } else if (s <= 0.49){
-        if (v4) v4.innerText = 'WARNING: ECONOMY STALLING';
-        if (c4) c4.className = 'card glow-warning';
-        if (node){ node.className = 'pulse-node pulse-mid'; node.style.background = 'var(--orange)'; node.style.boxShadow = '0 0 40px var(--orange)'; }
-      } else {
-        if (v4) v4.innerText = 'CONTRACTION';
-        if (c4) c4.className = 'card glow-danger';
-        if (node){ node.className = 'pulse-node pulse-fast'; node.style.background = 'var(--red)'; node.style.boxShadow = '0 0 60px var(--red)'; }
-      }
+    // =============================
+// CARD 4 — RECESSION PULSE (LOCKED v1)
+// Sahm Rule:
+// < 0.35  = EXPANSION
+// 0.35–0.49 = STALLING
+// >= 0.50 = CONTRACTION
+// Contraction shows Market Weakness (SPX DD → 35%)
+// Observational only
+// =============================
+if (data && data.sahm != null) {
+  const s = Number(data.sahm);
+
+  const v4   = document.getElementById('val-4');
+  const c4   = document.getElementById('card-4');
+  const node = document.getElementById('led-node');
+
+  const mwWrap = document.getElementById('mw-wrap');
+  const mwFill = document.getElementById('mw-fill');
+  const mwVal  = document.getElementById('mw-val');
+  const mwNote = document.getElementById('mw-note');
+
+  // reset
+  if (mwWrap) mwWrap.style.display = 'none';
+  if (mwNote) mwNote.style.display = 'none';
+  if (mwFill) mwFill.style.height = '0%';
+  window.__S3_ARMED = false;
+
+  // -------- EXPANSION --------
+  if (s < 0.35) {
+    if (v4) v4.innerText = 'EXPANSION';
+    if (c4) c4.className = 'card glow-lime';
+    if (node) {
+      node.className = 'pulse-node pulse-slow';
+      node.style.background = 'var(--lime)';
+      node.style.boxShadow = '0 0 40px var(--lime)';
+    }
+    return;
+  }
+
+  // -------- STALLING --------
+  if (s < 0.50) {
+    if (v4) v4.innerText = 'STALLING';
+    if (c4) c4.className = 'card glow-warning';
+    if (node) {
+      node.className = 'pulse-node pulse-mid';
+      node.style.background = 'var(--orange)';
+      node.style.boxShadow = '0 0 40px var(--orange)';
+    }
+    return;
+  }
+
+  // -------- CONTRACTION --------
+  if (v4) v4.innerText = 'CONTRACTION';
+  if (c4) c4.className = 'card glow-danger';
+  if (node) {
+    node.className = 'pulse-node pulse-fast';
+    node.style.background = 'var(--red)';
+    node.style.boxShadow = '0 0 60px var(--red)';
+  }
+
+  // -------- MARKET WEAKNESS --------
+  if (mwWrap) mwWrap.style.display = 'flex';
+
+  let dd =
+    data.spx_dd ??
+    data.spxDrawdown ??
+    data.dd ??
+    data.drawdown ??
+    null;
+
+  if (typeof dd !== 'number' || !Number.isFinite(dd)) {
+    if (mwVal) mwVal.innerText = 'SPX DD: —';
+    if (mwNote) {
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS: PENDING';
+    }
+    return;
+  }
+
+  dd = Math.abs(dd);
+  if (dd <= 1) dd *= 100; // allow 0.12 or 12
+
+  const CAP = 35;
+  const clipped = Math.min(CAP, dd);
+  const pct = Math.round((clipped / CAP) * 100);
+
+  if (mwFill) mwFill.style.height = pct + '%';
+  if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
+
+  if (dd >= CAP) {
+    window.__S3_ARMED = true;
+    if (mwNote) {
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS THRESHOLD ACHIEVED';
+    }
+  } else {
+    if (mwNote) {
+      mwNote.style.display = 'block';
+      mwNote.innerText = 'MARKET WEAKNESS TRACKING';
     }
   }
+}
+
   window.applyAllFromState = applyAllFromState;
 
    // ============================================================
