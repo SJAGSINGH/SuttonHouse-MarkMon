@@ -46,6 +46,35 @@ let founderMode = false;
     --steel-bg-1:#0b1320;
     --steel-bg-2:#0e1f36;
   }
+  /* ============================
+   CARD 2 — CAPITAL ROTATION
+   Matches Card 1 behaviour
+   ============================ */
+
+/* ============================================================
+   CARD 2 — tidy text styling (paste into <style> in index.html)
+   Put this near your other card styles (e.g. after Card 1 rules)
+   ============================================================ */
+
+#card-2 .primary-text{
+  color:#ffffff;
+  font-weight:600;
+  letter-spacing:0.02em;
+}
+
+#card-2 .secondary-text{
+  margin-top:6px;
+  font-size:12px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  opacity:0.95;
+}
+
+/* State colours */
+#card-2.card2-green .secondary-text{ color: var(--lime); }
+#card-2.card2-red   .secondary-text{ color: var(--red);  }
+#card-2.card2-neutral .secondary-text{ color: rgba(255,255,255,0.60); }
+
 
   body{
     background:var(--bg); color:var(--text);
@@ -541,6 +570,7 @@ body.war-room .scada-card{
     border-color:rgba(255,68,68,.45);
     color:var(--red);
   }
+ 
 
   .mono{
     font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1525,90 +1555,85 @@ function applyAllFromState(data) {
   // Locked wording when aligned: “Short-term preference remains consistent with macro conditions”
   // ============================================================
 
-  (function applyCard2FromState() {
-    const v2 = document.getElementById("val-2");
-    const c2 = document.getElementById("card-2");
+// ============================================================
+// CARD 2 — CAPITAL ROTATION (tidy v1)
+// Layout doctrine (matches Card 1 style):
+// - Primary line (white): "Short-term preference remains"
+// - Secondary line (small + coloured): state-dependent message
+// - Remove all other clutter (6M ROR, pending lines, etc.)
+// Payload keys accepted:
+//   data.card2_state + data.card2_text
+//   data.card2 = { state, text }
+//   data.type === "CARD2" with fields { state, text }
+// ============================================================
+(function applyCard2FromState(){
+  const c2 = document.getElementById("card-2");
+  if (!c2) return;
 
-    if (!v2 || !c2) return;
+  // Prefer using dedicated nodes if you add them in HTML:
+  //   <div id="card2-primary" class="primary-text"></div>
+  //   <div id="card2-secondary" class="secondary-text"></div>
+  // Otherwise we fall back to existing #val-2
+  let primaryEl   = document.getElementById("card2-primary");
+  let secondaryEl = document.getElementById("card2-secondary");
+  const v2 = document.getElementById("val-2");
 
-    // Accept any of these shapes (server merge can vary):
-    // 1) data.card2_state / data.card2_text
-    // 2) data.card2 = { state, text }
-    // 3) data.card2 = "some string"
-    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+  // --- Resolve payload (supports a few server shapes)
+  const card2Obj =
+    (data && typeof data.card2 === "object" && data.card2) ? data.card2 :
+    (data && (data.type === "CARD2" || data.type === "card2") ? data : null);
 
-    const card2State =
-      (data && (data.card2_state ?? data.card2State ?? null)) ??
-      (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
-      null;
+  const stateRaw =
+    (data && (data.card2_state ?? data.card2State ?? null)) ??
+    (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
+    null;
 
-    const card2Text =
-      (data && (data.card2_text ?? data.card2Text ?? null)) ??
-      (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
-      (typeof data?.card2 === "string" ? data.card2 : null);
+  // We don’t actually use incoming text for display (locked doctrine),
+  // but keep it here if you want to log/inspect later.
+  const textRaw =
+    (data && (data.card2_text ?? data.card2Text ?? null)) ??
+    (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
+    (typeof data?.card2 === "string" ? data.card2 : null);
 
-    // Macro thesis (Card 1) — used only to decide “match vs diverge”
-    // You can rename these keys later if Macro.py uses different fields.
-    const macroRegime =
-      (data && (data.regime ?? data.card1_regime ?? data.card1Regime ?? null)) ??
-      null;
+  const s = String(stateRaw ?? "").toUpperCase();
 
-    // Heuristic: determine Card2 thesis direction from text/state
-    // “ROTATION → FINANCIAL ASSETS” implies short-term favouring financial assets.
-    const t = String(card2Text ?? "").toUpperCase();
-    const s = String(card2State ?? "").toUpperCase();
+  // --- Locked wording
+  const primaryText = "Short-term preference remains";
+  const secondaryText =
+    s === "GREEN" ? "consistent with macro conditions" :
+    s === "RED"   ? "weakness against macro conditions" :
+                    "unclear — monitoring";
 
-    const card2Thesis =
-      t.includes("FINANCIAL") || t.includes("EQUITIES") || s.includes("FINANCIAL") || s.includes("EQUITIES")
-        ? "FINANCIAL"
-        : t.includes("REAL ASSET") || t.includes("COMMOD") || s.includes("REAL") || s.includes("COMMOD")
-          ? "REAL_ASSET"
-          : "UNKNOWN";
+  // --- Apply classes (CSS below)
+  c2.classList.remove("card2-green","card2-red","card2-neutral");
+  c2.classList.add(
+    s === "GREEN" ? "card2-green" :
+    s === "RED"   ? "card2-red"   :
+                    "card2-neutral"
+  );
 
-    const macroThesis =
-      String(macroRegime ?? "").toUpperCase().includes("REAL")
-        ? "REAL_ASSET"
-        : String(macroRegime ?? "").toUpperCase().includes("COMMOD")
-          ? "REAL_ASSET"
-          : String(macroRegime ?? "").toUpperCase().includes("EQUIT")
-            ? "FINANCIAL"
-            : "UNKNOWN";
+  // --- Render
+  if (primaryEl && secondaryEl) {
+    primaryEl.textContent = primaryText;
+    secondaryEl.textContent = secondaryText;
+  } else if (v2) {
+    // fallback: single node
+    v2.innerHTML =
+      `<div class="primary-text">${primaryText}</div>` +
+      `<div class="secondary-text">${secondaryText}</div>`;
+  }
 
-    const aligned =
-      (macroThesis !== "UNKNOWN") &&
-      (card2Thesis !== "UNKNOWN") &&
-      (macroThesis === card2Thesis);
+  // --- Hard remove clutter if old nodes exist (safe no-ops)
+  const killIds = ["ror-2","ror2","val-2-sub","mw-wrap-2","mw-wrap2"];
+  killIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
 
-    // ---- Render rules
-    // If aligned: adopt Card1 colour by copying Card1 class (glow-*)
-    // If diverging: neutral style + locked wording
-    const c1 = document.getElementById("card-1");
-    const c1Glow = c1 ? (c1.className || "") : "";
+  // Optional debug hook (does nothing unless you use it)
+  window.__CARD2_LAST = { state: s || "NEUTRAL", text: String(textRaw ?? "") };
+})();
 
-    // Always set the visible text first
-    if (aligned) {
-      v2.innerText = "Short-term preference remains consistent with macro conditions";
-    } else {
-      v2.innerText = "Short-term preference remains consistent with macro conditions";
-    }
-
-    // Optional: if Pine provides a richer text, you can show it as a sub-line elsewhere
-    // (We keep Card2 wording locked, per doctrine.)
-
-    // Apply colour
-    if (aligned && c1Glow.includes("glow-")) {
-      // copy glow-* class from Card1
-      const glowClass = c1Glow.split(" ").find(x => x.startsWith("glow-"));
-      c2.className = `card ${glowClass || ""}`.trim();
-      c2.style.borderColor = "";
-      c2.style.boxShadow = "";
-    } else {
-      // neutral
-      c2.className = "card";
-      c2.style.borderColor = "rgba(255,255,255,0.20)";
-      c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
-    }
-  })();
 
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
