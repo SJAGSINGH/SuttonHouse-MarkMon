@@ -1445,6 +1445,17 @@ function rscApplyClockOffset(rawCount){
   setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
 }
 
+    
+
+  // If server already sends a full merged state, just use it
+  // (e.g. payload has cycle/count/etc)
+  if (p && typeof p === "object"){
+    Object.assign(merged, p);
+  }
+
+  return merged;
+}
+
   /* === RSC MOCK MODE (REMOVE LATER) === */
   window.RSC_MOCK = false;
   function emitMockMacro(payload){
@@ -1683,13 +1694,14 @@ function applyAllFromState(data) {
     // Copy Card1 glow-* ONLY when aligned; otherwise neutral card
     const c1Class = (c1 && c1.className) ? c1.className : "";
     const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
+    const haloClass = c1Class.split(" ").find(x => x.startsWith("halo-bg-"));
+    const copyClass = glowClass || haloClass || "";
 
-    if (aligned && glowClass) {
-      c2.className = `card ${glowClass}`.trim();
+    if (aligned && copyClass) {
+      c2.className = `card ${copyClass}`.trim();
       c2.style.borderColor = "";
       c2.style.boxShadow = "";
     } else {
-      // neutral
       c2.className = "card";
       c2.style.borderColor = "rgba(255,255,255,0.20)";
       c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
@@ -1857,6 +1869,31 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
+// ============================================================
+// STATE MERGE — allow single-card payloads (CARD2 etc)
+// ============================================================
+function rscMergeIntoState(p){
+  // base state = last known full state (macro), fall back to empty object
+  const base = (window.__RSC_LAST && typeof window.__RSC_LAST === "object") ? window.__RSC_LAST : {};
+  const merged = { ...base };
+
+  const type = String(p?.type || "").toUpperCase();
+
+  // --- CARD2 payload (from TradingView alert) ---
+  if (type === "CARD2"){
+    merged.card2_state = p.state ?? merged.card2_state ?? null;
+    merged.card2_text  = p.text  ?? merged.card2_text  ?? null;
+    // keep original keys too for debugging if you want
+    merged._last_card2_ts = p.time ?? merged._last_card2_ts ?? null;
+    return merged;
+  }
+
+  // --- MACRO payload (your normal stream) ---
+  if (type === "MACRO"){
+    // If your MACRO payload already contains cycle/flow/vol/count/sahm, just overlay it.
+    Object.assign(merged, p);
+    return merged;
+  }
 
 // ============================================================
 // HANDLE MACRO UPDATE — unified + resilient
@@ -1871,10 +1908,13 @@ window.handleMacroUpdate = function(payload){
     else if (p.data && typeof p.data === "object") p = p.data;
   }
 
+  // ✅ merge single-card payloads into last known state
+  const merged = rscMergeIntoState(p);
+
   try {
-    const v = rscValidateMacro(p);
+    const v = rscValidateMacro(merged);
     if (!v.ok){
-      console.warn("[RSC DROP]", v.why, p);
+      console.warn("[RSC DROP]", v.why, merged);
       return;
     }
   } catch(e) {
@@ -1882,17 +1922,18 @@ window.handleMacroUpdate = function(payload){
   }
 
   // store + paint
-  window.__RSC_LAST = p;
-  console.log("[RSC HANDLE OK]", p);
+  window.__RSC_LAST = merged;
+  console.log("[RSC HANDLE OK]", merged);
 
   if (typeof window.applyAllFromState === "function") {
-    window.applyAllFromState(p);
+    window.applyAllFromState(merged);
   } else if (typeof applyAllFromState === "function") {
-    applyAllFromState(p);
+    applyAllFromState(merged);
   } else {
     console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
   }
 };
+
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
   // ============================================================
