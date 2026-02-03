@@ -1173,7 +1173,23 @@ function rscApplyClockOffset(rawCount){
 }
 
   // ----------------------------
-  // PUBLIC APPLY
+ // ============================================================
+// MACRO PRESENCE CHECK — prevents UI resets on partial payloads
+// ============================================================
+function rscHasMacroFields(d){
+  if (!d || typeof d !== "object") return false;
+
+  // treat ANY of these as “macro present”
+  return (
+    d.cycle != null ||
+    d.count != null ||
+    d.vol   != null ||
+    d.flow  != null ||
+    d.sahm  != null ||
+    d._server_ts != null
+  );
+}
+ // PUBLIC APPLY
   // ----------------------------
 function applyPublicFromState(data){
 
