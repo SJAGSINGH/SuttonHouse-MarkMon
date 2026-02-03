@@ -56,25 +56,24 @@ let founderMode = false;
    Put this near your other card styles (e.g. after Card 1 rules)
    ============================================================ */
 
-#card-2 .primary-text{
-  color:#ffffff;
-  font-weight:600;
-  letter-spacing:0.02em;
-}
+/* CARD 2 text treatment (matches Card 1 behaviour) */
+  #card-2 .primary-text{
+    color:#ffffff;
+    font-weight:600;
+    text-transform:uppercase;
+  }
 
-#card-2 .secondary-text{
-  margin-top:6px;
-  font-size:12px;
-  letter-spacing:0.04em;
-  text-transform:uppercase;
-  opacity:0.95;
-}
+  #card-2 .secondary-text{
+    margin-top:6px;
+    font-size:12px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
 
-/* State colours */
-#card-2.card2-green .secondary-text{ color: var(--lime); }
-#card-2.card2-red   .secondary-text{ color: var(--red);  }
-#card-2.card2-neutral .secondary-text{ color: rgba(255,255,255,0.60); }
-
+  /* State colours */
+  .card2-green{ color: var(--lime); }
+  .card2-red{ color: var(--red); }
+  .card2-neutral{ color: rgba(255,255,255,0.65); }
 
   body{
     background:var(--bg); color:var(--text);
@@ -653,18 +652,14 @@ body.war-room .scada-card{
     </div>
 
     <div class="card" id="card-2">
-      <h3>Capital Rotation</h3>
+      <div class="card-title">CAPITAL ROTATION</div>
 
-  <!-- Primary (always white) -->
-      <div class="primary-text" id="val-2">
-    SHORT-TERM PREFERENCE REMAINS
-      </div>
+      <!-- Main headline (white, big) -->
+      <div class="primary-text" id="val-2">SHORT-TERM PREFERENCE REMAINS</div>
 
-  <!-- Secondary (small, coloured) -->
-      <div class="secondary-text" id="sub-2">
-    AWAITING
+      <!-- Status line (small + coloured) -->
+      <div class="secondary-text card2-neutral" id="val-2b">UNCLEAR — MONITORING</div>
     </div>
-  </div>
 
 
     <div class="card" id="card-3">
@@ -1555,86 +1550,122 @@ function applyAllFromState(data) {
   // Locked wording when aligned: “Short-term preference remains consistent with macro conditions”
   // ============================================================
 
-// ============================================================
-// CARD 2 — CAPITAL ROTATION (tidy v1)
-// Layout doctrine (matches Card 1 style):
-// - Primary line (white): "Short-term preference remains"
-// - Secondary line (small + coloured): state-dependent message
-// - Remove all other clutter (6M ROR, pending lines, etc.)
-// Payload keys accepted:
-//   data.card2_state + data.card2_text
-//   data.card2 = { state, text }
-//   data.type === "CARD2" with fields { state, text }
-// ============================================================
-(function applyCard2FromState(){
-  const c2 = document.getElementById("card-2");
-  if (!c2) return;
+   // ============================================================
+  // CARD 2 — SHORT-TERM BIAS (clean UI + aligned glow copy)
+  // - Main line fixed: "SHORT-TERM PREFERENCE REMAINS" (white)
+  // - Status line below: CONSISTENT / WEAKNESS / UNCLEAR (coloured, small)
+  // - Glow rule: ONLY if Card2 thesis aligns with Card1 capital flow thesis
+  // ============================================================
+  (function applyCard2FromState() {
+    const c2  = document.getElementById("card-2");
+    const v2  = document.getElementById("val-2");   // big line
+    const v2b = document.getElementById("val-2b");  // small status line
+    const c1  = document.getElementById("card-1");  // used to copy glow-*
 
-  // Prefer using dedicated nodes if you add them in HTML:
-  //   <div id="card2-primary" class="primary-text"></div>
-  //   <div id="card2-secondary" class="secondary-text"></div>
-  // Otherwise we fall back to existing #val-2
-  let primaryEl   = document.getElementById("card2-primary");
-  let secondaryEl = document.getElementById("card2-secondary");
-  const v2 = document.getElementById("val-2");
+    if (!c2 || !v2 || !v2b) return;
 
-  // --- Resolve payload (supports a few server shapes)
-  const card2Obj =
-    (data && typeof data.card2 === "object" && data.card2) ? data.card2 :
-    (data && (data.type === "CARD2" || data.type === "card2") ? data : null);
+    // Always enforce clean headline
+    v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-  const stateRaw =
-    (data && (data.card2_state ?? data.card2State ?? null)) ??
-    (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
-    null;
+    // ---------- Read Card2 state (server shapes can vary)
+    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
-  // We don’t actually use incoming text for display (locked doctrine),
-  // but keep it here if you want to log/inspect later.
-  const textRaw =
-    (data && (data.card2_text ?? data.card2Text ?? null)) ??
-    (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
-    (typeof data?.card2 === "string" ? data.card2 : null);
+    const card2StateRaw =
+      (data && (data.card2_state ?? data.card2State ?? null)) ??
+      (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
+      null;
 
-  const s = String(stateRaw ?? "").toUpperCase();
+    const card2TextRaw =
+      (data && (data.card2_text ?? data.card2Text ?? null)) ??
+      (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
+      (typeof data?.card2 === "string" ? data.card2 : null);
 
-  // --- Locked wording
-  const primaryText = "Short-term preference remains";
-  const secondaryText =
-    s === "GREEN" ? "consistent with macro conditions" :
-    s === "RED"   ? "weakness against macro conditions" :
-                    "unclear — monitoring";
+    const s2 = String(card2StateRaw ?? "").toUpperCase();
+    const t2 = String(card2TextRaw ?? "").toUpperCase();
 
-  // --- Apply classes (CSS below)
-  c2.classList.remove("card2-green","card2-red","card2-neutral");
-  c2.classList.add(
-    s === "GREEN" ? "card2-green" :
-    s === "RED"   ? "card2-red"   :
-                    "card2-neutral"
-  );
+    // ---------- Read Card1 thesis (Macro/Regime) for alignment
+    // Try several likely keys (adjust later if Macro.py uses different names)
+    const card1RegimeRaw =
+      (data && (data.regime ?? data.card1_regime ?? data.card1Regime ?? data.card1_state ?? data.card1State ?? null)) ??
+      null;
 
-  // --- Render
-  if (primaryEl && secondaryEl) {
-    primaryEl.textContent = primaryText;
-    secondaryEl.textContent = secondaryText;
-  } else if (v2) {
-    // fallback: single node
-    v2.innerHTML =
-      `<div class="primary-text">${primaryText}</div>` +
-      `<div class="secondary-text">${secondaryText}</div>`;
-  }
+    const t1 = String(card1RegimeRaw ?? "").toUpperCase();
 
-  // --- Hard remove clutter if old nodes exist (safe no-ops)
-  const killIds = ["ror-2","ror2","val-2-sub","mw-wrap-2","mw-wrap2"];
-  killIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = "none";
-  });
+    // ---------- Determine "thesis" buckets (FINANCIAL vs REAL_ASSET)
+    // Card1 thesis (macro flow)
+    const card1Thesis =
+      (t1.includes("REAL") || t1.includes("COMMOD") || t1.includes("GOLD") || t1.includes("COPPER"))
+        ? "REAL_ASSET"
+        : (t1.includes("FINANCIAL") || t1.includes("EQUIT") || t1.includes("RISK") || t1.includes("STOCK"))
+          ? "FINANCIAL"
+          : "UNKNOWN";
 
-  // Optional debug hook (does nothing unless you use it)
-  window.__CARD2_LAST = { state: s || "NEUTRAL", text: String(textRaw ?? "") };
-})();
+    // Card2 thesis (short-term flow) – from text/state if present
+    const card2Thesis =
+      (t2.includes("REAL") || t2.includes("COMMOD") || t2.includes("GOLD") || t2.includes("COPPER") || s2.includes("REAL"))
+        ? "REAL_ASSET"
+        : (t2.includes("FINANCIAL") || t2.includes("EQUIT") || t2.includes("RISK") || s2.includes("FIN") || s2.includes("EQUIT"))
+          ? "FINANCIAL"
+          : "UNKNOWN";
 
+    const aligned =
+      card1Thesis !== "UNKNOWN" &&
+      card2Thesis !== "UNKNOWN" &&
+      card1Thesis === card2Thesis;
 
+    // ---------- Status line content + colour (independent of glow)
+    let statusText = "UNCLEAR — MONITORING";
+    let cls = "card2-neutral";
+
+    // If Pine provides explicit GREEN/RED we respect it for the status line text,
+    // but GLOW only happens when aligned with Card1.
+    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
+      statusText = "CONSISTENT WITH MACRO CONDITIONS";
+      cls = "card2-green";
+    } else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
+      statusText = "WEAKNESS AGAINST MACRO CONDITIONS";
+      cls = "card2-red";
+    } else {
+      statusText = "UNCLEAR — MONITORING";
+      cls = "card2-neutral";
+    }
+
+    v2b.textContent = statusText;
+    v2b.classList.remove("card2-green","card2-red","card2-neutral");
+    v2b.classList.add(cls);
+
+    // ---------- Glow rule
+    // Copy Card1 glow-* ONLY when aligned; otherwise neutral card
+    const c1Class = (c1 && c1.className) ? c1.className : "";
+    const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
+
+    if (aligned && glowClass) {
+      c2.className = `card ${glowClass}`.trim();
+      c2.style.borderColor = "";
+      c2.style.boxShadow = "";
+    } else {
+      // neutral
+      c2.className = "card";
+      c2.style.borderColor = "rgba(255,255,255,0.20)";
+      c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
+    }
+
+    // ---------- HARD CLEANUP: remove/hide any old/legacy Card2 extra elements if present
+    const legacyIds = ["val-2-sub", "val2-sub", "ror-2", "ror2", "card2-ror", "card2-note"];
+    legacyIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+
+    const maybeTextNodes = c2.querySelectorAll("div,span,p");
+    maybeTextNodes.forEach(el => {
+      const txt = (el.textContent || "").toUpperCase();
+      if (txt.includes("ROR") || txt.includes("6M")) {
+        if (el.id !== "val-2" && el.id !== "val-2b") el.style.display = "none";
+      }
+    });
+
+  })();
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
   // Sahm Rule:
@@ -1668,7 +1699,7 @@ function applyAllFromState(data) {
 
     // -------- EXPANSION --------
     if (s < 0.35) {
-      if (v4) v4.innerText = "EXPANSION";
+      if (v4) v4.innerText = "Economic:EXPANSION";
       if (c4) c4.className = "card glow-lime";
       if (node) {
         node.className = "pulse-node pulse-slow";
@@ -1680,7 +1711,7 @@ function applyAllFromState(data) {
 
     // -------- STALLING --------
     if (s < 0.50) {
-      if (v4) v4.innerText = "STALLING";
+      if (v4) v4.innerText = "Economy:STALLING";
       if (c4) c4.className = "card glow-warning";
       if (node) {
         node.className = "pulse-node pulse-mid";
@@ -1691,7 +1722,7 @@ function applyAllFromState(data) {
     }
 
     // -------- CONTRACTION --------
-    if (v4) v4.innerText = "CONTRACTION";
+    if (v4) v4.innerText = "Economic:CONTRACTION";
     if (c4) c4.className = "card glow-danger";
     if (node) {
       node.className = "pulse-node pulse-fast";
