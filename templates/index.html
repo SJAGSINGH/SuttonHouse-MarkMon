@@ -1175,7 +1175,12 @@ function rscApplyClockOffset(rawCount){
   // ----------------------------
   // PUBLIC APPLY
   // ----------------------------
- function applyPublicFromState(data){
+function applyPublicFromState(data){
+
+  // if this update is partial (no macro fields), reuse last macro snapshot
+  if (!rscHasMacroFields(data) && rscHasMacroFields(lastState)){
+    data = { ...lastState, ...data };  // keep macro, overlay minor fields
+  }
   const warActive = !!(data?.secret?.war?.active);
   document.body.classList.toggle('war-room', warActive);
   setWarBadge(warActive);
@@ -1867,6 +1872,24 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
+function rscMergeIntoState(p){
+  const base = (window.__RSC_LAST && typeof window.__RSC_LAST === "object") ? window.__RSC_LAST : {};
+  const merged = { ...base };
+
+  const type = String(p?.type || "").toUpperCase();
+
+  if (type === "CARD2"){
+    merged.card2_state = p.state ?? merged.card2_state ?? null;
+    merged.card2_text  = p.text  ?? merged.card2_text  ?? null;
+    merged._last_card2_ts = p.time ?? merged._last_card2_ts ?? null;
+    merged.type = "CARD2"; // optional, for debugging
+    return merged;
+  }
+
+  // MACRO or anything else: overlay (cycle/count/etc)
+  if (p && typeof p === "object") Object.assign(merged, p);
+  return merged;
+}
 
 // ============================================================
 // STATE MERGE — allow single-card payloads (CARD2 etc)
@@ -1874,17 +1897,16 @@ window.addEventListener("DOMContentLoaded", () => {
 window.handleMacroUpdate = function(payload){
   let p = payload;
 
-  // ---- normalize common server shapes ----
+  // normalize common server shapes
   if (p && typeof p === "object") {
-    if (p.state   && typeof p.state   === "object") p = p.state;
+    if (p.state && typeof p.state === "object") p = p.state;
     else if (p.payload && typeof p.payload === "object") p = p.payload;
-    else if (p.data   && typeof p.data   === "object") p = p.data;
+    else if (p.data && typeof p.data === "object") p = p.data;
   }
 
-  // ---- merge single-card payloads into last known macro state ----
   const merged = rscMergeIntoState(p);
 
-  // ---- validate (but don't block if validator throws) ----
+  // validate merged snapshot (single gate)
   try{
     const v = rscValidateMacro(merged);
     if (!v.ok){
@@ -1895,24 +1917,17 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] validator error, proceeding", e);
   }
 
-  // ---- commit ----
+  // commit canonical state
   window.__RSC_LAST = merged;
-  console.log("[RSC HANDLE OK]", merged);
 
-  // ---- persist macro values when present (NOT card-only) ----
-  const t = String(merged?.type || "").toUpperCase();
-  const hasMacroShape =
-    t === "MACRO" || merged?.cycle || merged?.vol || merged?.flow || merged?.count != null || merged?.sahm != null;
+  // persist ONLY when macro exists
+  if (rscHasMacroFields(merged)) rscSaveMacroCache(merged);
 
-  if (hasMacroShape){
-    try{ rscSaveMacroCache(merged); } catch(e){}
-  }
-
-  // ---- paint ONCE ----
+  // paint once
   if (typeof window.applyAllFromState === "function") window.applyAllFromState(merged);
   else if (typeof applyAllFromState === "function") applyAllFromState(merged);
-  else console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
 };
+
 
 
 
