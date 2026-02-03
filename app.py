@@ -25,7 +25,6 @@ ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
 "card2_state": None,
 "card2_text": None,
-"card2": {"state": None, "text": None, "time": None, "tf": None, "ref_id": None},
 
 # Unified state expected by index.html (+ secret block)
 STATE: Dict[str, Any] = {
@@ -34,6 +33,11 @@ STATE: Dict[str, Any] = {
     "flow": None,
     "count": None,
     "sahm": None,
+
+    # ✅ Card 2 typed lane (new)
+    "card2_state": None,
+    "card2_text": None,
+
     "monitor": {  # ✅ debug + integrity lane
         "last_by_ref": {},     # ref_id -> {ts,type,ticker,tf,time}
         "last_by_ticker": {},  # ticker -> {ts,type,ref_id,tf,time}
