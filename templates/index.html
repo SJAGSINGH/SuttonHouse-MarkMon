@@ -847,7 +847,40 @@ setTerminalStatus('OFFLINE');
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
+// ============================================================
+// MACRO RETAIN (memory + localStorage)
+// ============================================================
+const RSC_MACRO_CACHE_KEY = "SH_MACRO_LAST_V1";
+const RSC_MACRO_KEYS = ["cycle","flow","vol","count","sahm","spx_dd","dd","drawdown","spxDrawdown","spx_dd_pct","_server_ts"];
 
+function rscPickMacroKeys(obj){
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  RSC_MACRO_KEYS.forEach(k => {
+    if (obj[k] !== undefined && obj[k] !== null) out[k] = obj[k];
+  });
+  return out;
+}
+
+function rscSaveMacroCache(state){
+  try{
+    const snap = rscPickMacroKeys(state);
+    if (Object.keys(snap).length) localStorage.setItem(RSC_MACRO_CACHE_KEY, JSON.stringify(snap));
+  } catch(e){}
+}
+
+function rscLoadMacroCache(){
+  try{
+    const raw = localStorage.getItem(RSC_MACRO_CACHE_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    return (j && typeof j === "object") ? j : null;
+  } catch(e){
+    return null;
+  }
+}
+
+    
 function setDebugVisible(v){
   debugOn = !!v;
   const panel = document.getElementById("scada-debug");
@@ -1134,9 +1167,10 @@ function rscApplyClockOffset(rawCount){
     if (c) c.className = 'card';
   });
 
-  setText('val-1','AWAITING'); setText('sub-1','');
-  setText('val-2','AWAITING'); setText('sub-2','');
-  setText('val-3','AWAITING'); setText('sub-3','');
+  if (!data?.cycle) { setText('val-1','AWAITING'); setText('sub-1',''); }
+  if (!data?.flow)  { setText('val-2','AWAITING'); setText('sub-2',''); }
+  if (data?.count == null) { setText('val-3','AWAITING'); setText('sub-3',''); }
+
 
   const t3 = document.getElementById('track-3');
   const fill3 = document.getElementById('fill-3');
@@ -1922,6 +1956,10 @@ window.handleMacroUpdate = function(payload){
 
   window.__RSC_LAST = merged;
   console.log("[RSC HANDLE OK]", merged);
+   // persist macro values when present
+  if (String(merged?.type || "").toUpperCase() === "MACRO" || merged?.cycle || merged?.count != null) {
+    rscSaveMacroCache(merged);
+  }
 
   if (typeof window.applyAllFromState === "function") window.applyAllFromState(merged);
   else if (typeof applyAllFromState === "function") applyAllFromState(merged);
@@ -1952,6 +1990,18 @@ window.handleMacroUpdate = function(payload){
   // WARM START (HEALTH)
   // ============================================================
   (async function warmStart(){
+    // ---- BOOT: paint cached macro instantly (if any) ----
+    try{
+      const cached = rscLoadMacroCache();
+      if (cached){
+        debugSource = "boot localStorage cache";
+        // keep it in memory too
+        window.__RSC_LAST = { ...(window.__RSC_LAST || {}), ...cached };
+        // paint immediately
+        if (typeof window.applyAllFromState === "function") window.applyAllFromState(window.__RSC_LAST);
+      }
+    } catch(e){}
+
     try{
       const r = await fetch('/health', { cache:'no-store' });
       debugSource = "warmstart /health";
