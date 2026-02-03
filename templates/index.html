@@ -772,6 +772,40 @@ const term = document.getElementById('terminal-line');
 if (term) term.style.display = 'inline-flex';
 
 // default state on boot
+
+function setTerminalStatus(mode){
+  const dot  = document.getElementById('term-dot');
+  const text = document.getElementById('term-text');
+  if (!dot || !text) return;
+
+  // reset
+  dot.style.boxShadow = '';
+  dot.style.background = '';
+  text.style.color = '';
+
+  if (mode === 'OK'){
+    dot.style.background = 'var(--lime)';
+    dot.style.boxShadow = '0 0 10px var(--lime)';
+    text.textContent = 'TERMINAL ACTIVE';
+    text.style.color = 'var(--lime)';
+    return;
+  }
+
+  if (mode === 'WARN'){
+    dot.style.background = 'var(--orange)';
+    dot.style.boxShadow = '0 0 10px var(--orange)';
+    text.textContent = 'TERMINAL STALE';
+    text.style.color = 'var(--orange)';
+    return;
+  }
+
+  // OFFLINE (default)
+  dot.style.background = 'var(--red)';
+  dot.style.boxShadow = '0 0 10px var(--red)';
+  text.textContent = 'TERMINAL OFFLINE';
+  text.style.color = 'var(--red)';
+}
+    
 setTerminalStatus('OFFLINE');
 
   function tick(){
