@@ -770,21 +770,41 @@ if (term) term.style.display = 'inline-flex';
 setTerminalStatus('OFFLINE');
 
   function tick(){
-    const now = new Date();
-    const clock = document.getElementById('digital-clock');
-    if (clock) clock.innerText = now.toLocaleTimeString('en-GB', {hour12:false});
+  const now = new Date();
 
-    const hrs = now.getUTCHours();
-    const setCity = (id, open) => {
-      const el = document.getElementById(id);
-      if (el) el.className = open ? 'city-item city-open' : 'city-item';
-    };
-
-    setCity('city-lon', hrs >= 8 && hrs < 16);
-    setCity('city-ny',  hrs >= 13 && hrs < 21);
-    setCity('city-tor', hrs >= 13 && hrs < 21);
-    setCity('city-syd', hrs >= 22 || hrs < 6);
+  // ---- DIGITAL CLOCK (UTC, authoritative) ----
+  const clock = document.getElementById('digital-clock');
+  if (clock){
+    clock.innerText = now.toLocaleTimeString('en-GB', {
+      hour12: false,
+      timeZone: 'UTC'
+    });
   }
+
+  // ---- MARKET HOURS (UTC) ----
+  const hrs = now.getUTCHours();
+
+  const setCity = (id, open) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // hard reset first (prevents class buildup)
+    el.classList.remove('city-open');
+
+    if (open) el.classList.add('city-open');
+  };
+
+  // London: 08–16 UTC
+  setCity('city-lon', hrs >= 8 && hrs < 16);
+
+  // New York & Toronto: 13–21 UTC
+  setCity('city-ny',  hrs >= 13 && hrs < 21);
+  setCity('city-tor', hrs >= 13 && hrs < 21);
+
+  // Sydney: 22–06 UTC (overnight wrap)
+  setCity('city-syd', hrs >= 22 || hrs < 6);
+}
+
   tick();
   setInterval(tick, 1000);
 
