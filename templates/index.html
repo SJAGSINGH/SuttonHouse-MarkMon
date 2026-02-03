@@ -927,6 +927,19 @@ function rscClockStage(count){
   if (c <= 85) return 'LATE';
   return 'END';
 }
+// ============================================================
+// CLOCK OFFSET (UI) — Macro.py count correction
+// If Macro count is +2, set -2 here.
+// ============================================================
+const RSC_CLOCK_OFFSET = -2;
+
+// clamp to 0..100 (cycle clock is percentage style)
+function rscApplyClockOffset(rawCount){
+  const n = Number.parseInt(rawCount, 10);
+  if (!Number.isFinite(n)) return null;
+  const adj = n + RSC_CLOCK_OFFSET;
+  return Math.max(0, Math.min(100, adj));
+}
 
   function setText(id, txt){ const el = document.getElementById(id); if (el) el.innerText = txt; }
 
@@ -1126,29 +1139,49 @@ function _updateDebugBtn() {
   if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
 
   // ============================================================
-  // CARD 1 — REGIME + VOL
+  // CARD 1 — REGIME + VOL (MATCH CARD 3 COLOUR STANDARD)
+  // REAL  -> halo-bg-gold
+  // FIN   -> halo-bg-steel
+  // else  -> halo-bg-silver
   // ============================================================
-  if (data?.cycle){
+  {
     const v1 = document.getElementById('val-1');
+    const s1 = document.getElementById('sub-1');
     const c1 = document.getElementById('card-1');
 
-    const cycleRaw = String(data.cycle);
-    const isCom = cycleRaw.toLowerCase().includes('commod');
+    const cycleRaw = String(data?.cycle || '').trim();
+    const dir = rscRegimeDirection(cycleRaw); // 'REAL' | 'FIN' | null
 
     if (v1){
-      v1.innerText = isCom ? 'STRONG COMMODITIES MACRO' : cycleRaw.toUpperCase();
-      v1.style.color = isCom ? 'var(--gold)' : 'var(--text)';
+      if (!cycleRaw){
+        v1.innerText = 'AWAITING';
+      } else if (dir === 'REAL'){
+        v1.innerText = 'REAL ASSET REGIME';
+      } else if (dir === 'FIN'){
+        v1.innerText = 'FINANCIAL ASSET REGIME';
+      } else {
+        v1.innerText = cycleRaw.toUpperCase();
+      }
+      // headline stays white; halo carries colour
+      v1.style.color = 'var(--text)';
     }
-    if (c1) c1.className = isCom ? 'card halo-bg-gold' : 'card halo-bg-silver';
-  }
 
-  if (data?.vol){
-    const s1 = document.getElementById('sub-1');
-    const vol = String(data.vol).toUpperCase();
+    if (c1){
+      c1.className = 'card';
+      if (dir === 'REAL') c1.classList.add('halo-bg-gold');
+      else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
+      else c1.classList.add('halo-bg-silver');
+    }
 
-    if (s1){
-      s1.innerText = `VOLATILITY: ${vol}`;
-      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+    // volatility line (keep your existing behaviour)
+    if (data?.vol){
+      const vol = String(data.vol).toUpperCase();
+      if (s1){
+        s1.innerText = `VOLATILITY: ${vol}`;
+        s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+      }
+    } else {
+      if (s1) { s1.innerText = ''; s1.style.color = 'var(--text)'; }
     }
   }
 
@@ -1160,8 +1193,9 @@ function _updateDebugBtn() {
   // ============================================================
   if (data?.count === undefined || data?.count === null) return;
 
-  const count = Number.parseInt(data.count, 10);
-  if (!Number.isFinite(count)) return;
+  const count = rscApplyClockOffset(data.count); // ✅ OFFSET APPLIED
+  if (count === null) return;
+
 
   const v3 = document.getElementById('val-3');
   const s3 = document.getElementById('sub-3');
