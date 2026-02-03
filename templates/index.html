@@ -1654,21 +1654,26 @@ function applyAllFromState(data) {
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-    // ---------- Glow rule
-    // Copy Card1 glow-* ONLY when aligned; otherwise neutral card
-    const c1Class = (c1 && c1.className) ? c1.className : "";
-    const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
+   // ---------- HALO rule (Card2 inherits Card1 halo ONLY when aligned)
+  // Copy Card1 halo-bg-* ONLY when aligned; otherwise Card2 goes halo-bg-silver (neutral)
+  const c1Class = (c1 && c1.className) ? c1.className : "";
+  const haloClass = c1Class.split(" ").find(x => x.startsWith("halo-bg-"));
 
-    if (aligned && glowClass) {
-      c2.className = `card ${glowClass}`.trim();
-      c2.style.borderColor = "";
-      c2.style.boxShadow = "";
-    } else {
-      // neutral
-      c2.className = "card";
-      c2.style.borderColor = "rgba(255,255,255,0.20)";
-      c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
-    }
+  c2.className = "card"; // hard reset always
+
+  if (aligned) {
+    // If aligned, inherit Card1 halo (gold/steel/silver)
+    if (haloClass) c2.classList.add(haloClass);
+    else c2.classList.add("halo-bg-silver");
+  } else {
+  // If diverging/unknown, force neutral halo
+    c2.classList.add("halo-bg-silver");
+  }
+
+// Keep styles clean (halo CSS owns the look)
+  c2.style.borderColor = "";
+  c2.style.boxShadow = "";
+
 
     // ---------- HARD CLEANUP: remove/hide any old/legacy Card2 extra elements if present
     const legacyIds = ["val-2-sub", "val2-sub", "ror-2", "ror2", "card2-ror", "card2-note"];
