@@ -848,20 +848,24 @@ setTerminalStatus('OFFLINE');
 let debugOn = false;
 let debugSource = "—";
 // ============================================================
-// MACRO RETAIN (memory + localStorage)
+// MACRO RETAIN (memory + localStorage) — SINGLE SOURCE OF TRUTH
 // ============================================================
 const RSC_MACRO_CACHE_KEY = "SH_MACRO_LAST_V1";
-const RSC_MACRO_KEYS = ["cycle","flow","vol","count","sahm","spx_dd","dd","drawdown","spxDrawdown","spx_dd_pct","_server_ts"];
 
-function rscPickMacroKeys(obj){
-  const out = {};
-  if (!obj || typeof obj !== "object") return out;
-  RSC_MACRO_KEYS.forEach(k => {
-    if (obj[k] !== undefined && obj[k] !== null) out[k] = obj[k];
-  });
-  return out;
+// Treat any of these as "macro present" (prevents UI resets)
+function rscHasMacroFields(d){
+  if (!d || typeof d !== "object") return false;
+  return (
+    d.cycle != null ||
+    d.count != null ||
+    d.vol   != null ||
+    d.flow  != null ||
+    d.sahm  != null ||
+    d._server_ts != null
+  );
 }
 
+// Save only stable macro fields (slim snapshot)
 function rscSaveMacroCache(state){
   if (!state || typeof state !== "object") return;
 
@@ -871,22 +875,18 @@ function rscSaveMacroCache(state){
     flow:  state.flow  ?? null,
     count: state.count ?? null,
     sahm:  state.sahm  ?? null,
+    spx_dd: state.spx_dd ?? null,
+    dd: state.dd ?? null,
+    drawdown: state.drawdown ?? null,
+    spxDrawdown: state.spxDrawdown ?? null,
+    spx_dd_pct: state.spx_dd_pct ?? null,
     _server_ts: state._server_ts ?? null
   };
 
-  localStorage.setItem("RSC_MACRO_CACHE_V1", JSON.stringify(slim));
-}
-
-function rscLoadMacroCache(){
   try{
-    const raw = localStorage.getItem("RSC_MACRO_CACHE_V1");
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch(e){
-    return null;
-  }
+    localStorage.setItem(RSC_MACRO_CACHE_KEY, JSON.stringify(slim));
+  } catch(e){}
 }
-
 
 function rscLoadMacroCache(){
   try{
@@ -899,328 +899,40 @@ function rscLoadMacroCache(){
   }
 }
 
-    
-function setDebugVisible(v){
-  debugOn = !!v;
-  const panel = document.getElementById("scada-debug");
-  if (panel) panel.style.display = debugOn ? "block" : "none";
-  if (debugOn) refreshDebugNow();
-}
-
-async function refreshDebugNow(){
-  if (!debugOn) return;
-
-  // Prefer server-side debug snapshot if available
-  try{
-    const r = await fetch("/debug.json", { cache:"no-store" });
-    if (r.ok){
-      const j = await r.json();
-      paintDebug(j?.state ?? j);
-      return;
-    }
-  } catch(e){}
-
-  // Fallback: use last known UI payload
-  if (window.__RSC_LAST) paintDebug(window.__RSC_LAST);
-}
-
-function paintDebug(stateObj){
-  const pre = document.getElementById("dbg-json");
-  if (pre) pre.textContent = JSON.stringify(stateObj, null, 2);
-
-  const tsRaw = stateObj?._server_ts ?? null;
-  let ts = (tsRaw === null || tsRaw === undefined) ? null : Number(tsRaw);
-  if (Number.isFinite(ts) && ts < 1e12) ts = ts * 1000;
-
-  const tsEl = document.getElementById("dbg-last-ts");
-  const ageEl = document.getElementById("dbg-age");
-  const srcEl = document.getElementById("dbg-path");
-
-  if (tsEl) tsEl.textContent = `LAST TS: ${ts ? new Date(ts).toISOString() : "—"}`;
-
-  if (ageEl){
-    if (!ts){
-      ageEl.textContent = "AGE: —";
-      ageEl.className = "badge";
-    } else {
-      const ageMs = Date.now() - ts;
-      const ageS = Math.round(ageMs/1000);
-      ageEl.textContent = `AGE: ${ageS}s`;
-
-      ageEl.className = "badge";
-      if (ageS <= 15) ageEl.classList.add("badge-good");
-      else if (ageS <= 60) ageEl.classList.add("badge-warn");
-      else ageEl.classList.add("badge-bad");
-    }
-  }
-
-  if (srcEl) srcEl.textContent = `SOURCE: ${debugSource || "—"}`;
-}
-
-
-
-
-// keep updating while visible
-setInterval(() => { if (debugOn) refreshDebugNow(); }, 2000);
-  
-function rscRegimeDirection(cycleStr){
-  const s = String(cycleStr || '').toLowerCase();
-
-  // Real asset regime keywords
-  if (s.includes('commod') || s.includes('real asset') || s.includes('hard asset') || s.includes('gold')) return 'REAL';
-
-  // Financial asset regime keywords
-  if (s.includes('financial') || s.includes('equities') || s.includes('risk-on') || s.includes('stocks')) return 'FIN';
-
-  return null; // no regime / unknown
-}
-
-function rscClockStage(count){
-  const c = Number.parseInt(count, 10);
-  if (!Number.isFinite(c)) return null;
-  if (c <= 0)  return 'INITIATING';
-  if (c <= 25) return 'EARLY';
-  if (c <= 70) return 'MID';
-  if (c <= 85) return 'LATE';
-  return 'END';
-}
-
-  function setText(id, txt){ const el = document.getElementById(id); if (el) el.innerText = txt; }
-
-  function _extract6mRor(flowRaw){
-    if (!flowRaw) return null;
-    const s = String(flowRaw);
-    const m = s.match(/6M\s*R(?:O)?R\s*[:\-]?\s*([+\-]?\d+(\.\d+)?)\s*%/i);
-    if (!m) return null;
-    const v = parseFloat(m[1]);
-    return Number.isFinite(v) ? v : null;
-  }
-  function _classifyRor(r){ if (r === null) return 'UNKNOWN'; if (r < 0) return 'NEGATIVE'; if (r <= 2) return 'FLAT'; return 'RISING'; }
-  function _clockBucket(count){ const c = parseInt(count, 10); if (!Number.isFinite(c)) return null; return (c <= 40) ? 'LOW' : 'HIGH'; }
-  function _card2Interpretation(rorClass, clockBucket){
-    if (!clockBucket) return { label:'CYCLE CLOCK PENDING', tone:'', rule:'Waiting for Cycle Clock…' };
-    if (rorClass === 'UNKNOWN') return { label:'6M RoR PENDING', tone:'', rule:'Waiting for 6M RoR…' };
-    if (rorClass === 'RISING'   && clockBucket === 'LOW')  return { label:'TREND CONFIRMATION', tone:'badge-good', rule:'Rising RoR + Low clock → trend confirmation.' };
-    if (rorClass === 'FLAT'     && clockBucket === 'LOW')  return { label:'OPPORTUNITY / CONSOLIDATION', tone:'badge-warn', rule:'Flat/slowing RoR + Low clock → consolidation / opportunity.' };
-    if (rorClass === 'NEGATIVE' && clockBucket === 'HIGH') return { label:'DISTRIBUTION RISK', tone:'badge-bad', rule:'Negative RoR + High clock → distribution risk.' };
-    if (rorClass === 'FLAT'     && clockBucket === 'HIGH') return { label:'LATE CYCLE WARNING', tone:'badge-warn', rule:'Flat/slowing RoR + High clock → late-cycle warning.' };
-    if (rorClass === 'RISING'   && clockBucket === 'HIGH') return { label:'LATE CYCLE — WATCH', tone:'badge-warn', rule:'Rising RoR + High clock → strong trend, but late-cycle watch.' };
-    return { label:'CONTEXT ACTIVE', tone:'', rule:'Context active.' };
-  }
-  function _renderCard2Meta(flowRaw, count){
-    const host = document.getElementById('card2-meta'); if (!host) return;
-    const r = _extract6mRor(flowRaw); const rClass = _classifyRor(r); const cb = _clockBucket(count); const out = _card2Interpretation(rClass, cb);
-    const rTxt = (r === null) ? '—' : (r.toFixed(2) + '%'); const cVal = parseInt(count, 10); const cTxt = Number.isFinite(cVal) ? (cVal + '%') : '—';
-    const pill = out.tone ? `<span class="badge ${out.tone}">${out.label}</span>` : `<span class="badge">${out.label}</span>`;
-    host.innerHTML = `
-      <div><strong>6M RoR:</strong> ${rTxt} &nbsp; <strong>CYCLE CLOCK:</strong> ${cTxt}</div>
-      <div style="margin-top:10px;">${pill}</div>
-      <div style="margin-top:10px;opacity:.85;">${out.rule || ''}</div>`;
-  }
-
-  function hideGauge(id){ const host = document.getElementById(id); if (host){ host.style.display='none'; host.innerHTML=''; } }
-  function showGauge(id, level, title, metaLines, palette){
-    const host = document.getElementById(id); if (!host) return;
-    const bars = mkSingleBars(level, palette || XY_COL);
-    const metaHtml = (Array.isArray(metaLines) && metaLines.length) ? `<div class="gmeta">${metaLines.map(x=>`<div>${x}</div>`).join('')}</div>` : '';
-    host.innerHTML = `
-      <div class="gauge">
-        <div class="gauge-title">${title}</div>
-        <div class="gauge-bars">${bars}</div>
-      </div>
-      ${metaHtml}`;
-    host.style.display='block';
-  }
-  function showDualGauge(id, buyLevel, sellLevel, title, metaLines){
-    const host = document.getElementById(id); if (!host) return;
-    const buyBars = mkDualBars(buyLevel, BUY_COL); const sellBars = mkDualBars(sellLevel, SELL_COL);
-    const metaHtml = (Array.isArray(metaLines) && metaLines.length) ? `<div class="gmeta">${metaLines.map(x=>`<div>${x}</div>`).join('')}</div>` : '';
-    host.innerHTML = `
-      <div class="gauge">
-        <div class="gauge-title">${title}</div>
-        <div style="width:100%;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">BUY</div>
-            <div class="gauge-bars">${buyBars}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">SELL</div>
-            <div class="gauge-bars">${sellBars}</div>
-          </div>
-        </div>
-      </div>
-      ${metaHtml}`;
-    host.style.display='block';
-  }
-
-  // ----------------------------
-  // SECRET MODE
-  // ----------------------------
-  // ----------------------------
-// FOUNDER SESSION GATE
-// ----------------------------
-
-const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only
-
-function isFounderUnlocked(){
-  return sessionStorage.getItem(FOUNDER_KEY) === "1";
-}
-
-function setFounderUnlocked(v){
-  if (v) sessionStorage.setItem(FOUNDER_KEY, "1");
-  else sessionStorage.removeItem(FOUNDER_KEY);
-  founderMode = !!v; // <-- keep in sync
-}
-
-// boot: set founderMode from session storage
-setFounderUnlocked(isFounderUnlocked());
-_updateDebugBtn();
-
-// ----------------------------
-// VAULT VIEW (UI MODE)
-// ----------------------------
-
-// ----------------------------
-// DEBUG BUTTON (secret + shift only)
-// ----------------------------
-
-
-function _updateDebugBtn() {
-  if (typeof secretMode === "undefined") return;
-
-  const btn = document.getElementById("dbg-toggle");
-  if (!btn) return;
-
-  btn.style.display = secretMode ? "block" : "none";
-}
-
-
-
-
-
-// click → open debug page in a new tab
-(function wireDebugBtn(){
-  const btn = document.getElementById('dbg-toggle');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    window.open('/debug', '_blank', 'noopener');
-  });
-})();
-
-
-  function enableSecretMode(){
-  setFounderUnlocked(true);   // <-- ADD THIS
-  secretMode = true;
-  _updateDebugBtn();  
-
-  const exitBtn = document.getElementById('vault-exit'); 
-  if (exitBtn) exitBtn.style.display = 'inline-flex';
-
-  setText('h3-1', 'Institutional X'); 
-  setText('h3-2', 'Institutional Y'); 
-  setText('h3-3', 'Institutional Buyers / Sellers');
-
-  ['card-1','card-2','card-3'].forEach(id => { 
-    const c = document.getElementById(id); 
-    if (c) c.className = 'card halo-bg-secret'; 
-  });
-
-  const t3 = document.getElementById('track-3'); 
-  if (t3) t3.style.display = 'none';
-
-  if (lastState) applySecretFromState(lastState);
-}
-
-  function closeVault(){
-    
-    const exitBtn = document.getElementById('vault-exit'); if (exitBtn) exitBtn.style.display = 'none';
-    hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
-    setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
-    if (lastState) applyPublicFromState(lastState); else applyPublicFromState({});
-    _updateDebugBtn();
-  }
-  function applyFounderHaze(dir){
-    const c3 = document.getElementById('card-3');
-    if (!c3) return;
-
-    // always clean first
-    c3.classList.remove('haze-gold','haze-steel');
-
-    if (!founderMode || !dir) return;
-
-    if (dir === 'REAL') c3.classList.add('haze-gold');
-    if (dir === 'FIN')  c3.classList.add('haze-steel');
-   }
-  
-  window.closeVault = closeVault;
-
-  function setWarBadge(active){
-    const badge = document.getElementById('war-badge'); if (!badge) return;
-    badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
-  }
- // ============================================================
-// CLOCK OFFSET (UI) — Macro.py count correction
-// If Macro count is +2, set -2 here.
 // ============================================================
-const RSC_CLOCK_OFFSET = -2;
-
-// clamp to 0..100 (cycle clock is percentage style)
-function rscApplyClockOffset(rawCount){
-  const n = Number.parseInt(rawCount, 10);
-  if (!Number.isFinite(n)) return null;
-  const adj = n + RSC_CLOCK_OFFSET;
-  return Math.max(0, Math.min(100, adj));
-}
-
-  // ----------------------------
- // ============================================================
-// MACRO PRESENCE CHECK — prevents UI resets on partial payloads
+// PUBLIC APPLY — STABLE (no early returns, no macro wipe)
+// NOTE: Card2 short-term bias is rendered in applyAllFromState,
+// so Public Apply should NOT overwrite Card2 headline.
 // ============================================================
-function rscHasMacroFields(d){
-  if (!d || typeof d !== "object") return false;
-
-  // treat ANY of these as “macro present”
-  return (
-    d.cycle != null ||
-    d.count != null ||
-    d.vol   != null ||
-    d.flow  != null ||
-    d.sahm  != null ||
-    d._server_ts != null
-  );
-}
- // PUBLIC APPLY
-  // ----------------------------
 function applyPublicFromState(data){
 
-  // if this update is partial (no macro fields), reuse last macro snapshot
+  // If this update is partial (no macro fields), reuse last macro snapshot
   if (!rscHasMacroFields(data) && rscHasMacroFields(lastState)){
-    data = { ...lastState, ...data };  // keep macro, overlay minor fields
+    data = { ...lastState, ...data };
   }
+
   const warActive = !!(data?.secret?.war?.active);
   document.body.classList.toggle('war-room', warActive);
   setWarBadge(warActive);
 
-  // ---------- reset ----------
+  // ---------- reset cards ----------
   ['card-1','card-2','card-3'].forEach(id => {
     const c = document.getElementById(id);
     if (c) c.className = 'card';
   });
 
-  if (!data?.cycle) { setText('val-1','AWAITING'); setText('sub-1',''); }
-  if (!data?.flow)  { setText('val-2','AWAITING'); setText('sub-2',''); }
+  // Only set AWAITING if truly missing (don't wipe if data present)
+  if (data?.cycle == null) { setText('val-1','AWAITING'); setText('sub-1',''); }
   if (data?.count == null) { setText('val-3','AWAITING'); setText('sub-3',''); }
-
+  // IMPORTANT: DO NOT touch val-2/sub-2 here (Card2 is owned elsewhere)
 
   const t3 = document.getElementById('track-3');
   const fill3 = document.getElementById('fill-3');
   if (t3) t3.style.display = 'none';
   if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
+
   // ============================================================
-  // CARD 1 — REGIME + VOL (MATCH CARD 3 COLOUR STANDARD)
-  // REAL  -> halo-bg-gold
-  // FIN   -> halo-bg-steel
-  // else  -> halo-bg-silver
+  // CARD 1 — REGIME + VOL
   // ============================================================
   {
     const v1 = document.getElementById('val-1');
@@ -1231,32 +943,21 @@ function applyPublicFromState(data){
     const dir = rscRegimeDirection(cycleRaw); // 'REAL' | 'FIN' | null
 
     if (v1){
-      // headline text standard
-      if (!cycleRaw){
-        v1.innerText = 'AWAITING';
-      } else if (dir === 'REAL'){
-        v1.innerText = 'REAL ASSET REGIME';
-      } else if (dir === 'FIN'){
-        v1.innerText = 'FINANCIAL ASSET REGIME';
-      } else {
-        v1.innerText = cycleRaw.toUpperCase();
-      }
+      if (!cycleRaw) v1.innerText = 'AWAITING';
+      else if (dir === 'REAL') v1.innerText = 'REAL ASSET REGIME';
+      else if (dir === 'FIN')  v1.innerText = 'FINANCIAL ASSET REGIME';
+      else v1.innerText = cycleRaw.toUpperCase();
 
-      // keep headline white (colour comes from halo)
       v1.style.color = 'var(--text)';
     }
 
     if (c1){
-      // reset base
       c1.className = 'card';
-
-      // apply regime halo only when we actually know regime
       if (dir === 'REAL') c1.classList.add('halo-bg-gold');
       else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
       else c1.classList.add('halo-bg-silver');
     }
 
-    // volatility line (unchanged behaviour)
     if (data?.vol){
       const vol = String(data.vol).toUpperCase();
       if (s1){
@@ -1268,663 +969,100 @@ function applyPublicFromState(data){
     }
   }
 
-
   // ============================================================
-  // CARD 2 — ROTATION + META
+  // CARD 3 — CYCLE CLOCK
   // ============================================================
-  const hasFlow = (data?.flow !== undefined && data?.flow !== null && String(data.flow).trim() !== '');
-  if (hasFlow){
-    const v2 = document.getElementById('val-2');
-    const s2 = document.getElementById('sub-2');
-    const c2 = document.getElementById('card-2');
+  {
+    if (data?.count == null) return; // safe exit: Card1 already painted, Card2 handled elsewhere
 
-    const flowRaw = String(data.flow).trim();
-    const parts = flowRaw.split('|').map(x => (x || '').trim()).filter(Boolean);
-    const headline = (parts[0] || 'ROTATION ACTIVE').trim();
-    const detail = (parts.length >= 2) ? parts.slice(1).join(' | ').trim() : '';
+    const count = rscApplyClockOffset(data.count);
+    if (count === null) return;
 
-    const flowLower = flowRaw.toLowerCase();
-    const intoCom = flowLower.includes('into commodities');
-    const intoEq  = flowLower.includes('into equities');
+    const v3  = document.getElementById('val-3');
+    const s3  = document.getElementById('sub-3');
+    const c3  = document.getElementById('card-3');
+    const t3b = document.getElementById('track-3');
+    const f3b = document.getElementById('fill-3');
 
-    const cycleLower = String(data?.cycle || '').toLowerCase();
-    const isComCycle = cycleLower.includes('commod');
+    if (t3b) t3b.style.display = 'block';
+    if (f3b) f3b.style.width = `${count}%`;
+    if (s3)  s3.innerText = `MATURITY: ${count}%`;
 
-    const makeGold = intoCom || isComCycle;
+    const stage = rscClockStage(count) || 'INITIATING';
+    const dir = rscRegimeDirection(data?.cycle);
+    applyFounderHaze(dir);
 
-    if (v2){
-      v2.innerText = headline.toUpperCase();
-      v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
+    let headline = `NO REGIME → ${stage}`;
+    let cardClass = 'card halo-bg-silver';
+    let fillCol = 'var(--silver)';
+
+    if (dir === 'REAL'){
+      headline = `REAL ASSET REGIME → ${stage}`;
+      cardClass = 'card halo-bg-gold';
+      fillCol = 'var(--gold)';
+    } else if (dir === 'FIN'){
+      headline = `FINANCIAL ASSET REGIME → ${stage}`;
+      cardClass = 'card halo-bg-steel';
+      fillCol = 'var(--steel)';
     }
 
-    if (s2){
-      const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
-      const line = detail ? detail : fallback;
-      s2.innerText = line.toUpperCase();
-      s2.style.color = 'var(--text)';
-      s2.style.display = 'block';
+    if (count >= 86){
+      cardClass = 'card glow-danger';
+      fillCol = 'var(--red)';
+    } else if (count >= 71){
+      cardClass = 'card glow-warning';
+      fillCol = 'var(--orange)';
     }
 
-    if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
-
-    _renderCard2Meta(flowRaw, data?.count ?? null);
-  } else {
-    _renderCard2Meta(null, data?.count ?? null);
-  }
-
-    // ============================================================
-  // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
-  // Uses count OFFSET: rscApplyClockOffset()
-  // ============================================================
-  if (data?.count === undefined || data?.count === null) return;
-
-  const count = rscApplyClockOffset(data.count); // ✅ OFFSET APPLIED HERE
-  if (count === null) return;
-
-  const v3  = document.getElementById('val-3');
-  const s3  = document.getElementById('sub-3');
-  const c3  = document.getElementById('card-3');
-  const t3b = document.getElementById('track-3');
-  const f3b = document.getElementById('fill-3');
-
-  // bar
-  if (t3b) t3b.style.display = 'block';
-  if (f3b) f3b.style.width = `${count}%`;
-  if (s3)  s3.innerText = `MATURITY: ${count}%`;
-
-  const stage = rscClockStage(count) || 'INITIATING';
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
-  applyFounderHaze(dir);
-
-  let headline = `NO REGIME → ${stage}`;
-  let cardClass = 'card halo-bg-silver';
-  let fillCol = 'var(--silver)';
-
-  if (dir === 'REAL'){
-    headline = `REAL ASSET REGIME → ${stage}`;
-    cardClass = 'card halo-bg-gold';
-    fillCol = 'var(--gold)';
-  } else if (dir === 'FIN'){
-    headline = `FINANCIAL ASSET REGIME → ${stage}`;
-    cardClass = 'card halo-bg-steel';
-    fillCol = 'var(--steel)';
-  }
-
-  // late/end overlays dominate regime color
-  if (count >= 86){
-    cardClass = 'card glow-danger';
-    fillCol = 'var(--red)';
-  } else if (count >= 71){
-    cardClass = 'card glow-warning';
-    fillCol = 'var(--orange)';
-  }
-
-  if (v3){
-    v3.innerText = headline;
-    v3.style.color = 'var(--text)';
-  }
-  if (c3) c3.className = cardClass;
-  if (f3b) f3b.style.background = fillCol;
-
-}
-  // ----------------------------
-  // SECRET APPLY (unchanged)
-  // ----------------------------
-  function applySecretFromState(data){
-    const secret = (data && data.secret) ? data.secret : {};
-    const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
-    const warActive = !!(secret && secret.war && secret.war.active);
-    document.body.classList.toggle('war-room', warActive); setWarBadge(false);
-
-    const v1 = document.getElementById('val-1'); const s1 = document.getElementById('sub-1'); const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3');
-
-    const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
-    setText('val-1', xVal); setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL'); if (v1) v1.style.color = 'var(--text)'; if (s1) s1.style.color = 'var(--text)';
-    showGauge('gauge-1', vix.level, 'LEVEL', [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`], XY_COL);
-
-    const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
-    setText('val-2', yVal); setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL'); if (v2) v2.style.color = 'var(--text)'; if (s2) s2.style.color = 'var(--text)';
-    showGauge('gauge-2', gvz.level, 'LEVEL', [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`], XY_COL);
-
-    const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
-    const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
-    setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-    setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-    if (v3) v3.style.color = 'var(--text)'; if (s3) s3.style.color = 'var(--text)';
-
-    const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-    const sellL = Number.isFinite(sell.level) ? sell.level : 0;
-    showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
-  }
-
-  // ----------------------------
-  // MONITORING STATE APPLY (unchanged)
-  // ----------------------------
-  function applyMonitoringFromState(data){
-    const m = data && data.monitor ? data.monitor : {};
-    const ticker   = (m.ticker || '').toUpperCase();
-    const trigger  = (m.trigger || '').toUpperCase();
-    const status   = m.status || '';
-    const setup    = m.setup;
-    const trend    = (m.trend || '').toUpperCase();
-    const strategy = (m.strategy || '').toUpperCase();
-    const updated  = m.updated || '';
-
-    const tickerEl = document.getElementById('mon-ticker');
-    const trigEl   = document.getElementById('mon-trigger');
-    const statusEl = document.getElementById('mon-status');
-    if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
-    if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
-    if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
-
-    const setupEl = document.getElementById('mon-setup');
-    if (setupEl){ setupEl.className = 'badge'; if (setup === true || setup === 'ON'){ setupEl.classList.add('badge-warn'); setupEl.innerText = 'SETUP: ACTIVE'; } else { setupEl.innerText = 'SETUP: INACTIVE'; } }
-
-    const trendEl = document.getElementById('mon-trend');
-    if (trendEl){ trendEl.className = 'badge'; if (trend === 'ALIGNED'){ trendEl.classList.add('badge-good'); trendEl.innerText = 'TREND: ALIGNED'; } else if (trend === 'MISALIGNED'){ trendEl.classList.add('badge-bad'); trendEl.innerText = 'TREND: MISALIGNED'; } else { trendEl.innerText = 'TREND: —'; } }
-
-    const stratEl = document.getElementById('mon-strategy'); if (stratEl){ stratEl.className = 'badge'; stratEl.innerText = `STRATEGY: ${strategy || '—'}`; }
-    const updEl   = document.getElementById('mon-updated');  if (updEl){   updEl.innerText   = `UPDATED: ${updated || '—'}`; }
-
-    const card = document.getElementById('monitor-card');
-    if (card){
-      card.className = 'card card-wide';
-      const setupOn = (setup === true || setup === 'ON');
-      if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
-      if (trend === 'MISALIGNED')          card.classList.add('glow-danger');
-      if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
+    if (v3){
+      v3.innerText = headline;
+      v3.style.color = 'var(--text)';
     }
+    if (c3) c3.className = cardClass;
+    if (f3b) f3b.style.background = fillCol;
   }
-  function applyMessageFromState(data){
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
-  const m = (data && data.monitor) ? data.monitor : {};
-
-  const headlineEl = document.getElementById('msg-headline');
-  const subEl      = document.getElementById('msg-subline');
-
-  const bReg = document.getElementById('msg-regime');
-  const bSet = document.getElementById('msg-setup');
-  const bSig = document.getElementById('msg-signal');
-  const bObs = document.getElementById('msg-observe');
-
-  const card = document.getElementById('msg-card');
-
-  // helpers
-  const setBadge = (el, text, tone) => {
-    if (!el) return;
-    el.className = 'badge';
-    if (tone) el.classList.add(tone);
-    el.innerText = text;
-  };
-
-  const setupOn = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
-  const trigRaw = String(m.trigger || '').trim();
-  const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
-
-  const ticker = String(m.ticker || '').toUpperCase();
-
-  // Default: neutral, no fanfare
-  if (card){
-    card.className = 'card card-wide halo-bg-silver';
-  }
-
-  // 1) WAITING — REGIME
-  if (!dir){
-    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
-    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
-    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
-    setBadge(bSet, 'WAITING — SETUP', '');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
-    return;
-  }
-
-  // Regime confirmed (direction is known)
-  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
-
-  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
-
-  // Founder-only: subtle haze behind message card (no action implication)
-  // Uses your existing halo classes (direction only)
-  if (founderMode && card){
-    if (dir === 'REAL') card.className = 'card card-wide halo-bg-gold';
-    if (dir === 'FIN')  card.className = 'card card-wide halo-bg-steel';
-  }
-
-  // 2) WAITING — SETUP
-  if (!setupOn){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SETUP STATE';
-    if (subEl) subEl.innerText = 'Direction confirmed. Setup not active.';
-    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
-    return;
-  }
-
-  setBadge(bSet, 'SETUP: ACTIVE', 'badge-good');
-
-  // 3) WAITING — SIGNAL
-  if (!hasSignal){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SIGNAL STATE';
-    if (subEl) subEl.innerText = 'Setup active. Waiting for trigger.';
-    setBadge(bSig, 'WAITING — SIGNAL', 'badge-warn');
-    setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: WATCHLIST', '');
-    return;
-  }
-
-  // 4) SIGNAL DETECTED (still not action; “observe stock cards”)
-  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
-  if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
-  setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
-  setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
 }
 
-    
-
-  
-
-  /* === RSC MOCK MODE (REMOVE LATER) === */
-  window.RSC_MOCK = false;
-  function emitMockMacro(payload){
-    if (!window.RSC_MOCK) return;
-    console.log("[RSC MOCK]", payload);
-    if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
-    else applyAllFromState(payload);
-  }
-
-  // ----------------------------
-  // SOCKET.IO
-  // ----------------------------
-  let socket = null;
-  try{
-    if (window.io){
-      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-      socket.on('connect', () => {
-        console.log('CONNECTED');
-      const el = document.getElementById("dbg-socket");
-      if (el){
-        el.textContent = "SOCKET: CONNECTED";
-        el.className = "badge badge-good";
-      }
-    });
-      socket.on('connect_error', (e) => {
-        console.log('SOCKET ERROR', e);
-        const el = document.getElementById("dbg-socket");
-        if (el){
-          el.textContent = "SOCKET: ERROR";
-          el.className = "badge badge-bad";
-      }
-    });
-    } else {
-      console.log('Socket.IO not loaded; clock will still run.');
-    }
-  } catch(e){
-    console.log('Socket init failed; clock will still run.', e);
-  }
-  function setTerminalStatus(mode){
-  const dot  = document.getElementById('term-dot');
-  const text = document.getElementById('term-text');
-  if (!dot || !text) return;
-
-  // reset
-  dot.style.boxShadow = '';
-  dot.style.background = '';
-  text.style.color = '';
-
-  if (mode === 'OK'){
-    dot.style.background = 'var(--lime)';
-    dot.style.boxShadow = '0 0 10px var(--lime)';
-    text.textContent = 'TERMINAL ACTIVE';
-    text.style.color = 'var(--lime)';
-    return;
-  }
-
-  if (mode === 'WARN'){
-    dot.style.background = 'var(--orange)';
-    dot.style.boxShadow = '0 0 10px var(--orange)';
-    text.textContent = 'TERMINAL STALE';
-    text.style.color = 'var(--orange)';
-    return;
-  }
-
-  // OFFLINE
-  dot.style.background = 'var(--red)';
-  dot.style.boxShadow = '0 0 10px var(--red)';
-  text.textContent = 'TERMINAL OFFLINE';
-  text.style.color = 'var(--red)';
-}
-  
-  // ============================================================
-// SCADA COMMS (AGE / SOURCE / LAST)
 // ============================================================
-function rscSetComms(source, payload){
-  const elAge  = document.getElementById('scada-age');
-  const elSrc  = document.getElementById('scada-source');
-  const elLast = document.getElementById('scada-last');
-  const wrap   = document.getElementById('scada-comms');
-  if (!elAge || !elSrc || !elLast) return;
-
-  // ---- normalize common server shapes ----
-  let p = payload;
-  if (p && typeof p === "object") {
-    if (p.state && typeof p.state === "object") p = p.state;
-    else if (p.payload && typeof p.payload === "object") p = p.payload;
-    else if (p.data && typeof p.data === "object") p = p.data;
-  }
-
-  // ---- read ts (seconds or ms) ----
-  let ts = (p && p._server_ts != null) ? Number(p._server_ts) : null;
-  if (Number.isFinite(ts) && ts < 1e12) ts *= 1000; // seconds -> ms
-    const term = document.getElementById('terminal-line');
-    if (term) term.style.display = 'inline-flex';
-  // Always show source even if ts missing
-  elSrc.textContent = `SOURCE: ${source || '—'}`;
-
-if (!Number.isFinite(ts)){
-  elLast.textContent = `LAST: —`;
-  elAge.textContent  = `AGE: —`;
-  setTerminalStatus('OFFLINE');     // <--- ADD
-  return;
-}
-
-  const dt = new Date(ts);
-  elLast.textContent = `LAST: ${dt.toISOString()}`;
-
- const tick = () => {
-  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  elAge.textContent = `AGE: ${s}s`;
-
-  // status logic
-  if (s <= 1200) setTerminalStatus('OK');
-  else if (s <= 4500) setTerminalStatus('WARN');
-  else setTerminalStatus('OFFLINE');
-};
-  tick();
-
-  clearInterval(window.__RSC_AGE_TMR);
-  window.__RSC_AGE_TMR = setInterval(tick, 1000);
-
-  if (wrap){
-    wrap.classList.add('flash');
-    setTimeout(() => wrap.classList.remove('flash'), 250);
-  }
-}
-
- 
-function applyAllFromState(data) {
-  lastState = data || {};
-
-  // --- WAR badge (unchanged) ---
-  const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-  setWarBadge(warActive);
-
-  // --- Existing render lanes (unchanged) ---
-  if (!secretMode) applyPublicFromState(data);
-  else applySecretFromState(data);
-
-  applyMonitoringFromState(data);
-  applyMessageFromState(data);
-
-  // ============================================================
-  // CARD 2 — SHORT-TERM BIAS (jR Trender primary, MSA fallback)
-  // Doctrine:
-  // - If Card 1 thesis == Card 2 thesis → Card 2 takes Macro colour
-  // - If diverging → Card 2 goes neutral + locked wording
-  // Locked wording when aligned: “Short-term preference remains consistent with macro conditions”
-  // ============================================================
-
-   // ============================================================
-  // CARD 2 — SHORT-TERM BIAS (clean UI + aligned glow copy)
-  // - Main line fixed: "SHORT-TERM PREFERENCE REMAINS" (white)
-  // - Status line below: CONSISTENT / WEAKNESS / UNCLEAR (coloured, small)
-  // - Glow rule: ONLY if Card2 thesis aligns with Card1 capital flow thesis
-  // ============================================================
- (function applyCard2FromState(){
-  const c2  = document.getElementById("card-2");
-  const v2  = document.getElementById("val-2");
-  const v2b = document.getElementById("val-2b");
-  const c1  = document.getElementById("card-1");
-  if (!c2 || !v2 || !v2b) return;
-
-  // fixed headline
-  v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
-
-  // Pull from merged state (supports both merged keys + nested card2 object)
-  const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
-
-  const stateRaw =
-    (data?.card2_state ?? data?.card2State ?? null) ??
-    (card2Obj?.state ?? null) ??
-    null;
-
-  const textRaw =
-    (data?.card2_text ?? data?.card2Text ?? null) ??
-    (card2Obj?.text ?? null) ??
-    null;
-
-  const s2 = String(stateRaw ?? "").toUpperCase();
-  const t2 = String(textRaw ?? "");
-
-  // status line
-  if (s2 === "GREEN" || s2 === "LIME"){
-    v2b.textContent = "CONSISTENT WITH MACRO CONDITIONS";
-    v2b.classList.remove("card2-red","card2-neutral");
-    v2b.classList.add("card2-green");
-  } else if (s2 === "RED"){
-    v2b.textContent = "WEAKNESS AGAINST MACRO CONDITIONS";
-    v2b.classList.remove("card2-green","card2-neutral");
-    v2b.classList.add("card2-red");
-  } else if (t2){
-    // if state missing but text exists, show text
-    v2b.textContent = t2.toUpperCase();
-    v2b.classList.remove("card2-green","card2-red");
-    v2b.classList.add("card2-neutral");
-  } else {
-    v2b.textContent = "UNCLEAR — MONITORING";
-    v2b.classList.remove("card2-green","card2-red");
-    v2b.classList.add("card2-neutral");
-  }
-
-  // glow rule:
-  // If CARD2 is GREEN → copy Card1 halo/glow (macro colour).
-  // If RED/unknown → neutral.
-  const c1Class = (c1 && c1.className) ? c1.className : "";
-  const haloClass = c1Class.split(" ").find(x => x.startsWith("halo-bg-"));
-  const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
-  const copyClass = glowClass || haloClass || "";
-
-  if ((s2 === "GREEN" || s2 === "LIME") && copyClass){
-    c2.className = `card ${copyClass}`.trim();
-    c2.style.borderColor = "";
-    c2.style.boxShadow = "";
-  } else {
-    c2.className = "card";
-    c2.style.borderColor = "rgba(255,255,255,0.20)";
-    c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
-  }
-})();
-  // ============================================================
-  // CARD 4 — RECESSION PULSE (LOCKED v1)
-  // Sahm Rule:
-  // < 0.35  = EXPANSION
-  // 0.35–0.49 = STALLING
-  // >= 0.50 = CONTRACTION
-  // Contraction shows Market Weakness (SPX DD → 35%)
-  // Observational only
-  // ============================================================
-
-  (function applyCard4FromState() {
-    if (!(data && data.sahm != null)) return;
-
-    const s = Number(data.sahm);
-    if (!Number.isFinite(s)) return;
-
-    const v4   = document.getElementById("val-4");
-    const c4   = document.getElementById("card-4");
-    const node = document.getElementById("led-node");
-
-    const mwWrap = document.getElementById("mw-wrap");
-    const mwFill = document.getElementById("mw-fill");
-    const mwVal  = document.getElementById("mw-val");
-    const mwNote = document.getElementById("mw-note");
-
-    // reset
-    if (mwWrap) mwWrap.style.display = "none";
-    if (mwNote) mwNote.style.display = "none";
-    if (mwFill) mwFill.style.height = "0%";
-    window.__S3_ARMED = false;
-
-    // -------- EXPANSION --------
-    if (s < 0.35) {
-      if (v4) v4.innerText = "Economic:EXPANSION";
-      if (c4) c4.className = "card glow-lime";
-      if (node) {
-        node.className = "pulse-node pulse-slow";
-        node.style.background = "var(--lime)";
-        node.style.boxShadow = "0 0 40px var(--lime)";
-      }
-      return;
-    }
-
-    // -------- STALLING --------
-    if (s < 0.50) {
-      if (v4) v4.innerText = "Economy:STALLING";
-      if (c4) c4.className = "card glow-warning";
-      if (node) {
-        node.className = "pulse-node pulse-mid";
-        node.style.background = "var(--orange)";
-        node.style.boxShadow = "0 0 40px var(--orange)";
-      }
-      return;
-    }
-
-    // -------- CONTRACTION --------
-    if (v4) v4.innerText = "Economic:CONTRACTION";
-    if (c4) c4.className = "card glow-danger";
-    if (node) {
-      node.className = "pulse-node pulse-fast";
-      node.style.background = "var(--red)";
-      node.style.boxShadow = "0 0 60px var(--red)";
-    }
-
-    // -------- MARKET WEAKNESS --------
-    if (mwWrap) mwWrap.style.display = "flex";
-
-    let dd =
-      data.spx_dd ??
-      data.spxDrawdown ??
-      data.spx_dd_pct ??
-      data.dd ??
-      data.drawdown ??
-      null;
-
-    // dd can arrive as a string sometimes ("12.3")
-    if (typeof dd === "string") dd = Number(dd);
-
-    if (typeof dd !== "number" || !Number.isFinite(dd)) {
-      if (mwVal) mwVal.innerText = "SPX DD: —";
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS: PENDING";
-      }
-      return;
-    }
-
-    dd = Math.abs(dd);
-    if (dd <= 1) dd *= 100; // allow 0.12 or 12
-
-    const CAP = 35;
-    const clipped = Math.min(CAP, dd);
-    const pct = Math.round((clipped / CAP) * 100);
-
-    if (mwFill) mwFill.style.height = pct + "%";
-    if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
-
-    if (dd >= CAP) {
-      window.__S3_ARMED = true;
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS THRESHOLD ACHIEVED";
-      }
-    } else {
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS TRACKING";
-      }
-    }
-  })();
-} // ✅ CLOSE applyAllFromState()
-
-window.applyAllFromState = applyAllFromState;
-
-
-
-   // ============================================================
-  // VALIDATOR + SINGLE ENTRY POINT (FREEZE)
-  // ============================================================
-  function rscValidateMacro(p){
-    if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
-
-    // tolerate server timestamp in SECONDS or MILLISECONDS
-    if (p._server_ts !== undefined && p._server_ts !== null){
-      let ts = Number(p._server_ts);
-      if (Number.isFinite(ts)){
-        // if it's seconds (10 digits-ish), convert to ms
-        if (ts < 1e12) ts = ts * 1000;
-
-        const ageMs = Date.now() - ts;
-         console.log("[TS DEBUG]", { now: Date.now(), _server_ts: p._server_ts, ageMs: Date.now() - p._server_ts });
-        // if clock skew puts it in the future, don't drop it
-        if (ageMs > 30 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
-      }
-    }
-
-    return { ok:true };
-  }
-
-  console.log("✅ RSC VALIDATOR LIVE v1");
-  console.log("BUILD_STAMP_ABC123");
-window.addEventListener("DOMContentLoaded", () => {
-  _updateDebugBtn();
-});
-
+// STATE MERGE — accepts partial payloads without wiping macro
+// ============================================================
 function rscMergeIntoState(p){
   const base = (window.__RSC_LAST && typeof window.__RSC_LAST === "object") ? window.__RSC_LAST : {};
   const merged = { ...base };
 
   const type = String(p?.type || "").toUpperCase();
 
+  // CARD2 payload shape (TradingView)
   if (type === "CARD2"){
     merged.card2_state = p.state ?? merged.card2_state ?? null;
     merged.card2_text  = p.text  ?? merged.card2_text  ?? null;
     merged._last_card2_ts = p.time ?? merged._last_card2_ts ?? null;
-    merged.type = "CARD2"; // optional, for debugging
     return merged;
   }
 
-  // MACRO or anything else: overlay (cycle/count/etc)
+  // MACRO or mixed payload: overlay keys
   if (p && typeof p === "object") Object.assign(merged, p);
+
   return merged;
 }
 
 // ============================================================
-// STATE MERGE — allow single-card payloads (CARD2 etc)
+// HANDLE UPDATE — validate once, paint once, persist macro
 // ============================================================
 window.handleMacroUpdate = function(payload){
   let p = payload;
 
-  // ---- normalize common server shapes ----
+  // normalize server shapes
   if (p && typeof p === "object") {
     if (p.state && typeof p.state === "object") p = p.state;
     else if (p.payload && typeof p.payload === "object") p = p.payload;
     else if (p.data && typeof p.data === "object") p = p.data;
   }
 
-  // ---- merge into last known state ----
   const merged = rscMergeIntoState(p);
 
-  // ---- validate ONCE (before painting) ----
-  try {
+  // validate BEFORE paint
+  try{
     const v = rscValidateMacro(merged);
     if (!v.ok){
       console.warn("[RSC DROP]", v.why, merged);
@@ -1934,40 +1072,38 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] validator error, proceeding", e);
   }
 
-  // ---- commit canonical state ----
+  // commit
   window.__RSC_LAST = merged;
 
-  // ---- persist macro values only ----
-  if (
-    merged?.cycle != null ||
-    merged?.count != null ||
-    merged?.vol   != null ||
-    merged?.flow  != null ||
-    merged?.sahm  != null
-  ){
-    rscSaveMacroCache(merged);
-  }
+  // persist macro snapshot when present
+  if (rscHasMacroFields(merged)) rscSaveMacroCache(merged);
 
-  // ---- SINGLE paint call ----
-  if (typeof window.applyAllFromState === "function") {
-    window.applyAllFromState(merged);
-  } else if (typeof applyAllFromState === "function") {
-    applyAllFromState(merged);
-  } else {
-    console.warn("[RSC WARN] applyAllFromState missing — UI not painted");
-  }
+  // paint once
+  if (typeof window.applyAllFromState === "function") window.applyAllFromState(merged);
+  else if (typeof applyAllFromState === "function") applyAllFromState(merged);
 
   console.log("[RSC HANDLE OK]", {
-    hasMacro: !!(
-      merged?.cycle != null ||
-      merged?.count != null ||
-      merged?.vol   != null
-    ),
     cycle: merged?.cycle,
     count: merged?.count,
+    sahm: merged?.sahm,
     ts: merged?._server_ts
   });
 };
+
+// ============================================================
+// BOOT — paint cached macro immediately, then warmstart /health
+// ============================================================
+(function bootMacroCache(){
+  try{
+    const cached = rscLoadMacroCache();
+    if (cached){
+      debugSource = "boot localStorage cache";
+      window.__RSC_LAST = { ...(window.__RSC_LAST || {}), ...cached };
+      if (typeof window.applyAllFromState === "function") window.applyAllFromState(window.__RSC_LAST);
+    }
+  } catch(e){}
+})();
+
 
 
 
