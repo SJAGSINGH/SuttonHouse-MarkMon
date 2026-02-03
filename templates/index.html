@@ -1639,117 +1639,70 @@ function applyAllFromState(data) {
   // - Status line below: CONSISTENT / WEAKNESS / UNCLEAR (coloured, small)
   // - Glow rule: ONLY if Card2 thesis aligns with Card1 capital flow thesis
   // ============================================================
-  (function applyCard2FromState() {
-    const c2  = document.getElementById("card-2");
-    const v2  = document.getElementById("val-2");   // big line
-    const v2b = document.getElementById("val-2b");  // small status line
-    const c1  = document.getElementById("card-1");  // used to copy glow-*
+ (function applyCard2FromState(){
+  const c2  = document.getElementById("card-2");
+  const v2  = document.getElementById("val-2");
+  const v2b = document.getElementById("val-2b");
+  const c1  = document.getElementById("card-1");
+  if (!c2 || !v2 || !v2b) return;
 
-    if (!c2 || !v2 || !v2b) return;
+  // fixed headline
+  v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // Always enforce clean headline
-    v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
+  // Pull from merged state (supports both merged keys + nested card2 object)
+  const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
-    // ---------- Read Card2 state (server shapes can vary)
-    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+  const stateRaw =
+    (data?.card2_state ?? data?.card2State ?? null) ??
+    (card2Obj?.state ?? null) ??
+    null;
 
-    const card2StateRaw =
-      (data && (data.card2_state ?? data.card2State ?? null)) ??
-      (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
-      null;
+  const textRaw =
+    (data?.card2_text ?? data?.card2Text ?? null) ??
+    (card2Obj?.text ?? null) ??
+    null;
 
-    const card2TextRaw =
-      (data && (data.card2_text ?? data.card2Text ?? null)) ??
-      (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
-      (typeof data?.card2 === "string" ? data.card2 : null);
+  const s2 = String(stateRaw ?? "").toUpperCase();
+  const t2 = String(textRaw ?? "");
 
-    const s2 = String(card2StateRaw ?? "").toUpperCase();
-    const t2 = String(card2TextRaw ?? "").toUpperCase();
+  // status line
+  if (s2 === "GREEN" || s2 === "LIME"){
+    v2b.textContent = "CONSISTENT WITH MACRO CONDITIONS";
+    v2b.classList.remove("card2-red","card2-neutral");
+    v2b.classList.add("card2-green");
+  } else if (s2 === "RED"){
+    v2b.textContent = "WEAKNESS AGAINST MACRO CONDITIONS";
+    v2b.classList.remove("card2-green","card2-neutral");
+    v2b.classList.add("card2-red");
+  } else if (t2){
+    // if state missing but text exists, show text
+    v2b.textContent = t2.toUpperCase();
+    v2b.classList.remove("card2-green","card2-red");
+    v2b.classList.add("card2-neutral");
+  } else {
+    v2b.textContent = "UNCLEAR — MONITORING";
+    v2b.classList.remove("card2-green","card2-red");
+    v2b.classList.add("card2-neutral");
+  }
 
-    // ---------- Read Card1 thesis (Macro/Regime) for alignment
-    // Try several likely keys (adjust later if Macro.py uses different names)
-    const card1RegimeRaw =
-      (data && (data.regime ?? data.card1_regime ?? data.card1Regime ?? data.card1_state ?? data.card1State ?? null)) ??
-      null;
+  // glow rule:
+  // If CARD2 is GREEN → copy Card1 halo/glow (macro colour).
+  // If RED/unknown → neutral.
+  const c1Class = (c1 && c1.className) ? c1.className : "";
+  const haloClass = c1Class.split(" ").find(x => x.startsWith("halo-bg-"));
+  const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
+  const copyClass = glowClass || haloClass || "";
 
-    const t1 = String(card1RegimeRaw ?? "").toUpperCase();
-
-    // ---------- Determine "thesis" buckets (FINANCIAL vs REAL_ASSET)
-    // Card1 thesis (macro flow)
-    const card1Thesis =
-      (t1.includes("REAL") || t1.includes("COMMOD") || t1.includes("GOLD") || t1.includes("COPPER"))
-        ? "REAL_ASSET"
-        : (t1.includes("FINANCIAL") || t1.includes("EQUIT") || t1.includes("RISK") || t1.includes("STOCK"))
-          ? "FINANCIAL"
-          : "UNKNOWN";
-
-    // Card2 thesis (short-term flow) – from text/state if present
-    const card2Thesis =
-      (t2.includes("REAL") || t2.includes("COMMOD") || t2.includes("GOLD") || t2.includes("COPPER") || s2.includes("REAL"))
-        ? "REAL_ASSET"
-        : (t2.includes("FINANCIAL") || t2.includes("EQUIT") || t2.includes("RISK") || s2.includes("FIN") || s2.includes("EQUIT"))
-          ? "FINANCIAL"
-          : "UNKNOWN";
-
-    const aligned =
-      card1Thesis !== "UNKNOWN" &&
-      card2Thesis !== "UNKNOWN" &&
-      card1Thesis === card2Thesis;
-
-    // ---------- Status line content + colour (independent of glow)
-    let statusText = "UNCLEAR — MONITORING";
-    let cls = "card2-neutral";
-
-    // If Pine provides explicit GREEN/RED we respect it for the status line text,
-    // but GLOW only happens when aligned with Card1.
-    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
-      statusText = "CONSISTENT WITH MACRO CONDITIONS";
-      cls = "card2-green";
-    } else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
-      statusText = "WEAKNESS AGAINST MACRO CONDITIONS";
-      cls = "card2-red";
-    } else {
-      statusText = "UNCLEAR — MONITORING";
-      cls = "card2-neutral";
-    }
-
-    v2b.textContent = statusText;
-    v2b.classList.remove("card2-green","card2-red","card2-neutral");
-    v2b.classList.add(cls);
-
-    // ---------- Glow rule
-    // Copy Card1 glow-* ONLY when aligned; otherwise neutral card
-    const c1Class = (c1 && c1.className) ? c1.className : "";
-    const glowClass = c1Class.split(" ").find(x => x.startsWith("glow-"));
-    const haloClass = c1Class.split(" ").find(x => x.startsWith("halo-bg-"));
-    const copyClass = glowClass || haloClass || "";
-
-    if (aligned && copyClass) {
-      c2.className = `card ${copyClass}`.trim();
-      c2.style.borderColor = "";
-      c2.style.boxShadow = "";
-    } else {
-      c2.className = "card";
-      c2.style.borderColor = "rgba(255,255,255,0.20)";
-      c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
-    }
-
-    // ---------- HARD CLEANUP: remove/hide any old/legacy Card2 extra elements if present
-    const legacyIds = ["val-2-sub", "val2-sub", "ror-2", "ror2", "card2-ror", "card2-note"];
-    legacyIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "none";
-    });
-
-    const maybeTextNodes = c2.querySelectorAll("div,span,p");
-    maybeTextNodes.forEach(el => {
-      const txt = (el.textContent || "").toUpperCase();
-      if (txt.includes("ROR") || txt.includes("6M")) {
-        if (el.id !== "val-2" && el.id !== "val-2b") el.style.display = "none";
-      }
-    });
-
-  })();
+  if ((s2 === "GREEN" || s2 === "LIME") && copyClass){
+    c2.className = `card ${copyClass}`.trim();
+    c2.style.borderColor = "";
+    c2.style.boxShadow = "";
+  } else {
+    c2.className = "card";
+    c2.style.borderColor = "rgba(255,255,255,0.20)";
+    c2.style.boxShadow = "0 0 30px rgba(255,255,255,0.10)";
+  }
+})();
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
   // Sahm Rule:
@@ -1941,8 +1894,9 @@ window.handleMacroUpdate = function(payload){
     else if (p.data && typeof p.data === "object") p = p.data;
   }
 
-  // merge into last known state
   const merged = rscMergeIntoState(p);
+  window.__RSC_LAST = merged;
+  applyAllFromState(merged);
 
   try{
     const v = rscValidateMacro(merged);
