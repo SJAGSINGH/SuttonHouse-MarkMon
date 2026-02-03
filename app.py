@@ -23,6 +23,9 @@ VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
+"card2_state": None,
+"card2_text": None,
+"card2": {"state": None, "text": None, "time": None, "tf": None, "ref_id": None},
 
 # Unified state expected by index.html (+ secret block)
 STATE: Dict[str, Any] = {
@@ -341,6 +344,114 @@ def _merge_field_payload(data: Dict[str, Any]) -> None:
             STATE["sahm"] = s
 
 
+
+# ----------------------------
+# Typed payload parsing (type-based)
+# Supports: {"type":"CARD2", ...} etc.
+# ----------------------------
+def _parse_typed_payload(data: Dict[str, Any]) -> None:
+    """
+    Accepts typed payloads such as:
+      {"type":"CARD2","state":"GREEN","text":"...","_server_ts":...}
+      {"type":"CARD1","cycle":"...","vol":"..."}
+      {"type":"CARD3","count":55,"cycle":"..."}
+      {"type":"CARD4","sahm":0.42,"spx_dd":12.3}
+
+    Fail-soft: ignore unknown / incomplete.
+    """
+
+    t = _normalise_str(data.get("type"))
+    if not t:
+        return
+
+    typ = t.strip().upper()
+
+    # helper to pull values with fallbacks
+    def pick(*keys):
+        for k in keys:
+            if k in data and data.get(k) not in (None, "", "NA", "na"):
+                return data.get(k)
+        return None
+
+    # -----------------------------------------
+    # CARD 1 (Regime + Vol)
+    # -----------------------------------------
+    if typ in ("CARD1", "MACRO_CARD1", "REGIME_VOL"):
+        cycle = pick("cycle", "regime", "cycle_regime")
+        vol   = pick("vol", "volatility", "vix_state")
+
+        if cycle is not None:
+            STATE["cycle"] = str(cycle).strip().upper()
+        if vol is not None:
+            STATE["vol"] = str(vol).strip().upper()
+        return
+
+    # -----------------------------------------
+    # CARD 2 (Capital Rotation / Short-term bias lane)
+    # We store:
+    #   STATE["flow"]      -> existing public Card2 renderer uses this
+    #   STATE["card2_state"], STATE["card2_text"] -> your new UI Card2 lane can read these
+    # -----------------------------------------
+    if typ in ("CARD2", "MACRO_CARD2", "CAPITAL_ROTATION"):
+        st = pick("card2_state", "state", "bias", "signal", "colour", "color")
+        tx = pick("card2_text", "text", "msg", "message", "flow")
+
+        # normalise
+        if st is not None:
+            STATE["card2_state"] = str(st).strip().upper()
+
+        if tx is not None:
+            txs = str(tx).strip()
+            STATE["card2_text"] = txs
+            # IMPORTANT: keep compatibility with existing Card2 parser
+            # (your applyPublicFromState reads STATE["flow"])
+            if txs:
+                STATE["flow"] = txs
+
+        return
+
+    # -----------------------------------------
+    # CARD 3 (Cycle clock)
+    # -----------------------------------------
+    if typ in ("CARD3", "MACRO_CARD3", "CYCLE_CLOCK"):
+        count = pick("count", "maturity", "cycle_maturity")
+        cycle = pick("cycle", "regime", "cycle_regime")
+
+        if count is not None:
+            c = _safe_int(count)
+            if c is not None:
+                STATE["count"] = _clamp_int(c, 0, 100)
+
+        if cycle is not None:
+            STATE["cycle"] = str(cycle).strip().upper()
+
+        return
+
+    # -----------------------------------------
+    # CARD 4 (Recession pulse)
+    # NOTE: in /webhook you *still* Pine-lock this.
+    # This parser is mainly for /ingest_macro or future typed feeds.
+    # -----------------------------------------
+    if typ in ("CARD4", "MACRO_CARD4", "RECESSION_PULSE"):
+        sahm = pick("sahm", "sahm_value", "sahm_trigger")
+        dd   = pick("spx_dd", "spxDrawdown", "dd", "drawdown")
+
+        if sahm is not None:
+            s = _safe_float(sahm)
+            if s is not None:
+                STATE["sahm"] = s
+
+        if dd is not None:
+            try:
+                STATE["spx_dd"] = float(dd)
+            except Exception:
+                pass
+
+        return
+
+    # Unknown typed payload: ignore silently
+    return
+
 # ----------------------------
 # Card-based payload parsing
 # ----------------------------
@@ -490,6 +601,7 @@ def ingest_macro():
         # ---- Parse payload safely ----
         data = _get_payload_any()
         meta = _extract_meta(data)
+
         if not isinstance(data, dict):
             return jsonify({
                 "ok": False,
@@ -506,17 +618,40 @@ def ingest_macro():
         elif isinstance(data.get("data"), dict):
             data = data["data"]
 
+        if not isinstance(data, dict):
+            return jsonify({
+                "ok": False,
+                "error": "payload_not_object_after_unwrap",
+                "received_type": str(type(data))
+            }), 400
+
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
-            # ---- Card-based payloads (TradingView etc.) ----
+            # ------------------------------------------------
+            # TYPED PAYLOADS (e.g. {"type":"CARD2", ...})
+            # ------------------------------------------------
+            if "type" in data:
+                try:
+                    _parse_typed_payload(data)   # <-- must exist below in your file
+                except Exception as _e:
+                    # fail-soft: don't kill ingest if typed parse fails
+                    pass
+
+            # ------------------------------------------------
+            # CARD-NUMBER PAYLOADS (e.g. {"card":2, ...})
+            # ------------------------------------------------
             if "card" in data:
                 _parse_card_payload(data)
 
-            # ---- Field-based payloads (Python macro feeder) ----
+            # ------------------------------------------------
+            # FIELD-BASED PAYLOADS (Python feeder style)
+            # ------------------------------------------------
             _merge_field_payload(data)
 
-            # ---- Optional secret pack (institutional layer) ----
+            # ------------------------------------------------
+            # Optional secret pack (institutional layer)
+            # ------------------------------------------------
             if isinstance(data.get("secret"), dict):
                 for sk in STATE["secret"].keys():
                     if sk in data["secret"]:
@@ -536,16 +671,17 @@ def ingest_macro():
 
         socketio.emit("macro_update", payload)
         _log_debug("/ingest_macro", data, ok=True)
-        return jsonify({"ok": True}), 20
+        return jsonify({"ok": True}), 200
 
     except Exception as e:
         print("Ingest macro error:", e)
-        _log_debug("/ingest_macro", str(e), ok=False)
+        _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
         return jsonify({
             "ok": False,
             "error": "ingest_macro_failed",
             "detail": str(e)
         }), 400
+
 
 
 
@@ -562,18 +698,43 @@ def webhook():
     try:
         data = _get_payload_any()
         meta = _extract_meta(data)
+
+        if not isinstance(data, dict):
+            abort(400)
+
+        # ---- Unwrap common envelopes ----
+        # Accepts {state:{...}} / {payload:{...}} / {data:{...}}
+        if isinstance(data.get("state"), dict):
+            data = data["state"]
+        elif isinstance(data.get("payload"), dict):
+            data = data["payload"]
+        elif isinstance(data.get("data"), dict):
+            data = data["data"]
+
         if not isinstance(data, dict):
             abort(400)
 
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
-            # Card-based payloads (unchanged)
+            # ------------------------------------------------
+            # TYPED PAYLOADS (e.g. {"type":"CARD2", ...})
+            # ------------------------------------------------
+            if "type" in data:
+                try:
+                    _parse_typed_payload(data)   # <-- supports CARD2 cleanly
+                except Exception:
+                    pass  # fail-soft, never break webhook
+
+            # ------------------------------------------------
+            # CARD-NUMBER PAYLOADS (legacy / TradingView)
+            # ------------------------------------------------
             if "card" in data:
                 _parse_card_payload(data)
 
             # ------------------------------------------------
             # PINE AUTHORITY LOCK — Card 4 ONLY
+            # (Sahm + SPX drawdown are Pine-governed)
             # ------------------------------------------------
             pine_allow = {}
 
@@ -589,20 +750,24 @@ def webhook():
             elif "drawdown" in data:
                 pine_allow["spx_dd"] = data["drawdown"]
 
-            STATE.update(pine_allow)
+            if pine_allow:
+                STATE.update(pine_allow)
 
+            # ------------------------------------------------
+            # Recompute derived states
+            # ------------------------------------------------
             _recompute_war_from_secret()
-            _save_state_to_disk()
             _update_monitor_lane(meta)
+
+            _save_state_to_disk()
             payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
-
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
     except Exception as e:
-        _log_debug("/webhook", str(e), ok=False)
+        _log_debug("/webhook", {"error": str(e)}, ok=False)
         print("Webhook error:", e)
         return str(e), 400
 
