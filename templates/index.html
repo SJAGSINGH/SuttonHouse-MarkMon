@@ -1897,17 +1897,18 @@ function rscMergeIntoState(p){
 window.handleMacroUpdate = function(payload){
   let p = payload;
 
-  // normalize common server shapes
+  // ---- normalize common server shapes ----
   if (p && typeof p === "object") {
     if (p.state && typeof p.state === "object") p = p.state;
     else if (p.payload && typeof p.payload === "object") p = p.payload;
     else if (p.data && typeof p.data === "object") p = p.data;
   }
 
+  // ---- merge into last known state ----
   const merged = rscMergeIntoState(p);
 
-  // validate merged snapshot (single gate)
-  try{
+  // ---- validate ONCE (before painting) ----
+  try {
     const v = rscValidateMacro(merged);
     if (!v.ok){
       console.warn("[RSC DROP]", v.why, merged);
@@ -1917,17 +1918,40 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] validator error, proceeding", e);
   }
 
-  // commit canonical state
+  // ---- commit canonical state ----
   window.__RSC_LAST = merged;
 
-  // persist ONLY when macro exists
-  if (rscHasMacroFields(merged)) rscSaveMacroCache(merged);
+  // ---- persist macro values only ----
+  if (
+    merged?.cycle != null ||
+    merged?.count != null ||
+    merged?.vol   != null ||
+    merged?.flow  != null ||
+    merged?.sahm  != null
+  ){
+    rscSaveMacroCache(merged);
+  }
 
-  // paint once
-  if (typeof window.applyAllFromState === "function") window.applyAllFromState(merged);
-  else if (typeof applyAllFromState === "function") applyAllFromState(merged);
+  // ---- SINGLE paint call ----
+  if (typeof window.applyAllFromState === "function") {
+    window.applyAllFromState(merged);
+  } else if (typeof applyAllFromState === "function") {
+    applyAllFromState(merged);
+  } else {
+    console.warn("[RSC WARN] applyAllFromState missing — UI not painted");
+  }
+
+  console.log("[RSC HANDLE OK]", {
+    hasMacro: !!(
+      merged?.cycle != null ||
+      merged?.count != null ||
+      merged?.vol   != null
+    ),
+    cycle: merged?.cycle,
+    count: merged?.count,
+    ts: merged?._server_ts
+  });
 };
-
 
 
 
