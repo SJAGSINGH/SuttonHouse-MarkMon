@@ -652,7 +652,7 @@ body.war-room .scada-card{
     </div>
 
     <div class="card" id="card-2">
-      <div class="card-title">CAPITAL ROTATION</div>
+      <h3 id="h3-2">Capital Rotation</h3>
 
       <!-- Main headline (white, big) -->
       <div class="primary-text" id="val-2">SHORT-TERM PREFERENCE REMAINS</div>
@@ -1117,7 +1117,7 @@ function _updateDebugBtn() {
   });
 
   setText('val-1','AWAITING'); setText('sub-1','');
-  setText('val-2','AWAITING'); setText('sub-2','');
+  setText('val-2','SHORT-TERM PREFERENCE REMAINS'); setText('val-2b','UNCLEAR — MONITORING');
   setText('val-3','AWAITING'); setText('sub-3','');
 
   const t3 = document.getElementById('track-3');
@@ -1152,48 +1152,7 @@ function _updateDebugBtn() {
     }
   }
 
-  // ============================================================
-  // CARD 2 — ROTATION + META
-  // ============================================================
-  const hasFlow = (data?.flow !== undefined && data?.flow !== null && String(data.flow).trim() !== '');
-  if (hasFlow){
-    const v2 = document.getElementById('val-2');
-    const s2 = document.getElementById('sub-2');
-    const c2 = document.getElementById('card-2');
-
-    const flowRaw = String(data.flow).trim();
-    const parts = flowRaw.split('|').map(x => (x || '').trim()).filter(Boolean);
-    const headline = (parts[0] || 'ROTATION ACTIVE').trim();
-    const detail = (parts.length >= 2) ? parts.slice(1).join(' | ').trim() : '';
-
-    const flowLower = flowRaw.toLowerCase();
-    const intoCom = flowLower.includes('into commodities');
-    const intoEq  = flowLower.includes('into equities');
-
-    const cycleLower = String(data?.cycle || '').toLowerCase();
-    const isComCycle = cycleLower.includes('commod');
-
-    const makeGold = intoCom || isComCycle;
-
-    if (v2){
-      v2.innerText = headline.toUpperCase();
-      v2.style.color = makeGold ? 'var(--gold)' : (intoEq ? 'var(--silver)' : 'var(--text)');
-    }
-
-    if (s2){
-      const fallback = makeGold ? 'OUT OF EQUITIES → INTO COMMODITIES' : 'ROTATION ACTIVE';
-      const line = detail ? detail : fallback;
-      s2.innerText = line.toUpperCase();
-      s2.style.color = 'var(--text)';
-      s2.style.display = 'block';
-    }
-
-    if (c2) c2.className = makeGold ? 'card halo-bg-gold' : 'card halo-bg-silver';
-
-    _renderCard2Meta(flowRaw, data?.count ?? null);
-  } else {
-    _renderCard2Meta(null, data?.count ?? null);
-  }
+  
 
   // ============================================================
   // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
