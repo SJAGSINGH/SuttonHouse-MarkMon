@@ -23,8 +23,7 @@ VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
-"card2_state": None,
-"card2_text": None,
+
 
 # Unified state expected by index.html (+ secret block)
 STATE: Dict[str, Any] = {
@@ -34,14 +33,15 @@ STATE: Dict[str, Any] = {
     "count": None,
     "sahm": None,
 
-    # ✅ Card 2 typed lane (new)
+    # ✅ Card 2 typed lane
     "card2_state": None,
     "card2_text": None,
+    "card2": {"state": None, "text": None, "time": None, "tf": None, "ref_id": None},
 
-    "monitor": {  # ✅ debug + integrity lane
-        "last_by_ref": {},     # ref_id -> {ts,type,ticker,tf,time}
-        "last_by_ticker": {},  # ticker -> {ts,type,ref_id,tf,time}
-        "last_hello": {},      # ticker -> {open_ts,close_ts,test_ts,ref_id}
+    "monitor": {
+        "last_by_ref": {},
+        "last_by_ticker": {},
+        "last_hello": {},
     },
     "secret": {
         "vix": None,
@@ -390,29 +390,50 @@ def _parse_typed_payload(data: Dict[str, Any]) -> None:
             STATE["vol"] = str(vol).strip().upper()
         return
 
-    # -----------------------------------------
+        # -----------------------------------------
     # CARD 2 (Capital Rotation / Short-term bias lane)
     # We store:
-    #   STATE["flow"]      -> existing public Card2 renderer uses this
-    #   STATE["card2_state"], STATE["card2_text"] -> your new UI Card2 lane can read these
+    #   STATE["flow"]         -> legacy Card2 renderer
+    #   STATE["card2_state"]  -> explicit state lane
+    #   STATE["card2_text"]   -> explicit text lane
+    #   STATE["card2"]        -> nested object lane (UI-friendly)
     # -----------------------------------------
     if typ in ("CARD2", "MACRO_CARD2", "CAPITAL_ROTATION"):
         st = pick("card2_state", "state", "bias", "signal", "colour", "color")
         tx = pick("card2_text", "text", "msg", "message", "flow")
 
-        # normalise
+        # normalise state
+        st_norm = None
         if st is not None:
-            STATE["card2_state"] = str(st).strip().upper()
+            st_norm = str(st).strip().upper()
+            STATE["card2_state"] = st_norm
 
+        # normalise text
+        tx_norm = None
         if tx is not None:
-            txs = str(tx).strip()
-            STATE["card2_text"] = txs
-            # IMPORTANT: keep compatibility with existing Card2 parser
-            # (your applyPublicFromState reads STATE["flow"])
-            if txs:
-                STATE["flow"] = txs
+            tx_norm = str(tx).strip()
+            STATE["card2_text"] = tx_norm
+
+            # keep backwards compatibility (your public Card2 uses flow)
+            if tx_norm:
+                STATE["flow"] = tx_norm
+
+        # ✅ ALSO populate the nested dict so UI can read data.card2.state/text
+        if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
+            STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
+
+        if st_norm is not None:
+            STATE["card2"]["state"] = st_norm
+        if tx_norm is not None:
+            STATE["card2"]["text"] = tx_norm
+
+        # optional metadata passthrough (safe)
+        for k in ("time", "tf", "ref_id"):
+            if k in data and data.get(k) not in (None, "", "NA", "na"):
+                STATE["card2"][k] = data.get(k)
 
         return
+
 
     # -----------------------------------------
     # CARD 3 (Cycle clock)
@@ -602,19 +623,13 @@ def ingest_macro():
         abort(401)
 
     try:
-        # ---- Parse payload safely ----
         data = _get_payload_any()
         meta = _extract_meta(data)
 
         if not isinstance(data, dict):
-            return jsonify({
-                "ok": False,
-                "error": "payload_not_object",
-                "received_type": str(type(data))
-            }), 400
+            return jsonify({"ok": False, "error": "payload_not_object"}), 400
 
-        # ---- Unwrap common envelopes ----
-        # Accepts {state:{...}} / {payload:{...}} / {data:{...}}
+        # unwrap envelopes
         if isinstance(data.get("state"), dict):
             data = data["state"]
         elif isinstance(data.get("payload"), dict):
@@ -623,48 +638,33 @@ def ingest_macro():
             data = data["data"]
 
         if not isinstance(data, dict):
-            return jsonify({
-                "ok": False,
-                "error": "payload_not_object_after_unwrap",
-                "received_type": str(type(data))
-            }), 400
+            return jsonify({"ok": False, "error": "payload_not_object_after_unwrap"}), 400
 
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
-            # ------------------------------------------------
-            # TYPED PAYLOADS (e.g. {"type":"CARD2", ...})
-            # ------------------------------------------------
+            # typed payloads first
             if "type" in data:
                 try:
-                    _parse_typed_payload(data)   # <-- must exist below in your file
-                except Exception as _e:
-                    # fail-soft: don't kill ingest if typed parse fails
+                    _parse_typed_payload(data)
+                except Exception:
                     pass
 
-            # ------------------------------------------------
-            # CARD-NUMBER PAYLOADS (e.g. {"card":2, ...})
-            # ------------------------------------------------
+            # legacy card-number payloads
             if "card" in data:
                 _parse_card_payload(data)
 
-            # ------------------------------------------------
-            # FIELD-BASED PAYLOADS (Python feeder style)
-            # ------------------------------------------------
+            # field payloads
             _merge_field_payload(data)
 
-            # ------------------------------------------------
-            # Optional secret pack (institutional layer)
-            # ------------------------------------------------
+            # secret block
             if isinstance(data.get("secret"), dict):
                 for sk in STATE["secret"].keys():
                     if sk in data["secret"]:
                         STATE["secret"][sk] = data["secret"][sk]
 
-            # ---- Recompute war state from VIX / GVZ ----
             _recompute_war_from_secret()
 
-            # ---- Optional Sutton House normalisation (safe) ----
             try:
                 _apply_sutton_house_normalisation()
             except Exception:
@@ -678,14 +678,8 @@ def ingest_macro():
         return jsonify({"ok": True}), 200
 
     except Exception as e:
-        print("Ingest macro error:", e)
         _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
-        return jsonify({
-            "ok": False,
-            "error": "ingest_macro_failed",
-            "detail": str(e)
-        }), 400
-
+        return jsonify({"ok": False, "error": "ingest_macro_failed", "detail": str(e)}), 400
 
 
 
@@ -706,8 +700,7 @@ def webhook():
         if not isinstance(data, dict):
             abort(400)
 
-        # ---- Unwrap common envelopes ----
-        # Accepts {state:{...}} / {payload:{...}} / {data:{...}}
+        # unwrap envelopes
         if isinstance(data.get("state"), dict):
             data = data["state"]
         elif isinstance(data.get("payload"), dict):
@@ -721,25 +714,18 @@ def webhook():
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
-            # ------------------------------------------------
-            # TYPED PAYLOADS (e.g. {"type":"CARD2", ...})
-            # ------------------------------------------------
+            # typed payloads (CARD2 etc.)
             if "type" in data:
                 try:
-                    _parse_typed_payload(data)   # <-- supports CARD2 cleanly
+                    _parse_typed_payload(data)
                 except Exception:
-                    pass  # fail-soft, never break webhook
+                    pass
 
-            # ------------------------------------------------
-            # CARD-NUMBER PAYLOADS (legacy / TradingView)
-            # ------------------------------------------------
+            # legacy card-number payloads
             if "card" in data:
                 _parse_card_payload(data)
 
-            # ------------------------------------------------
-            # PINE AUTHORITY LOCK — Card 4 ONLY
-            # (Sahm + SPX drawdown are Pine-governed)
-            # ------------------------------------------------
+            # PINE authority lock — Card 4 only
             pine_allow = {}
 
             if "sahm" in data:
@@ -757,9 +743,6 @@ def webhook():
             if pine_allow:
                 STATE.update(pine_allow)
 
-            # ------------------------------------------------
-            # Recompute derived states
-            # ------------------------------------------------
             _recompute_war_from_secret()
             _update_monitor_lane(meta)
 
@@ -772,9 +755,7 @@ def webhook():
 
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
-        print("Webhook error:", e)
         return str(e), 400
-
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
