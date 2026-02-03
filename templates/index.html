@@ -1138,7 +1138,7 @@ function _updateDebugBtn() {
   if (t3) t3.style.display = 'none';
   if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
 
-  // ============================================================
+    // ============================================================
   // CARD 1 — REGIME + VOL (MATCH CARD 3 COLOUR STANDARD)
   // REAL  -> halo-bg-gold
   // FIN   -> halo-bg-steel
@@ -1185,7 +1185,6 @@ function _updateDebugBtn() {
     }
   }
 
-  
 
   // ============================================================
   // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
@@ -1561,17 +1560,25 @@ function applyAllFromState(data) {
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
     // ---------- Read Card2 state (server shapes can vary)
+        const isStandaloneCard2 = String(data?.type || "").toUpperCase() === "CARD2";
+
     const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
+    // Accept BOTH:
+    // (A) full STATE objects that contain card2_* fields
+    // (B) standalone TradingView payloads: {type:"CARD2", state:"GREEN", text:"..."}
     const card2StateRaw =
+      (isStandaloneCard2 ? data?.state : null) ??
       (data && (data.card2_state ?? data.card2State ?? null)) ??
       (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
       null;
 
     const card2TextRaw =
+      (isStandaloneCard2 ? data?.text : null) ??
       (data && (data.card2_text ?? data.card2Text ?? null)) ??
       (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
-      (typeof data?.card2 === "string" ? data.card2 : null);
+      (typeof data?.card2 === "string" ? data.card2 : null) ??
+      null;
 
     const s2 = String(card2StateRaw ?? "").toUpperCase();
     const t2 = String(card2TextRaw ?? "").toUpperCase();
