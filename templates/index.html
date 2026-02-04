@@ -1554,14 +1554,6 @@ function applyAllFromState(data) {
   applyMonitoringFromState(data);
   applyMessageFromState(data);
 
-  // ============================================================
-  // CARD 2 — SHORT-TERM BIAS (jR Trender primary, MSA fallback)
-  // Doctrine:
-  // - If Card 1 thesis == Card 2 thesis → Card 2 takes Macro colour
-  // - If diverging → Card 2 goes neutral + locked wording
-  // Locked wording when aligned: “Short-term preference remains consistent with macro conditions”
-  // ============================================================
-
    // ============================================================
   // CARD 2 — SHORT-TERM BIAS (clean UI + aligned glow copy)
   // - Main line fixed: "SHORT-TERM PREFERENCE REMAINS" (white)
@@ -1580,7 +1572,7 @@ function applyAllFromState(data) {
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
     // ---------- Read Card2 state (server shapes can vary)
-        const isStandaloneCard2 = String(data?.type || "").toUpperCase() === "CARD2";
+    const isStandaloneCard2 = String(data?.type || "").toUpperCase() === "CARD2";
 
     const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
@@ -1650,17 +1642,23 @@ function applyAllFromState(data) {
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-   // ---------- HALO rule (Card2 inherits Card1 halo ONLY when aligned)
-  // Copy Card1 halo-bg-* ONLY when aligned; otherwise Card2 goes halo-bg-silver (neutral)
-  const c1Class = (c1 && c1.className) ? c1.className : "";
-  const haloClass = c1Class.split(" ").find(x =>
-    x === "halo-bg-gold" || x === "halo-bg-steel" || x === "halo-bg-silver"
-  );
+  // ---------- HALO rule (Card2 inherits MACRO halo when Card2 is CONSISTENT)
+  const dir = rscRegimeDirection(data?.cycle); // REAL | FIN | null
 
-  c2.className = "card"; // hard reset always
+  // consistent states (you already use these for status line)
+  const isConsistent =
+    (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED");
 
-  if (aligned && haloClass) c2.classList.add(haloClass);
-  else c2.classList.add("halo-bg-silver");
+  // hard reset
+  c2.className = "card";
+
+  if (isConsistent) {
+    if (dir === "REAL") c2.classList.add("halo-bg-gold");
+    else if (dir === "FIN") c2.classList.add("halo-bg-steel");
+    else c2.classList.add("halo-bg-silver");
+  } else {
+    c2.classList.add("halo-bg-silver");
+  }
 
   // keep CSS in charge
   c2.style.borderColor = "";
