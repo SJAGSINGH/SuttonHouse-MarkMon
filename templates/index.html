@@ -1651,7 +1651,7 @@ function applyAllFromState(data) {
 
   // hard reset
   c2.className = "card";
-
+  c2.classList.remove("glow-lime","glow-warning","glow-danger","halo-bg-secret");
   if (isConsistent) {
     if (dir === "REAL") c2.classList.add("halo-bg-gold");
     else if (dir === "FIN") c2.classList.add("halo-bg-steel");
