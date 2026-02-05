@@ -587,14 +587,54 @@ body.war-room .scada-card{
 }
 
 /* ============================
-   WAIT STEPS
+   SENTINEL + WAIT (LOCKED)
+   Single source of truth — no duplicates
 ============================ */
+
+/* SENTINEL STRIP (AUTHORITATIVE) */
+#sentinel-card{
+  /* Use existing SCADA palette if you want:
+     - swap these two lines for: class="halo-bg-secret"
+     - OR keep this wash for a lighter strip
+  */
+  background: rgba(60,255,180,0.12);
+  border: 1px solid rgba(60,255,180,0.35);
+
+  padding: 8px 14px;
+  min-height: auto !important;
+  border-radius: 8px;
+}
+
+/* If you have <h3> inside sentinel-card, hide it */
+#sentinel-card h3{
+  display:none !important;
+}
+
+/* Sentinel typed line */
+.sentinel-output{
+  margin:0 !important;
+  min-height:auto !important;
+
+  font-size:12px;
+  letter-spacing:1.5px;
+  line-height:1;
+
+  color:var(--lime);
+
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* WAIT STEPS */
 .wait-step{
   font-size:11px;
   letter-spacing:1.5px;
   text-transform:uppercase;
+
   padding:8px 10px;
   margin-bottom:6px;
+
   border-left:3px solid #333;
   color:#666;
 }
@@ -608,25 +648,6 @@ body.war-room .scada-card{
   color:#444;
 }
 
-/* ============================
-   SENTINEL STRIP (AUTHORITATIVE)
-============================ */
-#sentinel-card{
-  background:rgba(60,255,180,0.12); /* SCADA green wash */
-  border:1px solid rgba(60,255,180,0.35);
-  padding:8px 14px;
-  min-height:auto;
-}
-
-.sentinel-output{
-  font-size:12px;
-  letter-spacing:1.5px;
-  line-height:1.4;
-  color:var(--lime);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
   
 
 /* ============================
