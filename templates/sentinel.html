@@ -1,6 +1,8 @@
-<!-- SENTINEL STRIP (FULL WIDTH) -->
+<!-- SENTINEL STRIP (FULL WIDTH, 1-LINE) -->
 <div class="sentinel-strip" id="sentinel-card">
-  <div class="sentinel-output" id="sentinel-output">Sentinel: SILENCE</div>
+  <div class="sentinel-output mono" id="sentinel-output">
+    Sentinel: SILENCE
+  </div>
 </div>
 
 <!-- MESSAGE (1/3) + STOCK (2/3) ROW -->
@@ -8,9 +10,11 @@
 
   <!-- MESSAGE CARD (LEFT 1/3) -->
   <div class="card" id="msg-card">
-    <!-- removed header to keep it 1-line clean; IDs preserved -->
+    <!-- compact by design; IDs preserved for JS -->
     <div class="primary-text" id="msg-headline">WAITING</div>
-    <div class="secondary-text" id="msg-subline">AWAITING — NO ACTIVE CONDITION</div>
+    <div class="secondary-text" id="msg-subline">
+      AWAITING — NO ACTIVE CONDITION
+    </div>
 
     <div class="badge-row">
       <div class="badge" id="msg-regime">WAITING — REGIME</div>
@@ -19,8 +23,10 @@
       <div class="badge" id="msg-observe">OBSERVE: —</div>
     </div>
 
-    <div class="gmeta" style="margin-top:16px;">
-      <strong>Rule:</strong> Macro decides direction. Message decides behaviour. Waiting means no action.
+    <div class="gmeta" style="margin-top:14px;">
+      <strong>Rule:</strong>
+      Macro decides direction. Message decides behaviour.
+      Waiting means no action.
     </div>
   </div>
 
@@ -30,7 +36,6 @@
 
     <div class="watchlist-fill">
       <div class="stock-grid">
-        <!-- 20 stock circles -->
         {% for i in range(20) %}
           <div class="stock-node grey"></div>
         {% endfor %}
