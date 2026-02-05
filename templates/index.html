@@ -641,28 +641,33 @@ body.war-room .scada-card{
 
   
 
+/* ============================
+   STOCK GRID — 4 x 5
+============================ */
 .stock-grid{
   display:grid;
-  grid-template-columns:repeat(10, 28px); /* 20 nodes = 2 rows of 10 */
-  gap:14px;
+  grid-template-columns:repeat(5, 40px); /* 5 per row */
+  grid-template-rows:repeat(4, 40px);    /* 4 rows */
+  gap:18px;
   justify-content:start;
   align-content:start;
   margin-top:16px;
 }
 
-
 /* ============================
-   STOCK NODES — 20p size
+   STOCK NODES — enlarged (card-fit)
 ============================ */
 .stock-node{
-  width:28px;
-  height:28px;
+  width:40px;
+  height:40px;
   border-radius:50%;
   background:#222;
   border:1px solid #333;
 }
 
-/* STATES */
+/* ============================
+   STATES
+============================ */
 .stock-node.grey{
   background:#1a1a1a;
   border-color:#333;
@@ -671,14 +676,15 @@ body.war-room .scada-card{
 .stock-node.amber{
   background:rgba(255,140,0,.15);
   border-color:var(--orange);
-  box-shadow:0 0 12px rgba(255,140,0,.25);
+  box-shadow:0 0 14px rgba(255,140,0,.30);
 }
 
 .stock-node.green{
   background:rgba(50,205,50,.15);
   border-color:var(--lime);
-  box-shadow:0 0 14px rgba(50,205,50,.35);
+  box-shadow:0 0 16px rgba(50,205,50,.40);
 }
+
 
 </style>
 
