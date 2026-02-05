@@ -3,35 +3,14 @@
   <div class="sentinel-output" id="sentinel-output">Sentinel: SILENCE</div>
 </div>
 
-<!-- MESSAGE + STOCK ROW -->
+<!-- MESSAGE (1/3) + STOCK (2/3) ROW -->
 <div class="ms-row">
+
   <!-- MESSAGE CARD (LEFT 1/3) -->
   <div class="card" id="msg-card">
-    <!-- keep your existing msg-card content + IDs exactly -->
-    ...
-  </div>
-
-  <!-- STOCK CARD (RIGHT 2/3) -->
-  <div class="card" id="stock-card">
-    ...
-  </div>
-</div>
-
-
-
-
-
-
-<div class="section-header">Message System</div>
-
-<main class="grid">
-  <div class="card card-wide" id="msg-card">
-    <h3>Behaviour Governor</h3>
-
+    <!-- removed header to keep it 1-line clean; IDs preserved -->
     <div class="primary-text" id="msg-headline">WAITING</div>
-    <div class="secondary-text" id="msg-subline">
-      AWAITING — NO ACTIVE CONDITION
-    </div>
+    <div class="secondary-text" id="msg-subline">AWAITING — NO ACTIVE CONDITION</div>
 
     <div class="badge-row">
       <div class="badge" id="msg-regime">WAITING — REGIME</div>
@@ -41,12 +20,25 @@
     </div>
 
     <div class="gmeta" style="margin-top:16px;">
-      <strong>Rule:</strong> Macro decides direction.
-      Message decides behaviour.
-      Waiting means no action.
+      <strong>Rule:</strong> Macro decides direction. Message decides behaviour. Waiting means no action.
     </div>
   </div>
-</main>
+
+  <!-- STOCK CARD (RIGHT 2/3) -->
+  <div class="card" id="stock-card">
+    <h3>Watchlist</h3>
+
+    <div class="watchlist-fill">
+      <div class="stock-grid">
+        <!-- 20 stock circles -->
+        {% for i in range(20) %}
+          <div class="stock-node grey"></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <!-- ============================
      SCADA DEBUG PANEL
@@ -66,9 +58,7 @@
          style="margin-top:18px; font-size:12px; line-height:1.35; white-space:pre-wrap;"></pre>
 
     <div class="gmeta" style="margin-top:14px;">
-      <strong>Purpose:</strong>
-      Prove receive → broadcast → paint.
-      Not an investment tool.
+      <strong>Purpose:</strong> Prove receive → broadcast → paint. Not an investment tool.
     </div>
   </div>
 </div>
