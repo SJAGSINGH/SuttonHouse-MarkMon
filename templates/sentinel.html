@@ -1,1 +1,51 @@
+<div class="section-header">Message System</div>
+
+<main class="grid">
+  <div class="card card-wide" id="msg-card">
+    <h3>Behaviour Governor</h3>
+
+    <div class="primary-text" id="msg-headline">WAITING</div>
+    <div class="secondary-text" id="msg-subline">
+      AWAITING — NO ACTIVE CONDITION
+    </div>
+
+    <div class="badge-row">
+      <div class="badge" id="msg-regime">WAITING — REGIME</div>
+      <div class="badge" id="msg-setup">WAITING — SETUP</div>
+      <div class="badge" id="msg-signal">WAITING — SIGNAL</div>
+      <div class="badge" id="msg-observe">OBSERVE: —</div>
+    </div>
+
+    <div class="gmeta" style="margin-top:16px;">
+      <strong>Rule:</strong> Macro decides direction.
+      Message decides behaviour.
+      Waiting means no action.
+    </div>
+  </div>
+</main>
+
+<!-- ============================
+     SCADA DEBUG PANEL
+============================ -->
+<div id="scada-debug" style="display:none; margin-top:20px;">
+  <div class="card card-wide" style="border:1px solid #2a2a2a;">
+    <h3>SCADA Debug (Handshake)</h3>
+
+    <div class="badge-row" style="margin-top:0;">
+      <div class="badge" id="dbg-socket">SOCKET: —</div>
+      <div class="badge" id="dbg-last-ts">LAST TS: —</div>
+      <div class="badge" id="dbg-age">AGE: —</div>
+      <div class="badge" id="dbg-path">SOURCE: —</div>
+    </div>
+
+    <pre id="dbg-json" class="mono"
+         style="margin-top:18px; font-size:12px; line-height:1.35; white-space:pre-wrap;"></pre>
+
+    <div class="gmeta" style="margin-top:14px;">
+      <strong>Purpose:</strong>
+      Prove receive → broadcast → paint.
+      Not an investment tool.
+    </div>
+  </div>
+</div>
 
