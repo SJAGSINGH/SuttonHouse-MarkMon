@@ -574,6 +574,76 @@ body.war-room .scada-card{
   .mono{
     font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+
+  /* ============================
+   SENTINEL
+============================ */
+.sentinel-output{
+  font-size:13px;
+  letter-spacing:1px;
+  line-height:1.6;
+  color:var(--lime);
+  min-height:40px;
+}
+
+/* ============================
+   WAIT STEPS
+============================ */
+.wait-step{
+  font-size:11px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:8px 10px;
+  margin-bottom:6px;
+  border-left:3px solid #333;
+  color:#666;
+}
+
+.wait-step.active{
+  border-left-color:var(--lime);
+  color:var(--lime);
+}
+
+.wait-step.past{
+  color:#444;
+}
+
+/* ============================
+   STOCK GRID
+============================ */
+.stock-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:14px;
+  margin-top:20px;
+}
+
+.stock-node{
+  width:100%;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:#222;
+  border:1px solid #333;
+}
+
+/* STATES */
+.stock-node.grey{
+  background:#1a1a1a;
+  border-color:#333;
+}
+
+.stock-node.amber{
+  background:rgba(255,140,0,.15);
+  border-color:var(--orange);
+  box-shadow:0 0 12px rgba(255,140,0,.25);
+}
+
+.stock-node.green{
+  background:rgba(50,205,50,.15);
+  border-color:var(--lime);
+  box-shadow:0 0 14px rgba(50,205,50,.35);
+}
+
 </style>
 
 </head>
