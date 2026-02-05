@@ -1081,7 +1081,15 @@ _updateDebugBtn();
 
 // ----------------------------
 // DEBUG BUTTON (secret + shift only)
-// ----------------------------
+// ============================
+// SENTINEL OUTPUT (UI ONLY)
+// ============================
+function setSentinel(line){
+  const el = document.getElementById("sentinel-output");
+  if (!el) return;
+  el.textContent = line || "Sentinel: SILENCE";
+}
+-----
 
 
 function _updateDebugBtn() {
