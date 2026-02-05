@@ -574,6 +574,38 @@ body.war-room .scada-card{
   .mono{
     font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+
+  #msg-card{
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+#msg-card .badge{
+  display:inline-block;
+  font-size:11px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  padding:7px 10px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.55);
+  margin-right:8px;
+}
+
+#msg-card .badge-good{
+  border-color: rgba(60,255,180,0.35);
+  color: var(--lime);
+  background: rgba(60,255,180,0.08);
+}
+
+#msg-card .badge-warn{
+  border-color: rgba(255,140,0,0.40);
+  color: var(--orange);
+  background: rgba(255,140,0,0.10);
+}
 </style>
 
 </head>
@@ -704,6 +736,7 @@ body.war-room .scada-card{
   </main>
 
 {% include "sentinel.html" %}
+
 
 
   <div id="password-modal">
@@ -1304,11 +1337,13 @@ function _updateDebugBtn() {
 
   // helpers
   const setBadge = (el, text, tone) => {
-    if (!el) return;
-    el.className = 'badge';
-    if (tone) el.classList.add(tone);
-    el.innerText = text;
-  };
+  if (!el) return;
+  el.classList.remove('badge-good','badge-warn');
+  el.classList.add('badge');
+  if (tone) el.classList.add(tone);
+  el.innerText = text;
+};
+
 
   const setupOn = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
   const trigRaw = String(m.trigger || '').trim();
@@ -1317,32 +1352,18 @@ function _updateDebugBtn() {
   const ticker = String(m.ticker || '').toUpperCase();
 
   // Default: neutral, no fanfare
-  if (card){
-    card.className = 'card card-wide halo-bg-silver';
-  }
+  // Default: neutral, no fanfare (NO HALO BACKGROUNDS)
+if (card){
+  card.className = 'card card-wide';
+}
 
-  // 1) WAITING — REGIME
-  if (!dir){
-    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
-    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
-    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
-    setBadge(bSet, 'WAITING — SETUP', '');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
-    return;
-  }
+// Founder-only: keep minimal (optional border only), no haze
+if (founderMode && card){
+  card.classList.add('founder');
+  if (dir === 'REAL') card.classList.add('founder-real');
+  if (dir === 'FIN')  card.classList.add('founder-fin');
+}
 
-  // Regime confirmed (direction is known)
-  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
-
-  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
-
-  // Founder-only: subtle haze behind message card (no action implication)
-  // Uses your existing halo classes (direction only)
-  if (founderMode && card){
-    if (dir === 'REAL') card.className = 'card card-wide halo-bg-gold';
-    if (dir === 'FIN')  card.className = 'card card-wide halo-bg-steel';
-  }
 
   // 2) WAITING — SETUP
   if (!setupOn){
