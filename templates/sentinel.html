@@ -1,50 +1,28 @@
+<div class="section-header">Message System</div>
 
-<!-- ============================
-     SUTTON SENTINEL
-============================ -->
-<div class="card card-wide halo-bg-secret" id="sentinel-card">
-  <div class="sentinel-output mono" id="sentinel-text">
-    Sentinel: Awaiting state change.
-  </div>
-</div>
+<main class="grid">
+  <div class="card card-wide" id="msg-card">
+    <h3>Behaviour Governor</h3>
 
-<!-- ============================
-     MESSAGE + STOCK LAYER
-============================ -->
-<div class="grid" style="grid-template-columns:1fr 2fr;">
+    <div class="primary-text" id="msg-headline">WAITING</div>
+    <div class="secondary-text" id="msg-subline">
+      AWAITING — NO ACTIVE CONDITION
+    </div>
 
-  <!-- MESSAGE SYSTEM (LEFT) -->
-  <div class="card" id="wait-card">
-    <h3>State Sequence</h3>
-
-    <div class="wait-step active">1 · Waiting — Regime</div>
-    <div class="wait-step">2 · Waiting — Setup</div>
-    <div class="wait-step">3 · Waiting — Signal</div>
-    <div class="wait-step">4 · Observe</div>
-    <div class="wait-step">5 · Confirm</div>
+    <div class="badge-row">
+      <div class="badge" id="msg-regime">WAITING — REGIME</div>
+      <div class="badge" id="msg-setup">WAITING — SETUP</div>
+      <div class="badge" id="msg-signal">WAITING — SIGNAL</div>
+      <div class="badge" id="msg-observe">OBSERVE: —</div>
+    </div>
 
     <div class="gmeta" style="margin-top:16px;">
-      Sequence enforced. No forward visibility.
+      <strong>Rule:</strong> Macro decides direction.
+      Message decides behaviour.
+      Waiting means no action.
     </div>
   </div>
-
- <!-- STOCK CARD (RIGHT) -->
-<div class="card" id="stock-card">
-  <h3>Watchlist</h3>
-
-  <div class="watchlist-fill">
-    <div class="stock-grid">
-      <!-- 20 stock circles -->
-      {% for i in range(20) %}
-        <div class="stock-node grey"></div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
-
-
-
+</main>
 
 <!-- ============================
      SCADA DEBUG PANEL
@@ -70,4 +48,3 @@
     </div>
   </div>
 </div>
-
