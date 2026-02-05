@@ -641,19 +641,22 @@ body.war-room .scada-card{
 
   
 
-/* ============================
-   STOCK GRID
-============================ */
 .stock-grid{
   display:grid;
-  grid-template-columns:repeat(5,1fr);
+  grid-template-columns:repeat(10, 28px); /* 20 nodes = 2 rows of 10 */
   gap:14px;
-  margin-top:20px;
+  justify-content:start;
+  align-content:start;
+  margin-top:16px;
 }
 
+
+/* ============================
+   STOCK NODES — 20p size
+============================ */
 .stock-node{
-  width:100%;
-  aspect-ratio:1;
+  width:28px;
+  height:28px;
   border-radius:50%;
   background:#222;
   border:1px solid #333;
@@ -1326,153 +1329,8 @@ function _updateDebugBtn() {
   // ----------------------------
   // SECRET APPLY (unchanged)
   // ----------------------------
-  function applySecretFromState(data){
-    const secret = (data && data.secret) ? data.secret : {};
-    const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
-    const warActive = !!(secret && secret.war && secret.war.active);
-    document.body.classList.toggle('war-room', warActive); setWarBadge(false);
-
-    const v1 = document.getElementById('val-1'); const s1 = document.getElementById('sub-1'); const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3');
-
-    const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
-    setText('val-1', xVal); setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL'); if (v1) v1.style.color = 'var(--text)'; if (s1) s1.style.color = 'var(--text)';
-    showGauge('gauge-1', vix.level, 'LEVEL', [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`], XY_COL);
-
-    const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
-    setText('val-2', yVal); setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL'); if (v2) v2.style.color = 'var(--text)'; if (s2) s2.style.color = 'var(--text)';
-    showGauge('gauge-2', gvz.level, 'LEVEL', [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`], XY_COL);
-
-    const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
-    const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
-    setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-    setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-    if (v3) v3.style.color = 'var(--text)'; if (s3) s3.style.color = 'var(--text)';
-
-    const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-    const sellL = Number.isFinite(sell.level) ? sell.level : 0;
-    showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
-  }
-
-  // ----------------------------
-  // MONITORING STATE APPLY (unchanged)
-  // ----------------------------
-  function applyMonitoringFromState(data){
-    const m = data && data.monitor ? data.monitor : {};
-    const ticker   = (m.ticker || '').toUpperCase();
-    const trigger  = (m.trigger || '').toUpperCase();
-    const status   = m.status || '';
-    const setup    = m.setup;
-    const trend    = (m.trend || '').toUpperCase();
-    const strategy = (m.strategy || '').toUpperCase();
-    const updated  = m.updated || '';
-
-    const tickerEl = document.getElementById('mon-ticker');
-    const trigEl   = document.getElementById('mon-trigger');
-    const statusEl = document.getElementById('mon-status');
-    if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
-    if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
-    if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
-
-    const setupEl = document.getElementById('mon-setup');
-    if (setupEl){ setupEl.className = 'badge'; if (setup === true || setup === 'ON'){ setupEl.classList.add('badge-warn'); setupEl.innerText = 'SETUP: ACTIVE'; } else { setupEl.innerText = 'SETUP: INACTIVE'; } }
-
-    const trendEl = document.getElementById('mon-trend');
-    if (trendEl){ trendEl.className = 'badge'; if (trend === 'ALIGNED'){ trendEl.classList.add('badge-good'); trendEl.innerText = 'TREND: ALIGNED'; } else if (trend === 'MISALIGNED'){ trendEl.classList.add('badge-bad'); trendEl.innerText = 'TREND: MISALIGNED'; } else { trendEl.innerText = 'TREND: —'; } }
-
-    const stratEl = document.getElementById('mon-strategy'); if (stratEl){ stratEl.className = 'badge'; stratEl.innerText = `STRATEGY: ${strategy || '—'}`; }
-    const updEl   = document.getElementById('mon-updated');  if (updEl){   updEl.innerText   = `UPDATED: ${updated || '—'}`; }
-
-    const card = document.getElementById('monitor-card');
-    if (card){
-      card.className = 'card card-wide';
-      const setupOn = (setup === true || setup === 'ON');
-      if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
-      if (trend === 'MISALIGNED')          card.classList.add('glow-danger');
-      if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
-    }
-  }
-  function applyMessageFromState(data){
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
-  const m = (data && data.monitor) ? data.monitor : {};
-
-  const headlineEl = document.getElementById('msg-headline');
-  const subEl      = document.getElementById('msg-subline');
-
-  const bReg = document.getElementById('msg-regime');
-  const bSet = document.getElementById('msg-setup');
-  const bSig = document.getElementById('msg-signal');
-  const bObs = document.getElementById('msg-observe');
-
-  const card = document.getElementById('msg-card');
-
-  // helpers
-  const setBadge = (el, text, tone) => {
-    if (!el) return;
-    el.className = 'badge';
-    if (tone) el.classList.add(tone);
-    el.innerText = text;
-  };
-
-  const setupOn = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
-  const trigRaw = String(m.trigger || '').trim();
-  const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
-
-  const ticker = String(m.ticker || '').toUpperCase();
-
-  // Default: neutral, no fanfare
-  if (card){
-    card.className = 'card card-wide halo-bg-silver';
-  }
-
-  // 1) WAITING — REGIME
-  if (!dir){
-    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
-    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
-    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
-    setBadge(bSet, 'WAITING — SETUP', '');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
-    return;
-  }
-
-  // Regime confirmed (direction is known)
-  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
-
-  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
-
-  // Founder-only: subtle haze behind message card (no action implication)
-  // Uses your existing halo classes (direction only)
-  if (founderMode && card){
-    if (dir === 'REAL') card.className = 'card card-wide halo-bg-gold';
-    if (dir === 'FIN')  card.className = 'card card-wide halo-bg-steel';
-  }
-
-  // 2) WAITING — SETUP
-  if (!setupOn){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SETUP STATE';
-    if (subEl) subEl.innerText = 'Direction confirmed. Setup not active.';
-    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
-    return;
-  }
-
-  setBadge(bSet, 'SETUP: ACTIVE', 'badge-good');
-
-  // 3) WAITING — SIGNAL
-  if (!hasSignal){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SIGNAL STATE';
-    if (subEl) subEl.innerText = 'Setup active. Waiting for trigger.';
-    setBadge(bSig, 'WAITING — SIGNAL', 'badge-warn');
-    setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: WATCHLIST', '');
-    return;
-  }
-
-  // 4) SIGNAL DETECTED (still not action; “observe stock cards”)
-  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
-  if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
-  setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
-  setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
+function applyMessageFromState(data){
+  return; // legacy message system disabled (replaced by Sentinel + wait-steps)
 }
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
@@ -1481,7 +1339,7 @@ function _updateDebugBtn() {
     if (!window.RSC_MOCK) return;
     console.log("[RSC MOCK]", payload);
     if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
-    else applyAllFromState(payload);
+    
   }
 
   // ----------------------------
@@ -1855,9 +1713,9 @@ function applyAllFromState(data) {
       }
     }
   })();
-} // ✅ CLOSE applyAllFromState()
+} // ✅ CLOSE 
 
-window.applyAllFromState = applyAllFromState;
+
 
 
 
@@ -1919,13 +1777,7 @@ window.handleMacroUpdate = function(payload){
   window.__RSC_LAST = p;
   console.log("[RSC HANDLE OK]", p);
 
-  if (typeof window.applyAllFromState === "function") {
-    window.applyAllFromState(p);
-  } else if (typeof applyAllFromState === "function") {
-    applyAllFromState(p);
-  } else {
-    console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
-  }
+  
 };
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
@@ -1936,7 +1788,7 @@ window.handleMacroUpdate = function(payload){
 
   // Let the canonical handler normalize + paint
   if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
-  else applyAllFromState(data);
+
 
   // Use the normalized last payload if available
   const p = window.__RSC_LAST || data;
@@ -1959,7 +1811,7 @@ window.handleMacroUpdate = function(payload){
          rscSetComms("warmstart /health", j.state);
 
         if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
-        else applyAllFromState(j.state);
+        
       }
     } catch(e){}
   })();
