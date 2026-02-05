@@ -644,6 +644,22 @@ body.war-room .scada-card{
 /* ============================
    STOCK GRID — 4 x 5
 ============================ */
+.stock-grid,
+#stock-grid{
+  display:grid !important;
+  grid-template-columns:repeat(5, 44px) !important;
+  grid-auto-rows:44px;
+  gap:18px;
+  justify-content:start;
+  align-content:start;
+  margin-top:18px;
+}
+
+
+
+/* ============================
+   STOCK NODES — enlarged (card-fit)
+============================ */
 .stock-node{
   width:44px;
   height:44px;
@@ -652,17 +668,6 @@ body.war-room .scada-card{
   border:1px solid #2f2f2f;
 }
 
-
-/* ============================
-   STOCK NODES — enlarged (card-fit)
-============================ */
-.stock-node{
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  background:#222;
-  border:1px solid #333;
-}
 
 /* ============================
    STATES
