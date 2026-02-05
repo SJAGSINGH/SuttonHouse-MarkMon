@@ -1388,35 +1388,39 @@ function _updateDebugBtn() {
 
   const card = document.getElementById('msg-card');
 
-  // helpers
+  // helper
   const setBadge = (el, text, tone) => {
-  if (!el) return;
-  el.classList.remove('badge-good','badge-warn');
-  el.classList.add('badge');
-  if (tone) el.classList.add(tone);
-  el.innerText = text;
-};
+    if (!el) return;
+    el.classList.remove('badge-good','badge-warn');
+    el.classList.add('badge');
+    if (tone) el.classList.add(tone);
+    el.innerText = text;
+  };
 
-
-  const setupOn = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
-  const trigRaw = String(m.trigger || '').trim();
+  const setupOn   = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
+  const trigRaw   = String(m.trigger || '').trim();
   const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
+  const ticker    = String(m.ticker || '').toUpperCase();
 
-  const ticker = String(m.ticker || '').toUpperCase();
+  // IMPORTANT: DO NOT force width/layout classes here
+  if (card){
+    card.classList.remove('card-wide','halo-bg-silver','halo-bg-gold','halo-bg-steel');
+    card.classList.add('card');
+  }
 
-  // Default: neutral, no fanfare
-  // Default: neutral, no fanfare (NO HALO BACKGROUNDS)
-if (card){
-  card.className = 'card card-wide';
-}
+  // 1) WAITING — REGIME
+  if (!dir){
+    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
+    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
+    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
+    setBadge(bSet, 'WAITING — SETUP', '');
+    setBadge(bSig, 'WAITING — SIGNAL', '');
+    setBadge(bObs, 'OBSERVE: —', '');
+    return;
+  }
 
-// Founder-only: keep minimal (optional border only), no haze
-if (founderMode && card){
-  card.classList.add('founder');
-  if (dir === 'REAL') card.classList.add('founder-real');
-  if (dir === 'FIN')  card.classList.add('founder-fin');
-}
-
+  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
+  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
 
   // 2) WAITING — SETUP
   if (!setupOn){
@@ -1439,7 +1443,7 @@ if (founderMode && card){
     return;
   }
 
-  // 4) SIGNAL DETECTED (still not action; “observe stock cards”)
+  // 4) SIGNAL DETECTED (still not action)
   if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
   if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
   setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
