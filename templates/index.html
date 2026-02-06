@@ -907,6 +907,20 @@ function setDebugVisible(v){
   if (panel) panel.style.display = debugOn ? "block" : "none";
   if (debugOn) refreshDebugNow();
 }
+function getMacroDir(data){
+  // Prefer explicit regime fields from Pine
+  const r = String(data?.regime || data?.card1 || data?.mom || "").toUpperCase();
+
+  if (r.includes("COMMOD") || r.includes("REAL") || r.includes("GOLD") || r.includes("COPPER")) return "REAL";
+  if (r.includes("EQUIT") || r.includes("FIN") || r.includes("RISK")) return "FIN";
+
+  // Fallback: if you ever send a textual cycle label in future
+  const c = String(data?.cycle ?? "").toUpperCase();
+  if (c.includes("REAL")) return "REAL";
+  if (c.includes("FIN")) return "FIN";
+
+  return null;
+}
 
 async function refreshDebugNow(){
   if (!debugOn) return;
@@ -1218,20 +1232,19 @@ function _updateDebugBtn() {
 
   // ✅ Direction should come from flow/regime, NOT cycle clock
   const dirSrc = String(data?.flow ?? data?.regime ?? data?.cycle ?? '').trim();
-  const dir = rscRegimeDirection(dirSrc); // 'REAL' | 'FIN' | null
+  const dir = getMacroDir(data);
 
-  if (v1){
-    if (!dirSrc){
-      v1.innerText = 'AWAITING';
-    } else if (dir === 'REAL'){
-      v1.innerText = 'REAL ASSET REGIME';
-    } else if (dir === 'FIN'){
-      v1.innerText = 'FINANCIAL ASSET REGIME';
-    } else {
-      v1.innerText = dirSrc.toUpperCase();
-    }
-    v1.style.color = 'var(--text)';
+
+  const regimeLabel = String(data?.regime || "").trim().toUpperCase();
+...
+  if (!dir){
+    v1.innerText = regimeLabel ? `${regimeLabel} REGIME` : 'AWAITING';
+  } else if (dir === 'REAL'){
+    v1.innerText = 'REAL ASSET REGIME';
+  } else if (dir === 'FIN'){
+    v1.innerText = 'FINANCIAL ASSET REGIME';
   }
+
 
   if (c1){
     c1.className = 'card';
@@ -1253,16 +1266,14 @@ function _updateDebugBtn() {
 }
 
 
-  // ============================================================
-// CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
-// Requires: rscClockStage(count) and rscRegimeDirection(dirSrc)
 // ============================================================
+// CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
+// Dir comes from MACRO regime (regime/card1), NOT data.cycle (which is %).
+// Requires: rscClockStage(count)
+// ============================================================
+if (data?.count === undefined || data?.count === null) return;
 
-// ✅ Accept BOTH: server count OR Pine cycle (percent)
-const rawCount = (data?.count ?? data?.cycle);
-if (rawCount === undefined || rawCount === null) return;
-
-const count = rscApplyClockOffset(rawCount); // ✅ OFFSET APPLIED
+const count = rscApplyClockOffset(data.count); // ✅ OFFSET APPLIED
 if (count === null) return;
 
 const v3  = document.getElementById('val-3');
@@ -1278,41 +1289,40 @@ if (s3)  s3.innerText = `MATURITY: ${count}%`;
 
 const stage = rscClockStage(count) || 'INITIATING';
 
-// ✅ Direction must come from flow/regime text (NOT numeric cycle)
-const dirSrc = String(data?.flow ?? data?.regime ?? data?.card1 ?? data?.cycle ?? '').trim();
-const dir = rscRegimeDirection(dirSrc); // 'REAL' | 'FIN' | null
-
+// ✅ FIX: determine REAL/FIN from Pine macro regime fields
+const dir = getMacroDir(data); // 'REAL' | 'FIN' | null
 applyFounderHaze(dir);
 
-let headline  = `NO REGIME → ${stage}`;
+let headline = `NO REGIME → ${stage}`;
 let cardClass = 'card halo-bg-silver';
-let fillCol   = 'var(--silver)';
+let fillCol = 'var(--silver)';
 
 if (dir === 'REAL'){
-  headline  = `REAL ASSET REGIME → ${stage}`;
+  headline = `REAL ASSET REGIME → ${stage}`;
   cardClass = 'card halo-bg-gold';
-  fillCol   = 'var(--gold)';
+  fillCol = 'var(--gold)';
 } else if (dir === 'FIN'){
-  headline  = `FINANCIAL ASSET REGIME → ${stage}`;
+  headline = `FINANCIAL ASSET REGIME → ${stage}`;
   cardClass = 'card halo-bg-steel';
-  fillCol   = 'var(--steel)';
+  fillCol = 'var(--steel)';
 }
 
 // late/end overlays dominate regime color
 if (count >= 86){
   cardClass = 'card glow-danger';
-  fillCol   = 'var(--red)';
+  fillCol = 'var(--red)';
 } else if (count >= 71){
   cardClass = 'card glow-warning';
-  fillCol   = 'var(--orange)';
+  fillCol = 'var(--orange)';
 }
 
 if (v3){
   v3.innerText = headline;
   v3.style.color = (count >= 71) ? fillCol : 'var(--text)';
 }
-if (c3)  c3.className = cardClass;
+if (c3) c3.className = cardClass;
 if (f3b) f3b.style.background = fillCol;
+
 }
   // ----------------------------
   // SECRET APPLY (unchanged)
