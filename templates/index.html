@@ -1193,14 +1193,26 @@ function _updateDebugBtn() {
     if (c) c.className = 'card';
   });
 
-  setText('val-1','AWAITING'); setText('sub-1','');
+  
   setText('val-2','SHORT-TERM PREFERENCE REMAINS'); setText('val-2b','UNCLEAR — MONITORING');
-  setText('val-3','AWAITING'); setText('sub-3','');
 
-  const t3 = document.getElementById('track-3');
-  const fill3 = document.getElementById('fill-3');
-  if (t3) t3.style.display = 'none';
-  if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
+
+ // --- Card 1 defaults ONLY if regime not present in this update
+  if (data?.regime == null && data?.card1 == null) {
+    setText('val-1','AWAITING');
+    setText('sub-1','');
+  }
+
+  // --- Card 3 defaults ONLY if cycle not present in this update
+  if (data?.cycle == null) {
+    setText('val-3','AWAITING');
+    setText('sub-3','');
+    const t3 = document.getElementById('track-3');
+    const fill3 = document.getElementById('fill-3');
+    if (t3) t3.style.display = 'none';
+    if (fill3) { fill3.style.width = '0%'; }
+  }
+
 
   // ============================================================
 // CARD 1 — REGIME + VOL (Pine truth)
