@@ -1213,7 +1213,7 @@ function _updateDebugBtn() {
 
   // Pine truth: regime is a string like "EQUITIES" / "COMMODITIES"
   const regimeRaw = String(data?.regime || data?.card1 || '').trim();
-  const dir = rscRegimeDirection(regimeRaw); // 'REAL' | 'FIN' | null
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
 
   if (v1){
     if (!regimeRaw){
@@ -1286,7 +1286,7 @@ function _updateDebugBtn() {
 
   // regime direction MUST come from regime string, not cycle
   const regimeRaw = String(data?.regime || data?.card1 || '').trim();
-  const dir = rscRegimeDirection(regimeRaw); // REAL | FIN | null
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
 
   applyFounderHaze(dir);
 
@@ -1391,7 +1391,7 @@ function _updateDebugBtn() {
     }
   }
   function applyMessageFromState(data){
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
   const m = (data && data.monitor) ? data.monitor : {};
 
   const headlineEl = document.getElementById('msg-headline');
@@ -1698,7 +1698,7 @@ function applyAllFromState(data) {
     v2b.classList.add(cls);
 
   // ---------- HALO rule (Card2 inherits MACRO halo when Card2 is CONSISTENT)
-  const dir = rscRegimeDirection(data?.cycle); // REAL | FIN | null
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
 
   // consistent states (you already use these for status line)
   const isConsistent =
