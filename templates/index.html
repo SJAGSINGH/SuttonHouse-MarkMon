@@ -1250,29 +1250,22 @@ function _updateDebugBtn() {
 
 
 
-  // ============================================================
-// CARD 3 — CYCLE CLOCK (Pine truth)
-// Uses: data.cycle (number) + data.regime (string)
-// Optional display: data.card3 like "19%"
+// ============================================================
+// CARD 3 — CYCLE CLOCK (0–120 canonical)
+// Pine truth: data.cycle = 0..120
+// UI: bar + maturity use pct, but system truth remains count.
 // ============================================================
 
 {
-  // Pine truth: cycle is sent as activeCount (your payload shows cycle:19)
-  // If you later send 0–120, keep it. If it becomes 0–100, still fine.
-  const rawCycle = data?.cycle;
-  if (rawCycle === undefined || rawCycle === null) return;
+  const raw = data?.cycle;
+  if (raw === undefined || raw === null) return;
 
-  let count = Number(rawCycle);
+  const count = Number(raw);                 // 0..120 (truth)
   if (!Number.isFinite(count)) return;
 
-  // If your cycle is 0–120, you probably want % for the bar.
-  // If your cycle is already % (0–100), it will pass through.
-  // --- choose ONE ---
-  // A) If cycle is already %:
-  // const pct = Math.max(0, Math.min(100, Math.round(count)));
-
-  // B) If cycle is 0–120 and you want percent:
-  const pct = Math.max(0, Math.min(100, Math.round((count / 120) * 100)));
+  const CAP = 120;
+  const clipped = Math.max(0, Math.min(CAP, count));
+  const pct = Math.round((clipped / CAP) * 100);   // 0..100 for bar + maturity
 
   const v3  = document.getElementById('val-3');
   const s3  = document.getElementById('sub-3');
@@ -1280,17 +1273,21 @@ function _updateDebugBtn() {
   const t3b = document.getElementById('track-3');
   const f3b = document.getElementById('fill-3');
 
+  // bar
   if (t3b) t3b.style.display = 'block';
   if (f3b) f3b.style.width = `${pct}%`;
 
-  // Prefer Pine’s formatted string if present
-  const maturityLabel = String(data?.card3 || `${pct}%`);
-  if (s3) s3.innerText = `MATURITY: ${maturityLabel.replace('%','')}%`;
+  // maturity line (percent)
+  if (s3) s3.innerText = `MATURITY: ${pct}%`;
 
+  // stage logic: choose ONE truth
+  // If your rscClockStage expects 0..100 -> pass pct
   const stage = rscClockStage(pct) || 'INITIATING';
 
+  // regime direction MUST come from regime string, not cycle
   const regimeRaw = String(data?.regime || data?.card1 || '').trim();
-  const dir = rscRegimeDirection(regimeRaw); // 'REAL' | 'FIN' | null
+  const dir = rscRegimeDirection(regimeRaw); // REAL | FIN | null
+
   applyFounderHaze(dir);
 
   let headline = `NO REGIME → ${stage}`;
@@ -1307,7 +1304,7 @@ function _updateDebugBtn() {
     fillCol = 'var(--steel)';
   }
 
-  // late/end overlays dominate regime colour (based on pct)
+  // late/end overlays (based on pct, not count)
   if (pct >= 86){
     cardClass = 'card glow-danger';
     fillCol = 'var(--red)';
@@ -1323,6 +1320,7 @@ function _updateDebugBtn() {
   if (c3) c3.className = cardClass;
   if (f3b) f3b.style.background = fillCol;
 }
+
 
   // ----------------------------
   // SECRET APPLY (unchanged)
