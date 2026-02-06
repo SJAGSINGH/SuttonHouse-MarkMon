@@ -1364,8 +1364,8 @@ function _updateDebugBtn() {
 }
   // ----------------------------
   // SECRET APPLY (unchanged)
-  // ----------------------------
-  function applySecretFromState(data){
+  // ---------------------------- 
+  function applyMonitoringFromState(data){
     const secret = (data && data.secret) ? data.secret : {};
     const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
     const warActive = !!(secret && secret.war && secret.war.active);
