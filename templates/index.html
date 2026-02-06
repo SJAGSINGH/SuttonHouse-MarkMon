@@ -1825,25 +1825,33 @@ window.applyAllFromState = applyAllFromState;
    // ============================================================
   // VALIDATOR + SINGLE ENTRY POINT (FREEZE)
   // ============================================================
-  function rscValidateMacro(p){
-    if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
+ function rscValidateMacro(p){
+  if (!p || typeof p !== "object") return { ok:false, why:"payload_not_object" };
 
-    // tolerate server timestamp in SECONDS or MILLISECONDS
-    if (p._server_ts !== undefined && p._server_ts !== null){
-      let ts = Number(p._server_ts);
-      if (Number.isFinite(ts)){
-        // if it's seconds (10 digits-ish), convert to ms
-        if (ts < 1e12) ts = ts * 1000;
+  // Accept: _server_ts, ts, or time (TradingView bar time)
+  let ts =
+    (p._server_ts != null ? Number(p._server_ts) : null);
 
-        const ageMs = Date.now() - ts;
-         console.log("[TS DEBUG]", { now: Date.now(), _server_ts: p._server_ts, ageMs: Date.now() - p._server_ts });
-        // if clock skew puts it in the future, don't drop it
-        if (ageMs > 30 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
-      }
-    }
+  if (!Number.isFinite(ts)) ts = (p.ts != null ? Number(p.ts) : null);
+  if (!Number.isFinite(ts)) ts = (p.time != null ? Number(p.time) : null);
 
-    return { ok:true };
-  }
+  // normalize seconds -> ms
+  if (Number.isFinite(ts) && ts < 1e12) ts *= 1000;
+
+  // If we still can't read a timestamp, DO NOT DROP.
+  if (!Number.isFinite(ts)) return { ok:true, why:"no_ts_accept" };
+
+  const ageMs = Date.now() - ts;
+
+  // If clock skew puts it in the future, accept.
+  if (ageMs < -5 * 60 * 1000) return { ok:true, why:"future_skew_accept" };
+
+  // Relaxed: accept anything up to 6 hours.
+  if (ageMs > 6 * 60 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
+
+  return { ok:true };
+}
+
 
   console.log("✅ RSC VALIDATOR LIVE v1");
   console.log("BUILD_STAMP_ABC123");
