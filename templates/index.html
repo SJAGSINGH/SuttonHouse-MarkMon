@@ -20,6 +20,8 @@ window.onerror = function (msg, src, line, col, err) {
 // GLOBAL STATE (must exist before any JS uses it)
 let secretMode = false;
 let founderMode = false;
+let __prevSetupOn = false;
+let __step5Until = 0;   // timestamp ms until which Step 5 is forced  
 </script>
 
   <!-- Styles -->
@@ -641,6 +643,60 @@ body.war-room .scada-card{
   border-color:rgba(255,140,0,0.40);
   color:var(--orange);
   background:rgba(255,140,0,0.10);
+}
+.step-seq{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+
+.step{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.10);
+  background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.45);
+  font-size:11px;
+  letter-spacing:1.3px;
+  text-transform:uppercase;
+}
+
+.step .n{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  border:1px solid rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.55);
+}
+
+.step.active{
+  border-color:rgba(60,255,180,0.45);
+  background:rgba(60,255,180,0.10);
+  color:var(--lime);
+  box-shadow:0 0 14px rgba(60,255,180,0.18);
+}
+
+.step.active .n{
+  border-color:rgba(60,255,180,0.55);
+  color:var(--lime);
+}
+
+.transition{
+  margin-top:14px;
+  font-size:12px;
+  letter-spacing:1.4px;
+  color:var(--lime);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* ============================
@@ -1339,42 +1395,7 @@ function _updateDebugBtn() {
   // ----------------------------
   // MONITORING STATE APPLY (unchanged)
   // ----------------------------
-  function applyMonitoringFromState(data){
-    const m = data && data.monitor ? data.monitor : {};
-    const ticker   = (m.ticker || '').toUpperCase();
-    const trigger  = (m.trigger || '').toUpperCase();
-    const status   = m.status || '';
-    const setup    = m.setup;
-    const trend    = (m.trend || '').toUpperCase();
-    const strategy = (m.strategy || '').toUpperCase();
-    const updated  = m.updated || '';
-
-    const tickerEl = document.getElementById('mon-ticker');
-    const trigEl   = document.getElementById('mon-trigger');
-    const statusEl = document.getElementById('mon-status');
-    if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
-    if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
-    if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
-
-    const setupEl = document.getElementById('mon-setup');
-    if (setupEl){ setupEl.className = 'badge'; if (setup === true || setup === 'ON'){ setupEl.classList.add('badge-warn'); setupEl.innerText = 'SETUP: ACTIVE'; } else { setupEl.innerText = 'SETUP: INACTIVE'; } }
-
-    const trendEl = document.getElementById('mon-trend');
-    if (trendEl){ trendEl.className = 'badge'; if (trend === 'ALIGNED'){ trendEl.classList.add('badge-good'); trendEl.innerText = 'TREND: ALIGNED'; } else if (trend === 'MISALIGNED'){ trendEl.classList.add('badge-bad'); trendEl.innerText = 'TREND: MISALIGNED'; } else { trendEl.innerText = 'TREND: —'; } }
-
-    const stratEl = document.getElementById('mon-strategy'); if (stratEl){ stratEl.className = 'badge'; stratEl.innerText = `STRATEGY: ${strategy || '—'}`; }
-    const updEl   = document.getElementById('mon-updated');  if (updEl){   updEl.innerText   = `UPDATED: ${updated || '—'}`; }
-
-    const card = document.getElementById('monitor-card');
-    if (card){
-      card.className = 'card card-wide';
-      const setupOn = (setup === true || setup === 'ON');
-      if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
-      if (trend === 'MISALIGNED')          card.classList.add('glow-danger');
-      if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
-    }
-  }
-  function applyMessageFromState(data){
+function applyMessageFromState(data){
   const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
   const m = (data && data.monitor) ? data.monitor : {};
 
@@ -1388,7 +1409,6 @@ function _updateDebugBtn() {
 
   const card = document.getElementById('msg-card');
 
-  // helper
   const setBadge = (el, text, tone) => {
     if (!el) return;
     el.classList.remove('badge-good','badge-warn');
@@ -1397,58 +1417,94 @@ function _updateDebugBtn() {
     el.innerText = text;
   };
 
+  const setActiveStep = (n) => {
+    const wrap = document.getElementById('msg-steps');
+    if (!wrap) return;
+    wrap.querySelectorAll('.step').forEach(el => {
+      el.classList.toggle('active', el.dataset.step === String(n));
+    });
+  };
+
   const setupOn   = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
   const trigRaw   = String(m.trigger || '').trim();
   const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
   const ticker    = String(m.ticker || '').toUpperCase();
 
-  // IMPORTANT: DO NOT force width/layout classes here
+  const now = Date.now();
+  const setupJustClosed = (__prevSetupOn === true && setupOn === false && !!dir);
+
+  if (setupJustClosed){
+    __step5Until = now + 2500; // brief Step 5 hold
+  }
+
+  // normalise card (do not touch layout sizing)
   if (card){
     card.classList.remove('card-wide','halo-bg-silver','halo-bg-gold','halo-bg-steel');
     card.classList.add('card');
   }
 
-  // 1) WAITING — REGIME
-  if (!dir){
-    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
-    if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
-    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
-    setBadge(bSet, 'WAITING — SETUP', '');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
+  // STEP 5 — SETUP CLOSED (temporary)
+  if (__step5Until > now){
+    setActiveStep(5);
+    if (headlineEl) headlineEl.innerText = 'SETUP STATE CLOSED';
+    if (subEl) subEl.innerText = 'Waiting on next setup state.';
+    setBadge(bSet, 'SETUP: CLOSED', 'badge-warn');
+    setBadge(bSig, '', '');
     setBadge(bObs, 'OBSERVE: —', '');
+    __prevSetupOn = setupOn;
     return;
   }
 
-  const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
-  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
-
-  // 2) WAITING — SETUP
-  if (!setupOn){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SETUP STATE';
-    if (subEl) subEl.innerText = 'Direction confirmed. Setup not active.';
-    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
+  // STEP 1 — REGIME UNKNOWN
+  if (!dir){
+    setActiveStep(1);
+    if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
+    if (subEl) subEl.innerText = 'Waiting on regime state.';
+    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
+    setBadge(bSet, '', '');
+    setBadge(bSig, '', '');
     setBadge(bObs, 'OBSERVE: —', '');
+    __prevSetupOn = setupOn;
+    return;
+  }
+
+  setBadge(bReg, `REGIME: ${(dir === 'REAL') ? 'REAL ASSET' : 'FINANCIAL ASSET'}`, 'badge-good');
+
+  // STEP 2 — REGIME CONFIRMED, NO SETUP
+  if (!setupOn){
+    setActiveStep(2);
+    if (headlineEl) headlineEl.innerText = 'REGIME STATE CONFIRMED';
+    if (subEl) subEl.innerText = 'Waiting on setup state.';
+    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
+    setBadge(bSig, '', '');
+    setBadge(bObs, 'OBSERVE: —', '');
+    __prevSetupOn = setupOn;
     return;
   }
 
   setBadge(bSet, 'SETUP: ACTIVE', 'badge-good');
 
-  // 3) WAITING — SIGNAL
+  // STEP 3 — SETUP CONFIRMED, NO SIGNAL
   if (!hasSignal){
-    if (headlineEl) headlineEl.innerText = 'WAITING — SIGNAL STATE';
-    if (subEl) subEl.innerText = 'Setup active. Waiting for trigger.';
+    setActiveStep(3);
+    if (headlineEl) headlineEl.innerText = 'SETUP STATE CONFIRMED';
+    if (subEl) subEl.innerText = 'Waiting on signal state.';
     setBadge(bSig, 'WAITING — SIGNAL', 'badge-warn');
     setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: WATCHLIST', '');
+    __prevSetupOn = setupOn;
     return;
   }
 
-  // 4) SIGNAL DETECTED (still not action)
-  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
-  if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
+  // STEP 4 — SIGNAL CONFIRMED
+  setActiveStep(4);
+  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE CONFIRMED';
+  if (subEl) subEl.innerText = 'Operator observation granted.';
   setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
   setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
+
+  __prevSetupOn = setupOn;
 }
+
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
   window.RSC_MOCK = false;
