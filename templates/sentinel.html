@@ -10,12 +10,16 @@
     <div class="primary-text" id="msg-headline">WAITING</div>
     <div class="secondary-text" id="msg-subline">AWAITING — NO ACTIVE CONDITION</div>
 
-    <div class="badge-row">
-      <div class="badge" id="msg-regime">WAITING — REGIME</div>
-      <div class="badge" id="msg-setup">WAITING — SETUP</div>
-      <div class="badge" id="msg-signal">WAITING — SIGNAL</div>
-      <div class="badge" id="msg-observe">OBSERVE: —</div>
-    </div>
+<div class="step-seq" id="msg-steps">
+  <div class="step" data-step="1"><span class="n">1</span><span class="t">REGIME UNKNOWN</span></div>
+  <div class="step" data-step="2"><span class="n">2</span><span class="t">REGIME CONFIRMED</span></div>
+  <div class="step" data-step="3"><span class="n">3</span><span class="t">SETUP CONFIRMED</span></div>
+  <div class="step" data-step="4"><span class="n">4</span><span class="t">SIGNAL CONFIRMED</span></div>
+  <div class="step" data-step="5"><span class="n">5</span><span class="t">SETUP CLOSED</span></div>
+</div>
+
+<div class="transition" id="msg-transition">Waiting on regime state.</div>
+
 
     <div class="gmeta" style="margin-top:12px;">
       <strong>Rule:</strong> Macro decides direction. Message decides behaviour. Waiting means no action.
