@@ -964,17 +964,15 @@ function paintDebug(stateObj){
 // keep updating while visible
 setInterval(() => { if (debugOn) refreshDebugNow(); }, 2000);
   
-function rscRegimeDirection(cycleStr){
-  const s = String(cycleStr || '').toLowerCase();
+function rscRegimeDirection(regimeStr){
+  const s = String(regimeStr || '').toLowerCase();
 
-  // Real asset regime keywords
   if (s.includes('commod') || s.includes('real asset') || s.includes('hard asset') || s.includes('gold')) return 'REAL';
+  if (s.includes('financial') || s.includes('equities') || s.includes('equity') || s.includes('risk-on') || s.includes('stocks')) return 'FIN';
 
-  // Financial asset regime keywords
-  if (s.includes('financial') || s.includes('equities') || s.includes('risk-on') || s.includes('stocks')) return 'FIN';
-
-  return null; // no regime / unknown
+  return null;
 }
+
 
 function rscClockStage(count){
   const c = Number.parseInt(count, 10);
@@ -1205,77 +1203,96 @@ function _updateDebugBtn() {
   if (fill3) { fill3.style.width = '0%'; fill3.style.background = 'var(--gold)'; }
 
   // ============================================================
-  // CARD 1 — REGIME + VOL (MATCH CARD 3 COLOUR STANDARD)
-  // REAL  -> halo-bg-gold
-  // FIN   -> halo-bg-steel
-  // else  -> halo-bg-silver
-  // ============================================================
-  {
-    const v1 = document.getElementById('val-1');
-    const s1 = document.getElementById('sub-1');
-    const c1 = document.getElementById('card-1');
+// CARD 1 — REGIME + VOL (Pine truth)
+// Uses: data.regime (fallback data.card1)
+// ============================================================
+{
+  const v1 = document.getElementById('val-1');
+  const s1 = document.getElementById('sub-1');
+  const c1 = document.getElementById('card-1');
 
-    const cycleRaw = String(data?.cycle || '').trim();
-    const dir = rscRegimeDirection(cycleRaw); // 'REAL' | 'FIN' | null
+  // Pine truth: regime is a string like "EQUITIES" / "COMMODITIES"
+  const regimeRaw = String(data?.regime || data?.card1 || '').trim();
+  const dir = rscRegimeDirection(regimeRaw); // 'REAL' | 'FIN' | null
 
-    if (v1){
-      if (!cycleRaw){
-        v1.innerText = 'AWAITING';
-      } else if (dir === 'REAL'){
-        v1.innerText = 'REAL ASSET REGIME';
-      } else if (dir === 'FIN'){
-        v1.innerText = 'FINANCIAL ASSET REGIME';
-      } else {
-        v1.innerText = cycleRaw.toUpperCase();
-      }
-      // headline stays white; halo carries colour
-      v1.style.color = 'var(--text)';
-    }
-
-    if (c1){
-      c1.className = 'card';
-      if (dir === 'REAL') c1.classList.add('halo-bg-gold');
-      else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
-      else c1.classList.add('halo-bg-silver');
-    }
-
-    // volatility line (keep your existing behaviour)
-    if (data?.vol){
-      const vol = String(data.vol).toUpperCase();
-      if (s1){
-        s1.innerText = `VOLATILITY: ${vol}`;
-        s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
-      }
+  if (v1){
+    if (!regimeRaw){
+      v1.innerText = 'AWAITING';
+    } else if (dir === 'REAL'){
+      v1.innerText = 'REAL ASSET REGIME';
+    } else if (dir === 'FIN'){
+      v1.innerText = 'FINANCIAL ASSET REGIME';
     } else {
-      if (s1) { s1.innerText = ''; s1.style.color = 'var(--text)'; }
+      v1.innerText = regimeRaw.toUpperCase();
     }
+    v1.style.color = 'var(--text)';
   }
 
+  if (c1){
+    c1.className = 'card';
+    if (dir === 'REAL') c1.classList.add('halo-bg-gold');
+    else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
+    else c1.classList.add('halo-bg-silver');
+  }
+
+  // Vol line (Pine: data.vol)
+  const vol = String(data?.vol || '').toUpperCase();
+  if (s1){
+    if (!vol){
+      s1.innerText = '';
+      s1.style.color = 'var(--text)';
+    } else {
+      s1.innerText = `VOLATILITY: ${vol}`;
+      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+    }
+  }
+}
+
+
 
   // ============================================================
-  // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
-  // Requires: rscClockStage(count) and rscRegimeDirection(data.cycle)
-  // ============================================================
-  if (data?.count === undefined || data?.count === null) return;
+// CARD 3 — CYCLE CLOCK (Pine truth)
+// Uses: data.cycle (number) + data.regime (string)
+// Optional display: data.card3 like "19%"
+// ============================================================
 
-  const count = rscApplyClockOffset(data.count); // ✅ OFFSET APPLIED
-  if (count === null) return;
+{
+  // Pine truth: cycle is sent as activeCount (your payload shows cycle:19)
+  // If you later send 0–120, keep it. If it becomes 0–100, still fine.
+  const rawCycle = data?.cycle;
+  if (rawCycle === undefined || rawCycle === null) return;
 
+  let count = Number(rawCycle);
+  if (!Number.isFinite(count)) return;
 
-  const v3 = document.getElementById('val-3');
-  const s3 = document.getElementById('sub-3');
-  const c3 = document.getElementById('card-3');
+  // If your cycle is 0–120, you probably want % for the bar.
+  // If your cycle is already % (0–100), it will pass through.
+  // --- choose ONE ---
+  // A) If cycle is already %:
+  // const pct = Math.max(0, Math.min(100, Math.round(count)));
+
+  // B) If cycle is 0–120 and you want percent:
+  const pct = Math.max(0, Math.min(100, Math.round((count / 120) * 100)));
+
+  const v3  = document.getElementById('val-3');
+  const s3  = document.getElementById('sub-3');
+  const c3  = document.getElementById('card-3');
   const t3b = document.getElementById('track-3');
   const f3b = document.getElementById('fill-3');
 
-  // bar
   if (t3b) t3b.style.display = 'block';
-  if (f3b) f3b.style.width = `${count}%`;
-  if (s3)  s3.innerText = `MATURITY: ${count}%`;
+  if (f3b) f3b.style.width = `${pct}%`;
 
-  const stage = rscClockStage(count) || 'INITIATING';
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+  // Prefer Pine’s formatted string if present
+  const maturityLabel = String(data?.card3 || `${pct}%`);
+  if (s3) s3.innerText = `MATURITY: ${maturityLabel.replace('%','')}%`;
+
+  const stage = rscClockStage(pct) || 'INITIATING';
+
+  const regimeRaw = String(data?.regime || data?.card1 || '').trim();
+  const dir = rscRegimeDirection(regimeRaw); // 'REAL' | 'FIN' | null
   applyFounderHaze(dir);
+
   let headline = `NO REGIME → ${stage}`;
   let cardClass = 'card halo-bg-silver';
   let fillCol = 'var(--silver)';
@@ -1290,22 +1307,23 @@ function _updateDebugBtn() {
     fillCol = 'var(--steel)';
   }
 
-  // late/end overlays dominate regime color
-  if (count >= 86){
+  // late/end overlays dominate regime colour (based on pct)
+  if (pct >= 86){
     cardClass = 'card glow-danger';
     fillCol = 'var(--red)';
-  } else if (count >= 71){
+  } else if (pct >= 71){
     cardClass = 'card glow-warning';
     fillCol = 'var(--orange)';
   }
 
   if (v3){
     v3.innerText = headline;
-    v3.style.color = (count >= 71) ? fillCol : 'var(--text)';
+    v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
   }
   if (c3) c3.className = cardClass;
   if (f3b) f3b.style.background = fillCol;
 }
+
   // ----------------------------
   // SECRET APPLY (unchanged)
   // ----------------------------
