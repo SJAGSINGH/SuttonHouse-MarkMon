@@ -655,7 +655,7 @@ def ingest_macro():
                 _parse_card_payload(data)
 
             # field payloads
-            _merge_field_payload(data)
+         
 
             # secret block
             if isinstance(data.get("secret"), dict):
