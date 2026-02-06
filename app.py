@@ -700,7 +700,9 @@ def webhook():
         if not isinstance(data, dict):
             abort(400)
 
-        # unwrap envelopes
+        # ----------------------------------------------------
+        # unwrap common envelopes
+        # ----------------------------------------------------
         if isinstance(data.get("state"), dict):
             data = data["state"]
         elif isinstance(data.get("payload"), dict):
@@ -714,20 +716,44 @@ def webhook():
         with STATE_LOCK:
             STATE["_server_ts"] = int(time.time() * 1000)
 
+            # ------------------------------------------------
             # typed payloads (CARD2 etc.)
+            # ------------------------------------------------
             if "type" in data:
                 try:
                     _parse_typed_payload(data)
                 except Exception:
                     pass
 
-            # legacy card-number payloads
+            # ------------------------------------------------
+            # legacy card-number payloads (safe to keep)
+            # ------------------------------------------------
             if "card" in data:
                 _parse_card_payload(data)
 
-            # PINE authority lock — Card 4 only
+            # ------------------------------------------------
+            # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
+            # ------------------------------------------------
             pine_allow = {}
 
+            # ----- Card 1: Regime + Vol (Pine truth)
+            # Pine sends: regime="EQUITIES"/"COMMODITIES"
+            if "regime" in data:
+                pine_allow["cycle"] = data["regime"]   # canonical regime string
+
+            if "vol" in data:
+                pine_allow["vol"] = data["vol"]
+
+            # ----- Card 3: Cycle clock (0–120 canonical)
+            # Pine sends: cycle=0..120
+            if "cycle" in data:
+                pine_allow["count"] = data["cycle"]
+
+            # ----- Optional: flow / rotation direction
+            if "rot_dir" in data:
+                pine_allow["flow"] = data["rot_dir"]
+
+            # ----- Card 4: Recession pulse (Pine truth)
             if "sahm" in data:
                 pine_allow["sahm"] = data["sahm"]
 
@@ -743,6 +769,7 @@ def webhook():
             if pine_allow:
                 STATE.update(pine_allow)
 
+            # ------------------------------------------------
             _recompute_war_from_secret()
             _update_monitor_lane(meta)
 
@@ -756,6 +783,7 @@ def webhook():
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
+
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
