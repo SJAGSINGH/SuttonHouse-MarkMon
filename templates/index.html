@@ -1210,101 +1210,109 @@ function _updateDebugBtn() {
   // FIN   -> halo-bg-steel
   // else  -> halo-bg-silver
   // ============================================================
-  {
-    const v1 = document.getElementById('val-1');
-    const s1 = document.getElementById('sub-1');
-    const c1 = document.getElementById('card-1');
+  // CARD 1 — REGIME + VOL
+{
+  const v1 = document.getElementById('val-1');
+  const s1 = document.getElementById('sub-1');
+  const c1 = document.getElementById('card-1');
 
-    const cycleRaw = String(data?.cycle || '').trim();
-    const dir = rscRegimeDirection(cycleRaw); // 'REAL' | 'FIN' | null
+  // ✅ Direction should come from flow/regime, NOT cycle clock
+  const dirSrc = String(data?.flow ?? data?.regime ?? data?.cycle ?? '').trim();
+  const dir = rscRegimeDirection(dirSrc); // 'REAL' | 'FIN' | null
 
-    if (v1){
-      if (!cycleRaw){
-        v1.innerText = 'AWAITING';
-      } else if (dir === 'REAL'){
-        v1.innerText = 'REAL ASSET REGIME';
-      } else if (dir === 'FIN'){
-        v1.innerText = 'FINANCIAL ASSET REGIME';
-      } else {
-        v1.innerText = cycleRaw.toUpperCase();
-      }
-      // headline stays white; halo carries colour
-      v1.style.color = 'var(--text)';
-    }
-
-    if (c1){
-      c1.className = 'card';
-      if (dir === 'REAL') c1.classList.add('halo-bg-gold');
-      else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
-      else c1.classList.add('halo-bg-silver');
-    }
-
-    // volatility line (keep your existing behaviour)
-    if (data?.vol){
-      const vol = String(data.vol).toUpperCase();
-      if (s1){
-        s1.innerText = `VOLATILITY: ${vol}`;
-        s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
-      }
+  if (v1){
+    if (!dirSrc){
+      v1.innerText = 'AWAITING';
+    } else if (dir === 'REAL'){
+      v1.innerText = 'REAL ASSET REGIME';
+    } else if (dir === 'FIN'){
+      v1.innerText = 'FINANCIAL ASSET REGIME';
     } else {
-      if (s1) { s1.innerText = ''; s1.style.color = 'var(--text)'; }
+      v1.innerText = dirSrc.toUpperCase();
     }
+    v1.style.color = 'var(--text)';
   }
+
+  if (c1){
+    c1.className = 'card';
+    if (dir === 'REAL') c1.classList.add('halo-bg-gold');
+    else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
+    else c1.classList.add('halo-bg-silver');
+  }
+
+  // volatility
+  if (data?.vol){
+    const vol = String(data.vol).toUpperCase();
+    if (s1){
+      s1.innerText = `VOLATILITY: ${vol}`;
+      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+    }
+  } else {
+    if (s1) { s1.innerText = ''; s1.style.color = 'var(--text)'; }
+  }
+}
 
 
   // ============================================================
-  // CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
-  // Requires: rscClockStage(count) and rscRegimeDirection(data.cycle)
-  // ============================================================
-  if (data?.count === undefined || data?.count === null) return;
+// CARD 3 — CYCLE CLOCK (REGIME + STAGE + COLOR)
+// Requires: rscClockStage(count) and rscRegimeDirection(dirSrc)
+// ============================================================
 
-  const count = rscApplyClockOffset(data.count); // ✅ OFFSET APPLIED
-  if (count === null) return;
+// ✅ Accept BOTH: server count OR Pine cycle (percent)
+const rawCount = (data?.count ?? data?.cycle);
+if (rawCount === undefined || rawCount === null) return;
 
+const count = rscApplyClockOffset(rawCount); // ✅ OFFSET APPLIED
+if (count === null) return;
 
-  const v3 = document.getElementById('val-3');
-  const s3 = document.getElementById('sub-3');
-  const c3 = document.getElementById('card-3');
-  const t3b = document.getElementById('track-3');
-  const f3b = document.getElementById('fill-3');
+const v3  = document.getElementById('val-3');
+const s3  = document.getElementById('sub-3');
+const c3  = document.getElementById('card-3');
+const t3b = document.getElementById('track-3');
+const f3b = document.getElementById('fill-3');
 
-  // bar
-  if (t3b) t3b.style.display = 'block';
-  if (f3b) f3b.style.width = `${count}%`;
-  if (s3)  s3.innerText = `MATURITY: ${count}%`;
+// bar
+if (t3b) t3b.style.display = 'block';
+if (f3b) f3b.style.width = `${count}%`;
+if (s3)  s3.innerText = `MATURITY: ${count}%`;
 
-  const stage = rscClockStage(count) || 'INITIATING';
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
-  applyFounderHaze(dir);
-  let headline = `NO REGIME → ${stage}`;
-  let cardClass = 'card halo-bg-silver';
-  let fillCol = 'var(--silver)';
+const stage = rscClockStage(count) || 'INITIATING';
 
-  if (dir === 'REAL'){
-    headline = `REAL ASSET REGIME → ${stage}`;
-    cardClass = 'card halo-bg-gold';
-    fillCol = 'var(--gold)';
-  } else if (dir === 'FIN'){
-    headline = `FINANCIAL ASSET REGIME → ${stage}`;
-    cardClass = 'card halo-bg-steel';
-    fillCol = 'var(--steel)';
-  }
+// ✅ Direction must come from flow/regime text (NOT numeric cycle)
+const dirSrc = String(data?.flow ?? data?.regime ?? data?.card1 ?? data?.cycle ?? '').trim();
+const dir = rscRegimeDirection(dirSrc); // 'REAL' | 'FIN' | null
 
-  // late/end overlays dominate regime color
-  if (count >= 86){
-    cardClass = 'card glow-danger';
-    fillCol = 'var(--red)';
-  } else if (count >= 71){
-    cardClass = 'card glow-warning';
-    fillCol = 'var(--orange)';
-  }
+applyFounderHaze(dir);
 
-  if (v3){
-    v3.innerText = headline;
-    v3.style.color = (count >= 71) ? fillCol : 'var(--text)';
-  }
-  if (c3) c3.className = cardClass;
-  if (f3b) f3b.style.background = fillCol;
+let headline  = `NO REGIME → ${stage}`;
+let cardClass = 'card halo-bg-silver';
+let fillCol   = 'var(--silver)';
+
+if (dir === 'REAL'){
+  headline  = `REAL ASSET REGIME → ${stage}`;
+  cardClass = 'card halo-bg-gold';
+  fillCol   = 'var(--gold)';
+} else if (dir === 'FIN'){
+  headline  = `FINANCIAL ASSET REGIME → ${stage}`;
+  cardClass = 'card halo-bg-steel';
+  fillCol   = 'var(--steel)';
+}
+
+// late/end overlays dominate regime color
+if (count >= 86){
+  cardClass = 'card glow-danger';
+  fillCol   = 'var(--red)';
+} else if (count >= 71){
+  cardClass = 'card glow-warning';
+  fillCol   = 'var(--orange)';
+}
+
+if (v3){
+  v3.innerText = headline;
+  v3.style.color = (count >= 71) ? fillCol : 'var(--text)';
+}
+if (c3)  c3.className = cardClass;
+if (f3b) f3b.style.background = fillCol;
 }
   // ----------------------------
   // SECRET APPLY (unchanged)
@@ -1375,7 +1383,8 @@ function _updateDebugBtn() {
     }
   }
   function applyMessageFromState(data){
-  const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+  //const dir = rscRegimeDirection(data?.cycle); // 'REAL' | 'FIN' | null
+  const dir = rscRegimeDirection(String(data?.flow ?? data?.regime ?? data?.cycle ?? ''));  
   const m = (data && data.monitor) ? data.monitor : {};
 
   const headlineEl = document.getElementById('msg-headline');
@@ -1682,7 +1691,9 @@ function applyAllFromState(data) {
     v2b.classList.add(cls);
 
   // ---------- HALO rule (Card2 inherits MACRO halo when Card2 is CONSISTENT)
-  const dir = rscRegimeDirection(data?.cycle); // REAL | FIN | null
+  //const dir = rscRegimeDirection(data?.cycle); // REAL | FIN | null
+  const dir = rscRegimeDirection(String(data?.flow ?? data?.regime ?? data?.cycle ?? ''));
+  
 
   // consistent states (you already use these for status line)
   const isConsistent =
