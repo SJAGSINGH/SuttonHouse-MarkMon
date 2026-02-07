@@ -733,67 +733,30 @@ def webhook():
 
             # ------------------------------------------------
             # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
-            # Cards 1 & 3 MUST come from Pine MACRO payload
             # ------------------------------------------------
             pine_allow = {}
 
-            # ----- Card 1: Regime + Vol (Pine truth)
-            # Pine sends: regime="EQUITIES"/"COMMODITIES"
+            # Card 1: Regime + Vol
             if "regime" in data:
-                try:
-                    pine_allow["regime"] = str(data["regime"]).upper()
-                except Exception:
-                    pass
+                pine_allow["regime"] = data["regime"]
 
             if "vol" in data:
-                try:
-                    pine_allow["vol"] = str(data["vol"]).upper()
-                except Exception:
-                    pass
+                pine_allow["vol"] = data["vol"]
 
-            # optional: keep Pine-composed text if you want it later
-            if "card1" in data:
-                try:
-                    pine_allow["card1"] = str(data["card1"])
-                except Exception:
-                    pass
-
-            # ----- Card 3: Cycle clock (0–120 canonical)
-            # Pine sends: cycle=0..120
+            # Card 3: Cycle clock (0–120 canonical)
             if "cycle" in data:
-                try:
-                    c = int(float(data["cycle"]))
-                    if c < 0:
-                        c = 0
-                    if c > 120:
-                        c = 120
-                    pine_allow["cycle"] = c
-                except Exception:
-                    pass
+                pine_allow["cycle"] = data["cycle"]
 
-            # optional: keep Pine-composed text if you want it later
-            if "card3" in data:
-                try:
-                    pine_allow["card3"] = str(data["card3"])
-                except Exception:
-                    pass
-
-            # ----- Optional: flow / rotation direction (if you still want it on server)
-            # Pine sends: rot_dir="OUT OF EQUITIES → INTO COMMODITIES"
+            # Optional: rotation direction / flow
             if "rot_dir" in data:
-                try:
-                    pine_allow["flow"] = str(data["rot_dir"])
-                except Exception:
-                    pass
+                pine_allow["flow"] = data["rot_dir"]
+            elif "flow" in data:
+                pine_allow["flow"] = data["flow"]
 
-            # ----- Card 4: Recession pulse (Pine truth)
+            # Card 4: Sahm + SPX drawdown
             if "sahm" in data:
-                try:
-                    pine_allow["sahm"] = float(data["sahm"])
-                except Exception:
-                    pass
+                pine_allow["sahm"] = data["sahm"]
 
-            # drawdown can arrive under different keys
             if "spx_dd" in data:
                 pine_allow["spx_dd"] = data["spx_dd"]
             elif "spxDrawdown" in data:
@@ -802,11 +765,12 @@ def webhook():
                 pine_allow["spx_dd"] = data["dd"]
             elif "drawdown" in data:
                 pine_allow["spx_dd"] = data["drawdown"]
+            elif "spx_dd_pct" in data:
+                pine_allow["spx_dd"] = data["spx_dd_pct"]
 
             if pine_allow:
                 STATE.update(pine_allow)
 
-            # ------------------------------------------------
             _recompute_war_from_secret()
             _update_monitor_lane(meta)
 
