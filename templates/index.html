@@ -1669,8 +1669,10 @@ if (!secretMode){
       (isStandaloneCard2 ? data?.text : null) ??
       (data && (data.card2_text ?? data.card2Text ?? null)) ??
       (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
+      (data && (data.flow ?? null)) ??                 // ✅ ADD THIS
       (typeof data?.card2 === "string" ? data.card2 : null) ??
       null;
+
 
     const s2 = String(card2StateRaw ?? "").toUpperCase();
     const t2 = String(card2TextRaw ?? "").toUpperCase();
@@ -1678,18 +1680,24 @@ if (!secretMode){
     // Card1 regime truth MUST use data.regime (not data.cycle)
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
-    let statusText = "UNCLEAR — MONITORING";
     let cls = "card2-neutral";
 
-    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
-      statusText = "CONSISTENT WITH MACRO CONDITIONS";
-      cls = "card2-green";
-    } else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
-      statusText = "WEAKNESS AGAINST MACRO CONDITIONS";
-      cls = "card2-red";
-    }
+// keep your “state to colour” mapping
+if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
+  cls = "card2-green";
+} else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
+  cls = "card2-red";
+}
 
-    v2b.textContent = statusText;
+    // ✅ show Pine truth if provided, otherwise fallback
+    const pineLine = String(card2TextRaw ?? "").trim();
+    const fallbackLine =
+      (cls === "card2-green") ? "CONSISTENT WITH MACRO CONDITIONS" :
+      (cls === "card2-red")   ? "WEAKNESS AGAINST MACRO CONDITIONS" :
+                                "UNCLEAR — MONITORING";
+
+    v2b.textContent = pineLine ? pineLine.toUpperCase() : fallbackLine;
+
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
