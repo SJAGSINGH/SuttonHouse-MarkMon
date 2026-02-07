@@ -1507,8 +1507,7 @@ function _updateDebugBtn() {
   // ----------------------------
   let socket = null;
   try{
-    if (window.io){
-      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+    if (window.io){socket = io({transports: ["websocket"], upgrade: false,reconnection: true,reconnectionAttempts: Infinity,reconnectionDelay: 1000,reconnectionDelayMax: 5000,timeout: 8000,});
       socket.on('connect', () => {
         console.log('CONNECTED');
       const el = document.getElementById("dbg-socket");
