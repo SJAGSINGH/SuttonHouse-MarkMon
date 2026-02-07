@@ -355,11 +355,17 @@ def _merge_field_payload(data: Dict[str, Any]) -> None:
 # ----------------------------
 def _parse_typed_payload(data: Dict[str, Any]) -> None:
     """
-    Accepts typed payloads such as:
-      {"type":"CARD2","state":"GREEN","text":"...","_server_ts":...}
-      {"type":"CARD1","cycle":"...","vol":"..."}
-      {"type":"CARD3","count":55,"cycle":"..."}
-      {"type":"CARD4","sahm":0.42,"spx_dd":12.3}
+    Typed payloads supported (canonical):
+      MACRO:  {"type":"MACRO","regime":"COMMODITIES","vol":"STABLE","cycle":19,"sahm":0.35,"spx_dd":12.3}
+      CARD2:  {"type":"CARD2","state":"GREEN","text":"Short-term preference remains consistent with macro conditions"}
+      CARD4:  {"type":"CARD4","sahm":0.42,"spx_dd":12.3}
+
+    Secret typed payloads (recommended):
+      VIX:    {"type":"VIX","value":13.1,"level":6,"state":"NORMAL"}
+      GVZ:    {"type":"GVZ","value":23.6,"level":8,"state":"NORMAL"}
+      BUY:    {"type":"BUY","value":3.99,"level":4,"state":"BUYING"}
+      SELL:   {"type":"SELL","value":0.26,"level":0,"state":"SELLING"}
+      VOLD:   {"type":"VOLD","level":4,"state":"BUYERS_DOMINANT"}
 
     Fail-soft: ignore unknown / incomplete.
     """
@@ -367,105 +373,48 @@ def _parse_typed_payload(data: Dict[str, Any]) -> None:
     t = _normalise_str(data.get("type"))
     if not t:
         return
-
     typ = t.strip().upper()
 
-    # helper to pull values with fallbacks
     def pick(*keys):
         for k in keys:
             if k in data and data.get(k) not in (None, "", "NA", "na"):
                 return data.get(k)
         return None
 
-    # -----------------------------------------
-    # CARD 1 (Regime + Vol)
-    # -----------------------------------------
-    if typ in ("CARD1", "MACRO_CARD1", "REGIME_VOL"):
-        cycle = pick("cycle", "regime", "cycle_regime")
-        vol   = pick("vol", "volatility", "vix_state")
+    # ensure secret tree exists
+    if "secret" not in STATE or not isinstance(STATE.get("secret"), dict):
+        STATE["secret"] = {}
+    for k in ("vix", "gvz", "buy", "sell", "vold", "war"):
+        if k not in STATE["secret"] or not isinstance(STATE["secret"].get(k), dict):
+            STATE["secret"][k] = {}
 
-        if cycle is not None:
-            STATE["cycle"] = str(cycle).strip().upper()
+    # ---------------------------------------------------------
+    # MACRO (preferred single truth payload)
+    # ---------------------------------------------------------
+    if typ in ("MACRO", "MASTER", "SCADA"):
+        reg = pick("regime", "card1", "cycle_regime")
+        vol = pick("vol", "volatility")
+        cyc = pick("cycle")  # 0..120
+
+        if reg is not None:
+            STATE["regime"] = str(reg).strip().upper()
         if vol is not None:
             STATE["vol"] = str(vol).strip().upper()
-        return
 
-        # -----------------------------------------
-    # CARD 2 (Capital Rotation / Short-term bias lane)
-    # We store:
-    #   STATE["flow"]         -> legacy Card2 renderer
-    #   STATE["card2_state"]  -> explicit state lane
-    #   STATE["card2_text"]   -> explicit text lane
-    #   STATE["card2"]        -> nested object lane (UI-friendly)
-    # -----------------------------------------
-    if typ in ("CARD2", "MACRO_CARD2", "CAPITAL_ROTATION"):
-        st = pick("card2_state", "state", "bias", "signal", "colour", "color")
-        tx = pick("card2_text", "text", "msg", "message", "flow")
-
-        # normalise state
-        st_norm = None
-        if st is not None:
-            st_norm = str(st).strip().upper()
-            STATE["card2_state"] = st_norm
-
-        # normalise text
-        tx_norm = None
-        if tx is not None:
-            tx_norm = str(tx).strip()
-            STATE["card2_text"] = tx_norm
-
-            # keep backwards compatibility (your public Card2 uses flow)
-            if tx_norm:
-                STATE["flow"] = tx_norm
-
-        # ✅ ALSO populate the nested dict so UI can read data.card2.state/text
-        if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
-            STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
-
-        if st_norm is not None:
-            STATE["card2"]["state"] = st_norm
-        if tx_norm is not None:
-            STATE["card2"]["text"] = tx_norm
-
-        # optional metadata passthrough (safe)
-        for k in ("time", "tf", "ref_id"):
-            if k in data and data.get(k) not in (None, "", "NA", "na"):
-                STATE["card2"][k] = data.get(k)
-
-        return
-
-
-    # -----------------------------------------
-    # CARD 3 (Cycle clock)
-    # -----------------------------------------
-    if typ in ("CARD3", "MACRO_CARD3", "CYCLE_CLOCK"):
-        count = pick("count", "maturity", "cycle_maturity")
-        cycle = pick("cycle", "regime", "cycle_regime")
-
-        if count is not None:
-            c = _safe_int(count)
+        if cyc is not None:
+            c = _safe_int(cyc)
             if c is not None:
-                STATE["count"] = _clamp_int(c, 0, 100)
+                STATE["cycle"] = _clamp_int(c, 0, 120)
+                # optional legacy percent for anything old still reading count
+                STATE["count"] = int(round((STATE["cycle"] / 120) * 100))
 
-        if cycle is not None:
-            STATE["cycle"] = str(cycle).strip().upper()
-
-        return
-
-    # -----------------------------------------
-    # CARD 4 (Recession pulse)
-    # NOTE: in /webhook you *still* Pine-lock this.
-    # This parser is mainly for /ingest_macro or future typed feeds.
-    # -----------------------------------------
-    if typ in ("CARD4", "MACRO_CARD4", "RECESSION_PULSE"):
-        sahm = pick("sahm", "sahm_value", "sahm_trigger")
-        dd   = pick("spx_dd", "spxDrawdown", "dd", "drawdown")
-
+        # card4 fields can ride inside MACRO too
+        sahm = pick("sahm")
+        dd   = pick("spx_dd", "spxDrawdown", "dd", "drawdown", "spx_dd_pct")
         if sahm is not None:
             s = _safe_float(sahm)
             if s is not None:
                 STATE["sahm"] = s
-
         if dd is not None:
             try:
                 STATE["spx_dd"] = float(dd)
@@ -474,7 +423,115 @@ def _parse_typed_payload(data: Dict[str, Any]) -> None:
 
         return
 
-    # Unknown typed payload: ignore silently
+    # ---------------------------------------------------------
+    # CARD 1 (Regime + Vol) — FIXED: regime != cycle
+    # ---------------------------------------------------------
+    if typ in ("CARD1", "MACRO_CARD1", "REGIME_VOL"):
+        reg = pick("regime", "cycle", "cycle_regime", "card1")
+        vol = pick("vol", "volatility", "vix_state")
+
+        if reg is not None:
+            STATE["regime"] = str(reg).strip().upper()
+        if vol is not None:
+            STATE["vol"] = str(vol).strip().upper()
+        return
+
+    # ---------------------------------------------------------
+    # CARD 2 (PUBLIC macro card 2 ONLY)
+    # ---------------------------------------------------------
+    if typ in ("CARD2", "MACRO_CARD2", "CAPITAL_ROTATION"):
+        st = pick("card2_state", "state", "bias", "signal", "colour", "color")
+        tx = pick("card2_text", "text", "msg", "message", "flow")
+
+        st_norm = str(st).strip().upper() if st is not None else None
+        tx_norm = str(tx).strip() if tx is not None else None
+
+        if st_norm is not None:
+            STATE["card2_state"] = st_norm
+        if tx_norm is not None:
+            STATE["card2_text"] = tx_norm
+            # backwards compat for your old renderer
+            STATE["flow"] = tx_norm
+
+        if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
+            STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
+
+        if st_norm is not None:
+            STATE["card2"]["state"] = st_norm
+        if tx_norm is not None:
+            STATE["card2"]["text"] = tx_norm
+
+        for k in ("time", "tf", "ref_id"):
+            if k in data and data.get(k) not in (None, "", "NA", "na"):
+                STATE["card2"][k] = data.get(k)
+
+        return
+
+    # ---------------------------------------------------------
+    # CARD 3 (Cycle clock) — FIXED: cycle = 0..120
+    # ---------------------------------------------------------
+    if typ in ("CARD3", "MACRO_CARD3", "CYCLE_CLOCK"):
+        cyc = pick("cycle", "count", "maturity", "cycle_maturity")  # accept older names
+        if cyc is not None:
+            c = _safe_int(cyc)
+            if c is not None:
+                # if it looks like 0..100 old percent, leave it in count
+                if 0 <= c <= 100 and ("cycle" not in data):
+                    STATE["count"] = _clamp_int(c, 0, 100)
+                    # do NOT overwrite STATE["cycle"] in this old mode
+                else:
+                    STATE["cycle"] = _clamp_int(c, 0, 120)
+                    STATE["count"] = int(round((STATE["cycle"] / 120) * 100))
+        return
+
+    # ---------------------------------------------------------
+    # CARD 4 (Recession pulse)
+    # ---------------------------------------------------------
+    if typ in ("CARD4", "MACRO_CARD4", "RECESSION_PULSE"):
+        sahm = pick("sahm", "sahm_value", "sahm_trigger")
+        dd   = pick("spx_dd", "spxDrawdown", "dd", "drawdown", "spx_dd_pct")
+
+        if sahm is not None:
+            s = _safe_float(sahm)
+            if s is not None:
+                STATE["sahm"] = s
+        if dd is not None:
+            try:
+                STATE["spx_dd"] = float(dd)
+            except Exception:
+                pass
+        return
+
+    # ---------------------------------------------------------
+    # SECRET typed payloads (recommended)
+    # ---------------------------------------------------------
+    if typ in ("VIX", "GVZ", "BUY", "SELL", "VOLD"):
+        value = pick("value")
+        level = pick("level")
+        state = pick("state")
+
+        pack = {
+            "name": typ,
+            "symbol": _normalise_str(data.get("symbol")) or "",
+            "state": _normalise_str(state) or "",
+            "level": _safe_int(level) if level is not None else None,
+            "value": _safe_float(value) if value is not None else None,
+        }
+
+        if typ == "VIX":
+            STATE["secret"]["vix"] = pack
+        elif typ == "GVZ":
+            STATE["secret"]["gvz"] = pack
+        elif typ == "BUY":
+            STATE["secret"]["buy"] = pack
+        elif typ == "SELL":
+            STATE["secret"]["sell"] = pack
+        elif typ == "VOLD":
+            STATE["secret"]["vold"] = {"level": pack["level"], "state": pack["state"]}
+
+        _recompute_war_from_secret()
+        return
+
     return
 
 # ----------------------------
