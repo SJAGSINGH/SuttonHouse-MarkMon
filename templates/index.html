@@ -1636,13 +1636,7 @@ function applyAllFromState(data) {
   applyMessageFromState(data);
   setSentinel("Sentinel: SILENCE");
 
-   // ============================================================
-  // CARD 2 — SHORT-TERM BIAS (clean UI + aligned glow copy)
-  // - Main line fixed: "SHORT-TERM PREFERENCE REMAINS" (white)
-  // - Status line below: CONSISTENT / WEAKNESS / UNCLEAR (coloured, small)
-  // - Glow rule: ONLY if Card2 thesis aligns with Card1 capital flow thesis
-  // ============================================================
-  // ============================================================
+// ============================================================
 // CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
 // IMPORTANT: must NOT run while secretMode is enabled
 // ============================================================
@@ -1656,21 +1650,33 @@ if (!secretMode) {
     // Headline is always fixed
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // 🔒 SINGLE SOURCE OF TRUTH
-    const card2 = (data && typeof data.card2 === "object") ? data.card2 : null;
+    // Accept BOTH shapes:
+    // A) Typed payload: { type:"CARD2", state:"GREEN", text:"..." }
+    // B) Nested state:  { card2:{ state:"GREEN", text:"..." }, ... }
+    const isTypedCard2 = String(data?.type || "").toUpperCase() === "CARD2";
+    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
-    const s2 = String(card2?.state || "").toUpperCase();
-    const t2 = String(card2?.text  || "").trim();
+    const s2 = String(
+      (isTypedCard2 ? data?.state : null) ??
+      (data?.card2_state ?? data?.card2State ?? null) ??
+      (card2Obj?.state ?? card2Obj?.card2_state ?? null) ??
+      ""
+    ).toUpperCase();
+
+    const t2 = String(
+      (isTypedCard2 ? data?.text : null) ??
+      (data?.card2_text ?? data?.card2Text ?? null) ??
+      (card2Obj?.text ?? card2Obj?.card2_text ?? null) ??
+      (data?.flow ?? null) ??
+      ""
+    ).trim();
 
     // Determine regime direction from Card 1
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
     let cls = "card2-neutral";
-    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
-      cls = "card2-green";
-    } else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
-      cls = "card2-red";
-    }
+    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") cls = "card2-green";
+    else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") cls = "card2-red";
 
     // Text: Pine truth first, fallback only if missing
     v2b.textContent = t2
@@ -1697,6 +1703,7 @@ if (!secretMode) {
     }
   })();
 }
+
 
 
   // ============================================================
