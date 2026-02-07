@@ -1653,67 +1653,38 @@ if (!secretMode) {
     const v2b = document.getElementById("val-2b");
     if (!c2 || !v2 || !v2b) return;
 
-    // --------------------------------------------------
-    // Fixed headline (authoritative, never dynamic)
-    // --------------------------------------------------
+    // Headline is always fixed
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // --------------------------------------------------
-    // Canonical Card2 source (STATE snapshot first)
-    // --------------------------------------------------
+    // 🔒 SINGLE SOURCE OF TRUTH
     const card2 = (data && typeof data.card2 === "object") ? data.card2 : null;
 
-    const s2 = String(
-      card2?.state ??
-      data?.card2_state ??
-      data?.card2State ??
-      data?.state ??              // standalone CARD2 payload
-      ""
-    ).toUpperCase();
+    const s2 = String(card2?.state || "").toUpperCase();
+    const t2 = String(card2?.text  || "").trim();
 
-    const t2 = String(
-      card2?.text ??
-      data?.card2_text ??
-      data?.card2Text ??
-      data?.text ??               // standalone CARD2 payload
-      data?.flow ??               // legacy compatibility
-      ""
-    ).trim();
-
-    // --------------------------------------------------
-    // Regime direction (Card1 truth)
-    // --------------------------------------------------
+    // Determine regime direction from Card 1
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
-    // --------------------------------------------------
-    // State → class mapping
-    // --------------------------------------------------
     let cls = "card2-neutral";
-
-    if (["GREEN","LIME","BULL","ALIGNED"].includes(s2)) {
+    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
       cls = "card2-green";
-    } else if (["RED","BEAR","DIVERGE","WEAK"].includes(s2)) {
+    } else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
       cls = "card2-red";
     }
 
-    // --------------------------------------------------
-    // Text priority:
-    // 1. Pine text (if provided)
-    // 2. Deterministic fallback
-    // --------------------------------------------------
-    const fallbackLine =
-      (cls === "card2-green") ? "CONSISTENT WITH MACRO CONDITIONS" :
-      (cls === "card2-red")   ? "WEAKNESS AGAINST MACRO CONDITIONS" :
-                                "UNCLEAR — MONITORING";
-
-    v2b.textContent = t2 ? t2.toUpperCase() : fallbackLine;
+    // Text: Pine truth first, fallback only if missing
+    v2b.textContent = t2
+      ? t2.toUpperCase()
+      : (cls === "card2-green")
+        ? "CONSISTENT WITH MACRO CONDITIONS"
+        : (cls === "card2-red")
+          ? "WEAKNESS AGAINST MACRO CONDITIONS"
+          : "UNCLEAR — MONITORING";
 
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-    // --------------------------------------------------
-    // Halo logic (public mode only)
-    // --------------------------------------------------
+    // Halo logic
     c2.className = "card";
     c2.classList.remove("halo-bg-secret");
 
@@ -1724,9 +1695,9 @@ if (!secretMode) {
     } else {
       c2.classList.add("halo-bg-silver");
     }
-
   })();
 }
+
 
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
