@@ -793,16 +793,25 @@ def webhook():
             # ------------------------------------------------
             pine_allow = {}
 
-            # Card 1: Regime + Vol
+            # ----- Card 1: Regime + Vol (Pine truth)
+            # Pine sends: regime="EQUITIES"/"COMMODITIES"
             if "regime" in data:
-                pine_allow["regime"] = data["regime"]
+                pine_allow["regime"] = str(data["regime"]).strip().upper()
 
             if "vol" in data:
-                pine_allow["vol"] = data["vol"]
+                pine_allow["vol"] = str(data["vol"]).strip().upper()
 
-            # Card 3: Cycle clock (0–120 canonical)
+            # ----- Card 3: Cycle clock (0–120 canonical)
+            # Pine sends: cycle=0..120
             if "cycle" in data:
-                pine_allow["cycle"] = data["cycle"]
+                try:
+                    pine_allow["cycle"] = int(data["cycle"])
+                except Exception:
+                    pass
+
+            # Optional: keep legacy percent if anything still reads STATE["count"]
+            if "cycle" in pine_allow and isinstance(pine_allow["cycle"], int):
+                pine_allow["count"] = int(round((max(0, min(120, pine_allow["cycle"])) / 120) * 100))
 
             # Optional: rotation direction / flow
             if "rot_dir" in data:
