@@ -610,6 +610,10 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 # ----------------------------
 # Flask routes
 # ----------------------------
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
+
 atexit.register(_save_state_to_disk)
 _load_state_from_disk()
 
