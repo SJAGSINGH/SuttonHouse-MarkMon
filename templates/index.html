@@ -1646,71 +1646,85 @@ function applyAllFromState(data) {
 // CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
 // IMPORTANT: must NOT run while secretMode is enabled
 // ============================================================
-if (!secretMode){
+if (!secretMode) {
   (function applyCard2FromState() {
     const c2  = document.getElementById("card-2");
     const v2  = document.getElementById("val-2");
     const v2b = document.getElementById("val-2b");
     if (!c2 || !v2 || !v2b) return;
 
-    // Always enforce clean headline
+    // --------------------------------------------------
+    // Fixed headline (authoritative, never dynamic)
+    // --------------------------------------------------
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    const isStandaloneCard2 = String(data?.type || "").toUpperCase() === "CARD2";
-    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+    // --------------------------------------------------
+    // Canonical Card2 source (STATE snapshot first)
+    // --------------------------------------------------
+    const card2 = (data && typeof data.card2 === "object") ? data.card2 : null;
 
-    const card2StateRaw =
-      (isStandaloneCard2 ? data?.state : null) ??
-      (data && (data.card2_state ?? data.card2State ?? null)) ??
-      (card2Obj && (card2Obj.state ?? card2Obj.card2_state ?? null)) ??
-      null;
+    const s2 = String(
+      card2?.state ??
+      data?.card2_state ??
+      data?.card2State ??
+      data?.state ??              // standalone CARD2 payload
+      ""
+    ).toUpperCase();
 
-    const card2TextRaw =
-      (isStandaloneCard2 ? data?.text : null) ??
-      (data && (data.card2_text ?? data.card2Text ?? null)) ??
-      (card2Obj && (card2Obj.text ?? card2Obj.card2_text ?? null)) ??
-      (data && (data.flow ?? null)) ??                 // ✅ ADD THIS
-      (typeof data?.card2 === "string" ? data.card2 : null) ??
-      null;
+    const t2 = String(
+      card2?.text ??
+      data?.card2_text ??
+      data?.card2Text ??
+      data?.text ??               // standalone CARD2 payload
+      data?.flow ??               // legacy compatibility
+      ""
+    ).trim();
 
-
-    const s2 = String(card2StateRaw ?? "").toUpperCase();
-    const t2 = String(card2TextRaw ?? "").toUpperCase();
-
-    // Card1 regime truth MUST use data.regime (not data.cycle)
+    // --------------------------------------------------
+    // Regime direction (Card1 truth)
+    // --------------------------------------------------
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
+    // --------------------------------------------------
+    // State → class mapping
+    // --------------------------------------------------
     let cls = "card2-neutral";
 
-// keep your “state to colour” mapping
-if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
-  cls = "card2-green";
-} else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") {
-  cls = "card2-red";
-}
+    if (["GREEN","LIME","BULL","ALIGNED"].includes(s2)) {
+      cls = "card2-green";
+    } else if (["RED","BEAR","DIVERGE","WEAK"].includes(s2)) {
+      cls = "card2-red";
+    }
 
-    // ✅ show Pine truth if provided, otherwise fallback
-    const pineLine = String(card2TextRaw ?? "").trim();
+    // --------------------------------------------------
+    // Text priority:
+    // 1. Pine text (if provided)
+    // 2. Deterministic fallback
+    // --------------------------------------------------
     const fallbackLine =
       (cls === "card2-green") ? "CONSISTENT WITH MACRO CONDITIONS" :
       (cls === "card2-red")   ? "WEAKNESS AGAINST MACRO CONDITIONS" :
                                 "UNCLEAR — MONITORING";
 
-    v2b.textContent = pineLine ? pineLine.toUpperCase() : fallbackLine;
+    v2b.textContent = t2 ? t2.toUpperCase() : fallbackLine;
 
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-    // Halo rule (public)
+    // --------------------------------------------------
+    // Halo logic (public mode only)
+    // --------------------------------------------------
     c2.className = "card";
     c2.classList.remove("halo-bg-secret");
-    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") {
-      if (dir === "REAL") c2.classList.add("halo-bg-gold");
-      else if (dir === "FIN") c2.classList.add("halo-bg-steel");
-      else c2.classList.add("halo-bg-silver");
+
+    if (cls === "card2-green") {
+      if (dir === "REAL")      c2.classList.add("halo-bg-gold");
+      else if (dir === "FIN")  c2.classList.add("halo-bg-steel");
+      else                     c2.classList.add("halo-bg-silver");
     } else {
       c2.classList.add("halo-bg-silver");
     }
+
   })();
 }
 
