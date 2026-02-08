@@ -1524,13 +1524,15 @@ if (typeof window.applyFounderHaze !== "function") {
   const ticker    = String(m.ticker || '').toUpperCase();
 
   // keep card styling stable (don’t fight grid)
+    // HARD LOCK: message card NEVER has halo/glow
   if (card){
-    card.classList.remove('halo-bg-silver','halo-bg-gold','halo-bg-steel','glow-lime','glow-warning','glow-danger');
-    // optional: subtle halo by regime
-    if (dir === 'REAL') card.classList.add('halo-bg-gold');
-    else if (dir === 'FIN') card.classList.add('halo-bg-steel');
-    else card.classList.add('halo-bg-silver');
+    card.classList.remove(
+      'halo-bg-silver','halo-bg-gold','halo-bg-steel','halo-bg-secret',
+      'glow-lime','glow-warning','glow-danger'
+    );
+    card.className = 'card'; // force neutral base
   }
+
 
   // STEP 1 — REGIME UNKNOWN
   if (!dir){
