@@ -1721,7 +1721,6 @@ function applyAllFromState(data) {
 // - Otherwise: SILVER (no surprises).
 // ============================================================
 
-// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
 if (!secretMode) {
   (function applyCard2FromState() {
     const c2  = document.getElementById("card-2");
@@ -1729,35 +1728,52 @@ if (!secretMode) {
     const v2b = document.getElementById("sub-2");
     if (!c2 || !v2 || !v2b) return;
 
+    // headline fixed
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    const c2obj = (data && typeof data.card2 === "object") ? data.card2 : null;
+    // nested truth
+    const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
     const s2 = String(c2obj?.state || "").toUpperCase();
 
-    let cls = "card2-neutral";
+    let cls  = "card2-neutral";
     let text = "UNCLEAR — MONITORING";
 
     if (s2 === "GREEN") { cls = "card2-green"; text = "CONSISTENT WITH MACRO CONDITIONS"; }
-    if (s2 === "RED")   { cls = "card2-red";   text = "AGAINST MACRO CONDITIONS"; }
+    else if (s2 === "RED") { cls = "card2-red"; text = "AGAINST MACRO CONDITIONS"; }
 
     // text + colour (second line)
     v2b.textContent = text;
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-    // HALO: always present on Card2
+    // ----------------------------
+    // HALO: Card2 ONLY (public)
+    // hard reset halo/glow, then apply base + default halo
+    // ----------------------------
     c2.classList.remove(
       "halo-bg-gold","halo-bg-steel","halo-bg-silver","halo-bg-secret",
       "glow-lime","glow-warning","glow-danger"
     );
-    c2.classList.add("halo-bg-silver"); // default halo
+
+    // ✅ ensure base card class exists
+    if (!c2.classList.contains("card")) c2.classList.add("card");
+
+    // default halo
+    c2.classList.add("halo-bg-silver");
 
     // upgrade halo only when GREEN + regime direction known
     const dir = rscRegimeDirection(data?.regime || data?.card1);
-    if (cls === "card2-green" && dir === "REAL") c2.classList.add("halo-bg-gold");
-    if (cls === "card2-green" && dir === "FIN")  c2.classList.add("halo-bg-steel");
+    if (cls === "card2-green" && dir === "REAL") {
+      c2.classList.remove("halo-bg-silver");
+      c2.classList.add("halo-bg-gold");
+    }
+    if (cls === "card2-green" && dir === "FIN") {
+      c2.classList.remove("halo-bg-silver");
+      c2.classList.add("halo-bg-steel");
+    }
   })();
 }
+
 
 
 
