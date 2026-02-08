@@ -1636,9 +1636,9 @@ function applyAllFromState(data) {
   applyMessageFromState(data);
   setSentinel("Sentinel: SILENCE");
 
-// ============================================================
-// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
-// IMPORTANT: must NOT run while secretMode is enabled
+/// ============================================================
+// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY) ✅ CANONICAL
+// Reads ONLY: data.card2 = {state,text,time,tf,ref_id}
 // ============================================================
 if (!secretMode) {
   (function applyCard2FromState() {
@@ -1647,62 +1647,46 @@ if (!secretMode) {
     const v2b = document.getElementById("val-2b");
     if (!c2 || !v2 || !v2b) return;
 
-    // Headline is always fixed
+    // fixed headline
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // Accept BOTH shapes:
-    // A) Typed payload: { type:"CARD2", state:"GREEN", text:"..." }
-    // B) Nested state:  { card2:{ state:"GREEN", text:"..." }, ... }
-    const isTypedCard2 = String(data?.type || "").toUpperCase() === "CARD2";
-    const card2Obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+    // ✅ single source of truth (nested)
+    const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
-    const s2 = String(
-      (isTypedCard2 ? data?.state : null) ??
-      (data?.card2_state ?? data?.card2State ?? null) ??
-      (card2Obj?.state ?? card2Obj?.card2_state ?? null) ??
-      ""
-    ).toUpperCase();
+    const s2 = String(c2obj?.state || "").toUpperCase();
+    const t2 = String(c2obj?.text  || "").trim();
 
-    const t2 = String(
-      (isTypedCard2 ? data?.text : null) ??
-      (data?.card2_text ?? data?.card2Text ?? null) ??
-      (card2Obj?.text ?? card2Obj?.card2_text ?? null) ??
-      (data?.flow ?? null) ??
-      ""
-    ).trim();
-
-    // Determine regime direction from Card 1
+    // regime direction from Card1 truth
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
+    // colour mapping
     let cls = "card2-neutral";
-    if (s2 === "GREEN" || s2 === "LIME" || s2 === "BULL" || s2 === "ALIGNED") cls = "card2-green";
-    else if (s2 === "RED" || s2 === "BEAR" || s2 === "DIVERGE" || s2 === "WEAK") cls = "card2-red";
+    if (["GREEN","LIME","BULL","ALIGNED"].includes(s2)) cls = "card2-green";
+    else if (["RED","BEAR","DIVERGE","WEAK"].includes(s2)) cls = "card2-red";
 
-    // Text: Pine truth first, fallback only if missing
-    v2b.textContent = t2
-      ? t2.toUpperCase()
-      : (cls === "card2-green")
-        ? "CONSISTENT WITH MACRO CONDITIONS"
-        : (cls === "card2-red")
-          ? "WEAKNESS AGAINST MACRO CONDITIONS"
-          : "UNCLEAR — MONITORING";
+    // show Pine truth if present
+    const fallback =
+      (cls === "card2-green") ? "CONSISTENT WITH MACRO CONDITIONS" :
+      (cls === "card2-red")   ? "WEAKNESS AGAINST MACRO CONDITIONS" :
+                                "UNCLEAR — MONITORING";
 
+    v2b.textContent = (t2 ? t2.toUpperCase() : fallback);
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
-    // Halo logic
+    // halo
     c2.className = "card";
     c2.classList.remove("halo-bg-secret");
-
     if (cls === "card2-green") {
-      if (dir === "REAL")      c2.classList.add("halo-bg-gold");
-      else if (dir === "FIN")  c2.classList.add("halo-bg-steel");
-      else                     c2.classList.add("halo-bg-silver");
+      if (dir === "REAL") c2.classList.add("halo-bg-gold");
+      else if (dir === "FIN") c2.classList.add("halo-bg-steel");
+      else c2.classList.add("halo-bg-silver");
     } else {
       c2.classList.add("halo-bg-silver");
     }
   })();
 }
+
 
 
 
