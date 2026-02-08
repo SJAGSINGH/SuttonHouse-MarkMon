@@ -1729,10 +1729,6 @@ if (!secretMode) {
     const v2b = document.getElementById("sub-2");
     if (!c2 || !v2 || !v2b) return;
 
-    // ✅ clear secret-mode inline overrides
-    v2b.style.removeProperty("color");
-    v2b.style.removeProperty("text-shadow"); // optional if you ever set it
-
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
     const c2obj = (data && typeof data.card2 === "object") ? data.card2 : null;
@@ -1744,18 +1740,25 @@ if (!secretMode) {
     if (s2 === "GREEN") { cls = "card2-green"; text = "CONSISTENT WITH MACRO CONDITIONS"; }
     if (s2 === "RED")   { cls = "card2-red";   text = "AGAINST MACRO CONDITIONS"; }
 
+    // text + colour (second line)
     v2b.textContent = text;
-    v2b.className = "secondary-text " + cls;
+    v2b.classList.remove("card2-green","card2-red","card2-neutral");
+    v2b.classList.add(cls);
 
-    c2.className = "card halo-bg-silver";
+    // HALO: always present on Card2
+    c2.classList.remove(
+      "halo-bg-gold","halo-bg-steel","halo-bg-silver","halo-bg-secret",
+      "glow-lime","glow-warning","glow-danger"
+    );
+    c2.classList.add("halo-bg-silver"); // default halo
+
+    // upgrade halo only when GREEN + regime direction known
     const dir = rscRegimeDirection(data?.regime || data?.card1);
     if (cls === "card2-green" && dir === "REAL") c2.classList.add("halo-bg-gold");
     if (cls === "card2-green" && dir === "FIN")  c2.classList.add("halo-bg-steel");
-    v2b.classList.remove('card2-green','card2-red','card2-neutral');
-    v2b.classList.add(cls);
-
   })();
 }
+
 
 
   // ============================================================
