@@ -27,16 +27,15 @@
     </div>
   </div>
 
-  <div class="card" id="stock-card">
-    <h3>Watchlist</h3>
-    <div class="watchlist-fill">
-      <div class="stock-grid">
-        {% for i in range(20) %}
-          <div class="stock-node grey"></div>
-        {% endfor %}
-      </div>
+ <div class="stock-grid" id="stock-grid">
+  {% for i in range(20) %}
+    <div class="stock-item" data-slot="{{ i }}">
+      <div class="stock-node grey"></div>
+      <div class="stock-label mono">—</div>
     </div>
-  </div>
+  {% endfor %}
+</div>
+
 
 </div>
 
