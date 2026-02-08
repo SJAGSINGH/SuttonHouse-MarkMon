@@ -33,16 +33,21 @@ STATE: Dict[str, Any] = {
     "count": None,
     "sahm": None,
 
-    # ✅ Card 2 typed lane
-    "card2_state": None,
-    "card2_text": None,
-    "card2": {"state": None, "text": None, "time": None, "tf": None, "ref_id": None},
+    # ✅ Card 2 — canonical, nested ONLY
+    "card2": {
+        "state": None,
+        "text": None,
+        "time": None,
+        "tf": None,
+        "ref_id": None,
+    },
 
     "monitor": {
         "last_by_ref": {},
         "last_by_ticker": {},
         "last_hello": {},
     },
+
     "secret": {
         "vix": None,
         "gvz": None,
@@ -51,6 +56,7 @@ STATE: Dict[str, Any] = {
         "vold": None,
         "war": None,
     },
+
     "_server_ts": None,
 }
 
