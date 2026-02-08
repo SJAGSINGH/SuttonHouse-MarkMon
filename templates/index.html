@@ -608,29 +608,36 @@ body.war-room .scada-card{
 }
 
 /* ============================
-   MESSAGE SYSTEM — STEP SEQ UI
-   ============================ */
+   MESSAGE SYSTEM — STEP TRACK
+============================ */
 
-#msg-card{
-  background:rgba(0,0,0,0.55);
-  border:1px solid rgba(255,255,255,0.10);
-  border-radius:12px;
-  padding:18px;
+/* keep card title consistent with other cards */
+#msg-card h3{
+  font-size:10px;
+  color:#555;
+  text-transform:uppercase;
+  margin:0 0 16px 0;
+  letter-spacing:2px;
 }
 
+/* headline/subline already use primary-text / secondary-text */
+
+/* steps */
 .step-seq{
   margin-top:14px;
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:8px;
 }
 
 .step{
   display:flex;
   align-items:center;
   gap:10px;
-  opacity:0.35;                 /* background steps */
-  transition:opacity .25s ease, filter .25s ease;
+  opacity:.18;                 /* background by default */
+  filter:saturate(.8);
+  transform:translateX(0);
+  transition:opacity .25s ease, transform .25s ease, filter .25s ease;
 }
 
 .step .n{
@@ -642,41 +649,66 @@ body.war-room .scada-card{
   justify-content:center;
   font-size:10px;
   font-weight:800;
-  color:rgba(255,255,255,0.55);
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,.10);
+  color:rgba(255,255,255,.45);
+  background:rgba(255,255,255,.03);
 }
 
 .step .t{
-  font-size:11px;
-  letter-spacing:1.2px;
+  font-size:10px;
+  letter-spacing:1.4px;
+  font-weight:700;
   text-transform:uppercase;
-  color:rgba(255,255,255,0.70);
+  color:rgba(255,255,255,.45);
 }
 
-/* active step */
+/* active step = SCADA green */
 .step.active{
   opacity:1;
+  filter:saturate(1.2);
+  transform:translateX(2px);
 }
 
 .step.active .n{
+  border-color:rgba(60,255,180,.35);
   color:var(--lime);
-  border-color:rgba(60,255,180,0.35);
-  background:rgba(60,255,180,0.08);
-  box-shadow:0 0 18px rgba(60,255,180,0.16);
+  background:rgba(60,255,180,.08);
+  box-shadow:0 0 14px rgba(50,205,50,.12);
 }
 
 .step.active .t{
   color:var(--lime);
-  text-shadow:0 0 12px rgba(60,255,180,0.12);
+  text-shadow:0 0 12px rgba(50,205,50,.10);
 }
 
-.transition{
-  margin-top:10px;
-  font-size:12px;
-  letter-spacing:0.8px;
-  color:rgba(255,255,255,0.75);
+/* completed (optional) */
+.step.done{
+  opacity:.38;
 }
+.step.done .n{
+  border-color:rgba(255,255,255,.14);
+  color:rgba(255,255,255,.55);
+}
+.step.done .t{
+  color:rgba(255,255,255,.55);
+}
+
+/* transition line */
+.transition{
+  margin-top:12px;
+  font-size:11px;
+  letter-spacing:1.2px;
+  color:rgba(255,255,255,.70);
+  text-transform:none;
+  opacity:.9;
+}
+
+/* small emphasis word inside transition (optional) */
+.transition strong{
+  color:#fff;
+  letter-spacing:1.1px;
+}
+
 
 /* ============================
    WATCHLIST CONTAINMENT
@@ -1219,6 +1251,24 @@ function _updateDebugBtn() {
     const badge = document.getElementById('war-badge'); if (!badge) return;
     badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
   }
+// ============================
+// FOUNDER HAZE — SAFE GUARD
+// (prevents render-kill if function missing)
+// ============================
+if (typeof window.applyFounderHaze !== "function") {
+  window.applyFounderHaze = function(dir){
+    const c3 = document.getElementById('card-3');
+    if (!c3) return;
+
+    c3.classList.remove('haze-gold','haze-steel');
+
+    // only haze when founderMode true
+    if (!window.founderMode || !dir) return;
+
+    if (dir === 'REAL') c3.classList.add('haze-gold');
+    if (dir === 'FIN')  c3.classList.add('haze-steel');
+  };
+}
 
   // ----------------------------
   // PUBLIC APPLY
@@ -1341,7 +1391,8 @@ function _updateDebugBtn() {
   const regimeRaw = String(data?.regime || data?.card1 || '').trim();
   const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
 
-  applyFounderHaze(dir);
+  window.applyFounderHaze(dir);
+
 
   let headline = `NO REGIME → ${stage}`;
   let cardClass = 'card halo-bg-silver';
@@ -1443,80 +1494,77 @@ function _updateDebugBtn() {
       if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
     }
   }
-  function applyMessageFromState(data){
+ function applyMessageFromState(data){
   const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
   const m = (data && data.monitor) ? data.monitor : {};
 
   const headlineEl = document.getElementById('msg-headline');
   const subEl      = document.getElementById('msg-subline');
+  const transEl    = document.getElementById('msg-transition');
 
-  const bReg = document.getElementById('msg-regime');
-  const bSet = document.getElementById('msg-setup');
-  const bSig = document.getElementById('msg-signal');
-  const bObs = document.getElementById('msg-observe');
+  const stepsHost  = document.getElementById('msg-steps');
+  const card       = document.getElementById('msg-card');
 
-  const card = document.getElementById('msg-card');
+  // helper: set active step (1..5), mute others, optionally mark done
+  function setStep(activeStep, doneUpTo){
+    if (!stepsHost) return;
+    const nodes = stepsHost.querySelectorAll('.step');
+    nodes.forEach(n => {
+      n.classList.remove('active','done');
+      const s = Number(n.getAttribute('data-step'));
+      if (Number.isFinite(doneUpTo) && s < doneUpTo) n.classList.add('done');
+      if (s === activeStep) n.classList.add('active');
+    });
+  }
 
-  // helper
-  const setBadge = (el, text, tone) => {
-    if (!el) return;
-    el.classList.remove('badge-good','badge-warn');
-    el.classList.add('badge');
-    if (tone) el.classList.add(tone);
-    el.innerText = text;
-  };
-
+  // normalize inputs
   const setupOn   = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
   const trigRaw   = String(m.trigger || '').trim();
   const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
   const ticker    = String(m.ticker || '').toUpperCase();
 
-  // IMPORTANT: DO NOT force width/layout classes here
+  // keep card styling stable (don’t fight grid)
   if (card){
-    card.classList.remove('card-wide','halo-bg-silver','halo-bg-gold','halo-bg-steel');
-    card.classList.add('card');
+    card.classList.remove('halo-bg-silver','halo-bg-gold','halo-bg-steel','glow-lime','glow-warning','glow-danger');
+    // optional: subtle halo by regime
+    if (dir === 'REAL') card.classList.add('halo-bg-gold');
+    else if (dir === 'FIN') card.classList.add('halo-bg-steel');
+    else card.classList.add('halo-bg-silver');
   }
 
-  // 1) WAITING — REGIME
+  // STEP 1 — REGIME UNKNOWN
   if (!dir){
     if (headlineEl) headlineEl.innerText = 'WAITING — REGIME STATE';
     if (subEl) subEl.innerText = 'Direction not confirmed. No action.';
-    setBadge(bReg, 'WAITING — REGIME', 'badge-warn');
-    setBadge(bSet, 'WAITING — SETUP', '');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
+    setStep(1, 1);
+    if (transEl) transEl.innerText = 'Waiting on regime state.';
     return;
   }
 
+  // STEP 2 — REGIME CONFIRMED
   const dirText = (dir === 'REAL') ? 'REAL ASSET REGIME' : 'FINANCIAL ASSET REGIME';
-  setBadge(bReg, `REGIME: ${dirText}`, 'badge-good');
-
-  // 2) WAITING — SETUP
   if (!setupOn){
     if (headlineEl) headlineEl.innerText = 'WAITING — SETUP STATE';
-    if (subEl) subEl.innerText = 'Direction confirmed. Setup not active.';
-    setBadge(bSet, 'WAITING — SETUP', 'badge-warn');
-    setBadge(bSig, 'WAITING — SIGNAL', '');
-    setBadge(bObs, 'OBSERVE: —', '');
+    if (subEl) subEl.innerText = `${dirText} confirmed. Setup not active.`;
+    setStep(2, 2);
+    if (transEl) transEl.innerText = 'Waiting on setup state.';
     return;
   }
 
-  setBadge(bSet, 'SETUP: ACTIVE', 'badge-good');
-
-  // 3) WAITING — SIGNAL
+  // STEP 3 — SETUP CONFIRMED
   if (!hasSignal){
     if (headlineEl) headlineEl.innerText = 'WAITING — SIGNAL STATE';
-    if (subEl) subEl.innerText = 'Setup active. Waiting for trigger.';
-    setBadge(bSig, 'WAITING — SIGNAL', 'badge-warn');
-    setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: WATCHLIST', '');
+    if (subEl) subEl.innerText = ticker ? `${ticker} • Setup active. Waiting for trigger.` : 'Setup active. Waiting for trigger.';
+    setStep(3, 3);
+    if (transEl) transEl.innerText = 'Waiting on signal confirmation.';
     return;
   }
 
-  // 4) SIGNAL DETECTED (still not action)
-  if (headlineEl) headlineEl.innerText = 'SIGNAL STATE DETECTED — OBSERVE STOCK CARDS';
+  // STEP 4 — SIGNAL CONFIRMED (still observational)
+  if (headlineEl) headlineEl.innerText = 'SIGNAL CONFIRMED — OBSERVE';
   if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
-  setBadge(bSig, `SIGNAL: ${trigRaw}`, 'badge-good');
-  setBadge(bObs, ticker ? `OBSERVE: ${ticker}` : 'OBSERVE: STOCK CARDS', 'badge-warn');
+  setStep(4, 4);
+  if (transEl) transEl.innerText = 'Signal confirmed. Observe stock cards. No action language.';
 }
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
