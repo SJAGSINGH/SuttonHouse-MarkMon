@@ -710,14 +710,75 @@ body.war-room .scada-card{
 }
 
 
+
+
 /* ============================
-   WATCHLIST CONTAINMENT
+   WATCHLIST: 20 instrument nodes
 ============================ */
-.watchlist-fill{
-  width:100%;
-  overflow:hidden;   /* prevents circles escaping card */
+.stock-grid{
+  display:grid;
+  grid-template-columns:repeat(10, 1fr); /* 10 across = 2 rows */
+  gap:18px 14px;
+  margin-top:14px;
+  align-items:start;
 }
 
+.stock-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;               /* space below circle */
+  min-height:46px;       /* ensures label space exists */
+}
+
+.stock-node{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.18);
+  background:#2a2a2a;
+  box-shadow:none;
+}
+
+/* label under each circle */
+.stock-label{
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.55);
+  width:52px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* node states */
+.stock-node.grey{
+  background:#2a2a2a;
+  border-color:rgba(255,255,255,0.14);
+}
+
+.stock-node.green{
+  background:var(--lime);
+  border-color:rgba(50,205,50,0.55);
+  box-shadow:0 0 14px rgba(50,205,50,0.25);
+}
+
+.stock-node.orange{
+  background:var(--orange);
+  border-color:rgba(255,140,0,0.55);
+  box-shadow:0 0 14px rgba(255,140,0,0.22);
+}
+
+.stock-node.red{
+  background:var(--red);
+  border-color:rgba(255,68,68,0.60);
+  box-shadow:0 0 14px rgba(255,68,68,0.22);
+}
+
+  
 </style>
 
 </head>
@@ -1567,6 +1628,33 @@ if (typeof window.applyFounderHaze !== "function") {
   if (subEl) subEl.innerText = ticker ? `${ticker} • Trigger: ${trigRaw}` : `Trigger: ${trigRaw}`;
   setStep(4, 4);
   if (transEl) transEl.innerText = 'Signal confirmed. Observe stock cards. No action language.';
+}
+function applyWatchlistFromState(data){
+  const host = document.getElementById("stock-grid");
+  if (!host) return;
+
+  const wl = data?.watchlist;
+  if (!Array.isArray(wl)) return; // safe: don’t touch UI until server sends it
+
+  const items = host.querySelectorAll(".stock-item");
+  for (let i = 0; i < items.length; i++){
+    const item = items[i];
+    const node = item.querySelector(".stock-node");
+    const lab  = item.querySelector(".stock-label");
+    if (!node || !lab) continue;
+
+    const rec = wl[i] || {};
+    const ticker = String(rec.ticker || "—").toUpperCase();
+    const state  = String(rec.state  || "GREY").toUpperCase();
+
+    lab.textContent = ticker;
+
+    node.classList.remove("green","orange","red","grey");
+    if (state === "GREEN") node.classList.add("green");
+    else if (state === "AMBER" || state === "ORANGE") node.classList.add("orange");
+    else if (state === "RED") node.classList.add("red");
+    else node.classList.add("grey");
+  }
 }
 
   /* === RSC MOCK MODE (REMOVE LATER) === */
