@@ -723,28 +723,12 @@ def webhook():
             STATE["_server_ts"] = int(time.time() * 1000)
 
             # ------------------------------------------------
-            # typed payloads (CARD2 etc.)
-            # ------------------------------------------------
-            if "type" in data:
-                try:
-                    _parse_typed_payload(data)
-                except Exception:
-                    pass
-
-            # ------------------------------------------------
-            # legacy card-number payloads (safe to keep)
-            # ------------------------------------------------
-            if "card" in data:
-                _parse_card_payload(data)
-
-            # ------------------------------------------------
             # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
             # Cards 1 & 3 MUST come from Pine MACRO payload
             # ------------------------------------------------
             pine_allow = {}
 
             # ----- Card 1: Regime + Vol (Pine truth)
-            # Pine sends: regime="EQUITIES"/"COMMODITIES"
             if "regime" in data:
                 try:
                     pine_allow["regime"] = str(data["regime"]).upper()
@@ -757,7 +741,6 @@ def webhook():
                 except Exception:
                     pass
 
-            # optional: keep Pine-composed text if you want it later
             if "card1" in data:
                 try:
                     pine_allow["card1"] = str(data["card1"])
@@ -765,7 +748,6 @@ def webhook():
                     pass
 
             # ----- Card 3: Cycle clock (0–120 canonical)
-            # Pine sends: cycle=0..120
             if "cycle" in data:
                 try:
                     c = int(float(data["cycle"]))
@@ -777,15 +759,13 @@ def webhook():
                 except Exception:
                     pass
 
-            # optional: keep Pine-composed text if you want it later
             if "card3" in data:
                 try:
                     pine_allow["card3"] = str(data["card3"])
                 except Exception:
                     pass
 
-            # ----- Optional: flow / rotation direction (if you still want it on server)
-            # Pine sends: rot_dir="OUT OF EQUITIES → INTO COMMODITIES"
+            # ----- Optional: flow / rotation direction (server-side legacy)
             if "rot_dir" in data:
                 try:
                     pine_allow["flow"] = str(data["rot_dir"])
@@ -799,7 +779,6 @@ def webhook():
                 except Exception:
                     pass
 
-            # drawdown can arrive under different keys
             if "spx_dd" in data:
                 pine_allow["spx_dd"] = data["spx_dd"]
             elif "spxDrawdown" in data:
@@ -811,6 +790,75 @@ def webhook():
 
             if pine_allow:
                 STATE.update(pine_allow)
+
+            # ------------------------------------------------
+            # CARD 2 — CANONICAL (nested) ✅
+            # Accepts either:
+            #  A) typed payload: {"type":"CARD2","state":"GREEN","text":"...","time":...}
+            #  B) macro payload: {"type":"MACRO", ... , "card2":{"state":"GREEN","text":"..."}}
+            # ------------------------------------------------
+            try:
+                typ = str(data.get("type") or "").strip().upper()
+
+                # ensure nested structure exists
+                if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
+                    STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
+
+                if typ == "CARD2":
+                    st = data.get("state")
+                    tx = data.get("text")
+
+                    if st is not None:
+                        STATE["card2"]["state"] = str(st).strip().upper()
+                    if tx is not None:
+                        STATE["card2"]["text"] = str(tx).strip()
+
+                    # optional metadata passthrough
+                    for k in ("time", "tf", "ref_id"):
+                        if k in data and data.get(k) not in (None, "", "NA", "na"):
+                            STATE["card2"][k] = data.get(k)
+
+                else:
+                    # macro payload may carry nested card2
+                    c2 = data.get("card2")
+                    if isinstance(c2, dict):
+                        st = c2.get("state")
+                        tx = c2.get("text")
+
+                        if st is not None:
+                            STATE["card2"]["state"] = str(st).strip().upper()
+                        if tx is not None:
+                            STATE["card2"]["text"] = str(tx).strip()
+
+                        for k in ("time", "tf", "ref_id"):
+                            if k in c2 and c2.get(k) not in (None, "", "NA", "na"):
+                                STATE["card2"][k] = c2.get(k)
+
+            except Exception:
+                pass
+
+            # ------------------------------------------------
+            # typed payloads (keep, but Card2 handled above)
+            # ------------------------------------------------
+            if "type" in data:
+                try:
+                    # IMPORTANT: _parse_typed_payload may still exist for other typed cards.
+                    # It must NOT overwrite STATE["card2"] anymore (or just let this run fail-soft).
+                    _parse_typed_payload(data)
+                except Exception:
+                    pass
+
+            # ------------------------------------------------
+            # legacy card-number payloads (safe to keep)
+            # DO NOT allow legacy "card:2" to overwrite Card2 anymore.
+            # ------------------------------------------------
+            if "card" in data:
+                try:
+                    cn = _safe_int(data.get("card"))
+                    if cn is None or cn != 2:
+                        _parse_card_payload(data)
+                except Exception:
+                    pass
 
             # ------------------------------------------------
             _recompute_war_from_secret()
@@ -826,6 +874,7 @@ def webhook():
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
+
 
 
 @app.route("/verify_secret", methods=["POST"])
