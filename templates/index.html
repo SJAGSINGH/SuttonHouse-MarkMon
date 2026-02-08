@@ -1636,16 +1636,27 @@ function applyAllFromState(data) {
   applyMessageFromState(data);
   setSentinel("Sentinel: SILENCE");
 
-/// ============================================================
+// ============================================================
 // CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY) ✅ CANONICAL
 // Reads ONLY: data.card2 = {state,text,time,tf,ref_id}
 // ============================================================
 if (!secretMode) {
   (function applyCard2FromState() {
-    const c2  = document.getElementById("card-2");
-    const v2  = document.getElementById("val-2");
-    const v2b = document.getElementById("val-2b");
-    if (!c2 || !v2 || !v2b) return;
+    const c2 = document.getElementById("card-2");
+    const v2 = document.getElementById("val-2");
+
+    // ✅ allow either id for the status line (depending on your HTML)
+    const v2b =
+      document.getElementById("val-2b") ||
+      document.getElementById("sub-2");
+
+    if (!c2 || !v2 || !v2b) {
+      console.warn("[CARD2] missing DOM nodes", { c2:!!c2, v2:!!v2, v2b:!!v2b });
+      return;
+    }
+
+    // ensure visible in public mode
+    v2b.style.display = "";
 
     // fixed headline
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
@@ -1654,7 +1665,7 @@ if (!secretMode) {
     const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
 
     const s2 = String(c2obj?.state || "").toUpperCase();
-    const t2 = String(c2obj?.text  || "").trim();
+    const t2 = String(c2obj?.text || "").trim();
 
     // regime direction from Card1 truth
     const dir = rscRegimeDirection(data?.regime || data?.card1);
@@ -1664,19 +1675,20 @@ if (!secretMode) {
     if (["GREEN","LIME","BULL","ALIGNED"].includes(s2)) cls = "card2-green";
     else if (["RED","BEAR","DIVERGE","WEAK"].includes(s2)) cls = "card2-red";
 
-    // show Pine truth if present
     const fallback =
       (cls === "card2-green") ? "CONSISTENT WITH MACRO CONDITIONS" :
       (cls === "card2-red")   ? "WEAKNESS AGAINST MACRO CONDITIONS" :
                                 "UNCLEAR — MONITORING";
 
     v2b.textContent = (t2 ? t2.toUpperCase() : fallback);
+
     v2b.classList.remove("card2-green","card2-red","card2-neutral");
     v2b.classList.add(cls);
 
     // halo
     c2.className = "card";
     c2.classList.remove("halo-bg-secret");
+
     if (cls === "card2-green") {
       if (dir === "REAL") c2.classList.add("halo-bg-gold");
       else if (dir === "FIN") c2.classList.add("halo-bg-steel");
@@ -1684,8 +1696,11 @@ if (!secretMode) {
     } else {
       c2.classList.add("halo-bg-silver");
     }
+
+    console.log("[CARD2 OK]", { s2, t2, hasCard2: !!c2obj });
   })();
 }
+
 
 
 
