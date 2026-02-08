@@ -6,26 +6,33 @@
 <!-- MESSAGE (1/3) + WATCHLIST (2/3) -->
 <div class="ms-row">
 
+  <!-- ✅ MESSAGE CARD (standard header like other cards) -->
   <div class="card" id="msg-card">
-    <div class="primary-text" id="msg-headline">WAITING</div>
-    <div class="secondary-text" id="msg-subline">AWAITING — NO ACTIVE CONDITION</div>
+    <h3 id="h3-msg">MESSAGE SYSTEM</h3>
 
-<div class="step-seq" id="msg-steps">
-  <div class="step" data-step="1"><span class="n">1</span><span class="t">REGIME UNKNOWN</span></div>
-  <div class="step" data-step="2"><span class="n">2</span><span class="t">REGIME CONFIRMED</span></div>
-  <div class="step" data-step="3"><span class="n">3</span><span class="t">SETUP CONFIRMED</span></div>
-  <div class="step" data-step="4"><span class="n">4</span><span class="t">SIGNAL CONFIRMED</span></div>
-  <div class="step" data-step="5"><span class="n">5</span><span class="t">SETUP CLOSED</span></div>
-</div>
+    <!-- headline + subline (same treatment as other cards) -->
+    <div class="primary-text" id="msg-headline">WAITING — REGIME STATE</div>
+    <div class="secondary-text" id="msg-subline">DIRECTION NOT CONFIRMED. NO ACTION.</div>
 
-<div class="transition" id="msg-transition">Waiting on regime state.</div>
+    <!-- ✅ step sequence (visible but subdued; active step highlighted) -->
+    <div class="step-seq" id="msg-steps">
+      <div class="step" data-step="1"><span class="n">1</span><span class="t">REGIME UNKNOWN</span></div>
+      <div class="step" data-step="2"><span class="n">2</span><span class="t">REGIME CONFIRMED</span></div>
+      <div class="step" data-step="3"><span class="n">3</span><span class="t">SETUP CONFIRMED</span></div>
+      <div class="step" data-step="4"><span class="n">4</span><span class="t">SIGNAL CONFIRMED</span></div>
+      <div class="step" data-step="5"><span class="n">5</span><span class="t">SETUP CLOSED</span></div>
+    </div>
 
+    <!-- ✅ transition message (single line) -->
+    <div class="transition" id="msg-transition">Waiting on regime state.</div>
 
+    <!-- rule footer -->
     <div class="gmeta" style="margin-top:12px;">
       <strong>Rule:</strong> Macro decides direction. Message decides behaviour. Waiting means no action.
     </div>
   </div>
 
+  <!-- WATCHLIST -->
   <div class="card" id="stock-card">
     <h3>Watchlist</h3>
 
@@ -39,6 +46,7 @@
   </div>
 
 </div>
+
 
 
 <!-- ============================
