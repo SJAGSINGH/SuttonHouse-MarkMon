@@ -47,7 +47,7 @@ let founderMode = false;
     --steel-bg-2:#0e1f36;
   }
   /* ============================
-   CARD 2 — CAPITAL ROTATION
+    — CAPITAL ROTATION
    Matches Card 1 behaviour
    ============================ */
 
@@ -1639,42 +1639,60 @@ function applyAllFromState(data) {
 // ============================================================
 // CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY) ✅ CANONICAL
 // Reads ONLY: data.card2 = {state,text,time,tf,ref_id}
+// - Headline is fixed.
+// - Second line colour is driven by data.card2.state.
+// - Halo: GOLD/STEEL ONLY when GREEN + regime direction is known.
+// - Otherwise: SILVER (no surprises).
 // ============================================================
-// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
+
 if (!secretMode) {
   (function applyCard2FromState() {
     const c2  = document.getElementById("card-2");
     const v2  = document.getElementById("val-2");
-    const v2b = document.getElementById("sub-2");
+    const v2b = document.getElementById("sub-2"); // ✅ canonical id in your HTML
 
     if (!c2 || !v2 || !v2b) return;
 
+    // fixed headline (no duplicates)
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    const c2obj = (data && typeof data.card2 === "object") ? data.card2 : null;
-    const s2 = String(c2obj?.state || "").toUpperCase();
+    // ✅ single source of truth (nested)
+    const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+    const s2 = String(c2obj?.state || "").toUpperCase().trim();
 
-    let cls = "card2-neutral";
+    // default
+    let cls  = "card2-neutral";
     let text = "UNCLEAR — MONITORING";
 
+    // only these two states for now (as per your ask)
     if (s2 === "GREEN") {
-      cls = "card2-green";
+      cls  = "card2-green";
       text = "CONSISTENT WITH MACRO CONDITIONS";
-    }
-    if (s2 === "RED") {
-      cls = "card2-red";
+    } else if (s2 === "RED") {
+      cls  = "card2-red";
       text = "AGAINST MACRO CONDITIONS";
     }
 
+    // paint second line + keep colour
     v2b.textContent = text;
     v2b.className = "secondary-text " + cls;
 
+    // halo logic (reset first, then apply)
     c2.className = "card halo-bg-silver";
-    const dir = rscRegimeDirection(data?.regime || data?.card1);
-    if (cls === "card2-green" && dir === "REAL") c2.classList.add("halo-bg-gold");
-    if (cls === "card2-green" && dir === "FIN")  c2.classList.add("halo-bg-steel");
+
+    const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
+
+    if (s2 === "GREEN") {
+      // upgrade halo only on GREEN
+      if (dir === "REAL") c2.className = "card halo-bg-gold";
+      else if (dir === "FIN") c2.className = "card halo-bg-steel";
+      // else keep silver (unknown dir)
+    }
+    // RED + NEUTRAL always stay silver (clean + consistent)
+
   })();
 }
+
 
 
 
