@@ -729,7 +729,7 @@ body.war-room .scada-card{
     </div>
 
     <div class="card" id="card-2">
-      <h3 id="h3-2">Regime &amp; Volatility</h3>
+      <h3 id="h3-2">Capital Rotation</h3>
       <div class="primary-text" id="val-2">AWAITING</div>
       <div class="secondary-text" id="sub-2"></div>
       <div id="gauge-2" style="display:none;"></div>
@@ -1129,8 +1129,9 @@ function _updateDebugBtn() {
   setFounderUnlocked(true);   // <-- ADD THIS
   secretMode = true;
   // Hide public Card2 status line in secret mode (prevents bleed)
-  const v2b = document.getElementById('val-2b');
+  const v2b = document.getElementById('sub-2');
   if (v2b) v2b.style.display = 'none';
+
   
   _updateDebugBtn();  
 
@@ -1160,8 +1161,9 @@ function _updateDebugBtn() {
   if (exitBtn) exitBtn.style.display = 'none';
 
   // restore public Card2 status line
-  const v2b = document.getElementById('val-2b');
+  const v2b = document.getElementById('sub-2');
   if (v2b) v2b.style.display = '';
+
 
   hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
   setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
@@ -1209,7 +1211,9 @@ function _updateDebugBtn() {
   });
 
   
-  setText('val-2','SHORT-TERM PREFERENCE REMAINS'); setText('val-2b','UNCLEAR — MONITORING');
+  setText('val-2','SHORT-TERM PREFERENCE REMAINS');
+  setText('sub-2','UNCLEAR — MONITORING');
+
 
 
  // --- Card 1 defaults ONLY if regime not present in this update
@@ -1647,8 +1651,8 @@ if (!secretMode) {
 
     // ✅ allow either id for the status line (depending on your HTML)
     const v2b =
-      document.getElementById("val-2b") ||
-      document.getElementById("sub-2");
+      const v2b = document.getElementById("sub-2");
+
 
     if (!c2 || !v2 || !v2b) {
       console.warn("[CARD2] missing DOM nodes", { c2:!!c2, v2:!!v2, v2b:!!v2b });
