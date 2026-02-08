@@ -1749,6 +1749,9 @@ if (!secretMode) {
     const dir = rscRegimeDirection(data?.regime || data?.card1);
     if (cls === "card2-green" && dir === "REAL") c2.classList.add("halo-bg-gold");
     if (cls === "card2-green" && dir === "FIN")  c2.classList.add("halo-bg-steel");
+    v2b.classList.remove('card2-green','card2-red','card2-neutral');
+    v2b.classList.add(cls);
+
   })();
 }
 
