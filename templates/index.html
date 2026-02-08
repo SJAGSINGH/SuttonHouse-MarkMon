@@ -608,8 +608,9 @@ body.war-room .scada-card{
 }
 
 /* ============================
-   MESSAGE CARD
-============================ */
+   MESSAGE SYSTEM — STEP SEQ UI
+   ============================ */
+
 #msg-card{
   background:rgba(0,0,0,0.55);
   border:1px solid rgba(255,255,255,0.10);
@@ -617,30 +618,64 @@ body.war-room .scada-card{
   padding:18px;
 }
 
-#msg-card .badge{
-  display:inline-block;
-  font-size:11px;
-  letter-spacing:1.4px;
-  text-transform:uppercase;
-  padding:7px 10px;
-  border-radius:999px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.10);
+.step-seq{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.step{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  opacity:0.35;                 /* background steps */
+  transition:opacity .25s ease, filter .25s ease;
+}
+
+.step .n{
+  width:18px;
+  height:18px;
+  border-radius:6px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:800;
   color:rgba(255,255,255,0.55);
-  margin-right:8px;
-  margin-bottom:6px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.04);
 }
 
-#msg-card .badge-good{
-  border-color:rgba(60,255,180,0.35);
+.step .t{
+  font-size:11px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.70);
+}
+
+/* active step */
+.step.active{
+  opacity:1;
+}
+
+.step.active .n{
   color:var(--lime);
+  border-color:rgba(60,255,180,0.35);
   background:rgba(60,255,180,0.08);
+  box-shadow:0 0 18px rgba(60,255,180,0.16);
 }
 
-#msg-card .badge-warn{
-  border-color:rgba(255,140,0,0.40);
-  color:var(--orange);
-  background:rgba(255,140,0,0.10);
+.step.active .t{
+  color:var(--lime);
+  text-shadow:0 0 12px rgba(60,255,180,0.12);
+}
+
+.transition{
+  margin-top:10px;
+  font-size:12px;
+  letter-spacing:0.8px;
+  color:rgba(255,255,255,0.75);
 }
 
 /* ============================
@@ -1152,40 +1187,31 @@ function _updateDebugBtn() {
   if (lastState) applySecretFromState(lastState);
 }
 
-  function closeVault(){
-  secretMode = false;          // <-- CRITICAL
+ function closeVault(){
+  secretMode = false;
   _updateDebugBtn();
 
   const exitBtn = document.getElementById('vault-exit');
   if (exitBtn) exitBtn.style.display = 'none';
 
-  // restore public Card2 status line
-  const v2b = document.getElementById('val-2b');
-  if (v2b) v2b.style.display = '';
+  const sub2 = document.getElementById('sub-2');
+  if (sub2) sub2.style.removeProperty('color');
 
   hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
-  setText('h3-1','Regime & Volatility'); setText('h3-2','Capital Rotation'); setText('h3-3','CYCLE CLOCK');
+  setText('h3-1','Regime & Volatility');
+  setText('h3-2','Capital Rotation');
+  setText('h3-3','CYCLE CLOCK');
 
-  // repaint FULL state so halos + card2 return immediately
   if (window.__RSC_LAST) applyAllFromState(window.__RSC_LAST);
   else if (lastState) applyAllFromState(lastState);
   else applyAllFromState({});
 
+  // 🔑 ensure Card2 colour + halo stick
+  setTimeout(() => applyAllFromState(window.__RSC_LAST || lastState || {}), 0);
+
   _updateDebugBtn();
 }
 
-  function applyFounderHaze(dir){
-    const c3 = document.getElementById('card-3');
-    if (!c3) return;
-
-    // always clean first
-    c3.classList.remove('haze-gold','haze-steel');
-
-    if (!founderMode || !dir) return;
-
-    if (dir === 'REAL') c3.classList.add('haze-gold');
-    if (dir === 'FIN')  c3.classList.add('haze-steel');
-   }
   
   window.closeVault = closeVault;
 
@@ -1645,58 +1671,38 @@ function applyAllFromState(data) {
 // - Otherwise: SILVER (no surprises).
 // ============================================================
 
+// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY)
 if (!secretMode) {
   (function applyCard2FromState() {
     const c2  = document.getElementById("card-2");
     const v2  = document.getElementById("val-2");
-    const v2b = document.getElementById("sub-2"); // ✅ canonical id in your HTML
-
+    const v2b = document.getElementById("sub-2");
     if (!c2 || !v2 || !v2b) return;
 
-    // fixed headline (no duplicates)
+    // ✅ clear secret-mode inline overrides
+    v2b.style.removeProperty("color");
+    v2b.style.removeProperty("text-shadow"); // optional if you ever set it
+
     v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // ✅ single source of truth (nested)
-    const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
-    const s2 = String(c2obj?.state || "").toUpperCase().trim();
+    const c2obj = (data && typeof data.card2 === "object") ? data.card2 : null;
+    const s2 = String(c2obj?.state || "").toUpperCase();
 
-    // default
-    let cls  = "card2-neutral";
+    let cls = "card2-neutral";
     let text = "UNCLEAR — MONITORING";
 
-    // only these two states for now (as per your ask)
-    if (s2 === "GREEN") {
-      cls  = "card2-green";
-      text = "CONSISTENT WITH MACRO CONDITIONS";
-    } else if (s2 === "RED") {
-      cls  = "card2-red";
-      text = "AGAINST MACRO CONDITIONS";
-    }
+    if (s2 === "GREEN") { cls = "card2-green"; text = "CONSISTENT WITH MACRO CONDITIONS"; }
+    if (s2 === "RED")   { cls = "card2-red";   text = "AGAINST MACRO CONDITIONS"; }
 
-    // paint second line + keep colour
     v2b.textContent = text;
     v2b.className = "secondary-text " + cls;
 
-    // halo logic (reset first, then apply)
     c2.className = "card halo-bg-silver";
-
-    const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
-
-    if (s2 === "GREEN") {
-      // upgrade halo only on GREEN
-      if (dir === "REAL") c2.className = "card halo-bg-gold";
-      else if (dir === "FIN") c2.className = "card halo-bg-steel";
-      // else keep silver (unknown dir)
-    }
-    // RED + NEUTRAL always stay silver (clean + consistent)
-
+    const dir = rscRegimeDirection(data?.regime || data?.card1);
+    if (cls === "card2-green" && dir === "REAL") c2.classList.add("halo-bg-gold");
+    if (cls === "card2-green" && dir === "FIN")  c2.classList.add("halo-bg-steel");
   })();
 }
-
-
-
-
-
 
 
   // ============================================================
@@ -1969,6 +1975,31 @@ window.handleMacroUpdate = function(payload){
       if (e.key === 'Enter') checkPass();
     });
   }
+ // ============================================================
+// MESSAGE SYSTEM — STEP HIGHLIGHTER ✅
+// Call this inside applyMessageFromState(data) AFTER you set headline/subline.
+// It highlights one step and leaves the others visible but subdued.
+// ============================================================
+function setMsgStep(stepNum, transitionText){
+  const wrap = document.getElementById("msg-steps");
+  if (!wrap) return;
+
+  wrap.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
+
+  const active = wrap.querySelector(`.step[data-step="${stepNum}"]`);
+  if (active) active.classList.add("active");
+
+  const t = document.getElementById("msg-transition");
+  if (t) t.textContent = transitionText || "";
+}
+
+// ---- Suggested mapping (use your existing message logic) ----
+// Step 1: no regime dir
+// Step 2: dir confirmed but setup OFF
+// Step 3: setup ON but no signal
+// Step 4: signal present
+// Step 5: (optional) when your monitor lane marks setup closed
+   
 </script>
 </body>
 </html>
