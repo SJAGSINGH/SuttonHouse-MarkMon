@@ -1074,29 +1074,37 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
+  // ----------------------------
   // NODE COLOUR
+  // ----------------------------
   if (node){
     node.classList.remove("grey","orange","green","red");
     node.classList.add(glow || "grey");
   }
 
+  // ----------------------------
   // TICKER (always visible)
-  if (label){
-    label.textContent = ticker ? String(ticker).toUpperCase() : "—";
-  }
+  // ----------------------------
+  const tkr = ticker ? String(ticker).toUpperCase() : "—";
+  if (label) label.textContent = tkr;
 
+  // ----------------------------
   // MSA (always visible)
-  let display = "NO STATE";
-  if (msa){
-    const norm = String(msaText || "").toUpperCase();
-    display = norm || "NO STATE";
+  // ----------------------------
+  const norm = String(msaText || "").toUpperCase();
+  const display = norm || "NO STATE";
 
-    // commissioning: show RAW source if present
-    if (window.COMMISSIONING && rawSrc != null && String(rawSrc).trim() !== ""){
-      msa.textContent = String(rawSrc).toUpperCase();
-      msa.title = `msa_src: ${rawSrc}`;
+  const raw = (rawSrc == null) ? "" : String(rawSrc).trim();
+  const rawUpper = raw ? raw.toUpperCase() : "";
+
+  if (msa){
+    // always show the normalised label in the UI
+    msa.textContent = display;
+
+    // commissioning: keep raw source in tooltip
+    if (window.COMMISSIONING && rawUpper){
+      msa.title = `msa_src: ${rawUpper}`;
     } else {
-      msa.textContent = display;
       msa.title = "";
     }
 
@@ -1107,16 +1115,20 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
     else msa.classList.add("msa-na");
   }
 
-  // TOOLTIP on the CIRCLE (and label) — shows last reason if available
-  if (node){
+  // ----------------------------
+  // TOOLTIP on the CIRCLE + LABEL (commissioning only)
+  // ----------------------------
+  if (node || label){
     const reasonMap = (window.__NODE_REASON__ || {});
     const reason = reasonMap[String(slot)] || "";
 
-    const tip = window.COMMISSIONING
-      ? `TICKER:${(ticker || "—")} | GLOW:${(glow || "grey")} | MSA:${display}` + (rawSrc ? ` | msa_src:${rawSrc}` : "") + (reason ? ` | ${reason}` : "")
+    const tip = (window.COMMISSIONING)
+      ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
+        + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+        + (reason ? ` | ${reason}` : "")
       : "";
 
-    node.title = tip;
+    if (node)  node.title  = tip;
     if (label) label.title = tip;
   }
 }
@@ -1130,7 +1142,7 @@ function applyScadaStatus(msg){
   // ----------------------------
   const sig = (msg.signal === true);
 
-  // ✅ setup comes from setup flags (NOT MSA)
+  // setup comes from setup flags (NOT MSA)
   const setup =
     (msg.setup_any === true) ||
     (msg.setup_D === true) ||
@@ -1145,7 +1157,6 @@ function applyScadaStatus(msg){
   // ----------------------------
   const src = String(msg.msa_src || "").trim().toUpperCase();
 
-  // treat SCADA as AUTO during commissioning if it appears
   const msa =
     (src === "AUTO" || src === "SCADA") ? "AUTO" :
     (src === "MANUAL" || src === "MAN") ? "MAN" :
@@ -1154,11 +1165,12 @@ function applyScadaStatus(msg){
   // store reason for tooltip (per slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(slot)] =
-    `type:${(msg.type || "—")} tf:${(msg.tf || "—")} ` +
-    `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
-    `setup_any:${msg.setup_any} setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} signal:${msg.signal}`;
+    `type:${(msg.type || "—")} tf:${(msg.tf || "—")} `
+    + `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} `
+    + `setup_any:${msg.setup_any} setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} `
+    + `signal:${msg.signal}`;
 
-  // ✅ PASS RAW SOURCE so commissioning can show it
+  // pass RAW SOURCE so commissioning can show it in tooltip
   setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
 
