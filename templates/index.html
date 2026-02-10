@@ -1895,7 +1895,7 @@ function applyAllFromState(data) {
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  applyAllFromState(data);
+  applySCADAStockStatus(data);
   setSentinel("Sentinel: SILENCE");
 
 // ============================================================
