@@ -1110,7 +1110,7 @@ function __setNode(slot, payload){
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
 
-  const node = item.querySelector(".stock-node");
+  const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   if (!node || !label) return;
 
@@ -1118,41 +1118,35 @@ function __setNode(slot, payload){
   label.textContent = t || "—";
 
   // flags (boolean-safe)
-  const msa_ok      = payload?.msa_ok === true;
-  const msa_inzone  = payload?.msa_inzone === true;
-  const msa_attn    = payload?.msa_attention === true;
+  const msa_inzone = payload?.msa_inzone === true;
 
-  const setupD      = payload?.setup_D === true;
-  const setup4H     = payload?.setup_4H === true;
-  const status      = String(payload?.status || "").toUpperCase();
+  const status = String(payload?.status || "").toUpperCase();
+  const isSetup  = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
+  const isSignal = payload?.signal === true;
 
-  const isSetup = setupD || setup4H || status === "SETUP";
+  // =========================
+  // RESET (keep base class)
+  // =========================
+  node.className = "stock-node"; // hard reset: clears grey/amber/green/pulse/inzone/etc
 
-  // reset classes
- node.classList.remove("grey","green","amber","red","pulse","inzone");
- node.classList.add("stock-node"); // ensures base class always present
-
-
-  // apply inZone
-  if (msa_inzone) node.classList.add("inzone");
-
-  // colour priority:
-  // 1) setup (green + pulse)
-  // 2) attention (amber)
-  // 3) not ok (red)
-  // 4) ok (green)
-  // 5) unknown (grey)
-  if (isSetup) {
-    node.classList.add("green","pulse");
-  } else if (msa_attn) {
+  // =========================
+  // EVENT-ONLY COLOUR (LOCKED)
+  // setup = amber
+  // signal = green (+pulse)
+  // silence = grey
+  // =========================
+  if (isSignal) {
+    node.classList.add("green", "pulse");
+  } else if (isSetup) {
     node.classList.add("amber");
-  } else if (payload?.msa_ok === false) {
-    node.classList.add("red");
-  } else if (msa_ok) {
-    node.classList.add("green");
   } else {
     node.classList.add("grey");
   }
+
+  // =========================
+  // inZone is an overlay only
+  // =========================
+  if (msa_inzone) node.classList.add("inzone");
 
   // optional hover debug
   node.title =
@@ -1162,6 +1156,7 @@ function __setNode(slot, payload){
     `msa_attention: ${payload?.msa_attention}\n` +
     `setup_D: ${payload?.setup_D}\n` +
     `setup_4H: ${payload?.setup_4H}\n` +
+    `signal: ${payload?.signal}\n` +
     `status: ${status || "—"}`;
 }
 
