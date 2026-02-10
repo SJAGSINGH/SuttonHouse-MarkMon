@@ -47,6 +47,9 @@ STATE: Dict[str, Any] = {
         "last_by_ticker": {},
         "last_hello": {},
     },
+    "nodes": {
+        "by_ref": {},   # "12": { "last_setup": {...}, "last_scada_status": {...}, "last_watch": {...}, "_ts": {...} }
+    },
 
     "secret": {
         "vix": None,
@@ -141,6 +144,55 @@ STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 # ----------------------------
 # Helpers
 # ----------------------------
+
+NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH"}
+
+def _store_node_payload(data: Dict[str, Any]) -> None:
+    """
+    Stores the latest payload for SETUP / SCADA_STATUS / WATCH keyed by ref_id.
+    Keeps last payload per type and a timestamp per type.
+    """
+    try:
+        typ = str(data.get("type") or "").strip().upper()
+        if typ not in NODE_TYPES:
+            return
+
+        ref = data.get("ref_id")
+        if ref is None:
+            return
+        # TradingView sometimes sends numbers as strings
+        try:
+            ref_i = int(float(ref))
+        except Exception:
+            return
+
+        now = int(time.time() * 1000)
+        ref_key = str(ref_i)
+
+        if "nodes" not in STATE or not isinstance(STATE.get("nodes"), dict):
+            STATE["nodes"] = {"by_ref": {}}
+        if "by_ref" not in STATE["nodes"] or not isinstance(STATE["nodes"].get("by_ref"), dict):
+            STATE["nodes"]["by_ref"] = {}
+
+        rec = STATE["nodes"]["by_ref"].get(ref_key)
+        if not isinstance(rec, dict):
+            rec = {"_ts": {}}
+
+        k = f"last_{typ.lower()}"
+        rec[k] = data
+        rec["_ts"][k] = now
+
+        # also store common convenience fields
+        if data.get("ticker"):
+            rec["ticker"] = str(data.get("ticker")).upper()
+        rec["ref_id"] = ref_i
+
+        STATE["nodes"]["by_ref"][ref_key] = rec
+
+    except Exception:
+        # fail-soft: never break webhook
+        return
+
 def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     typ = str(msg.get("type") or "").strip().upper()
     if typ not in ("SCADA_STATUS", "WATCH"):
@@ -722,6 +774,7 @@ def ingest_macro():
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
 # Adds: STOCK LANES (WATCH + SCADA_STATUS) -> socket "stock_update"
+# Also stores latest node payloads per ref_id for /node/<ref_id>
 # ============================================================
 
 @app.route("/webhook", methods=["POST"])
@@ -792,11 +845,19 @@ def webhook():
                 # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
 
-                # persist
+                # persist warm-start lanes
                 if typ == "SCADA_STATUS":
                     STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
                 else:
                     STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
+
+                # ✅ ADD 3) store node payload for click-through debug page
+                # (requires _store_node_payload helper + STATE["nodes"] support)
+                # _store_node_payload(data)
+                try:
+                    _store_node_payload(out)
+                except Exception:
+                    pass
 
                 _update_monitor_lane(_extract_meta(out))
                 _save_state_to_disk()
@@ -877,12 +938,8 @@ def webhook():
 
             # ------------------------------------------------
             # CARD 2 — CANONICAL (nested) ✅
-            # Accepts either:
-            #  A) typed payload: {"type":"CARD2","state":"GREEN","text":"...","time":...}
-            #  B) macro payload: {"type":"MACRO", ... , "card2":{"state":"GREEN","text":"..."}}
             # ------------------------------------------------
             try:
-                # ensure nested structure exists
                 if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
                     STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
 
@@ -918,18 +975,12 @@ def webhook():
                 pass
 
             # ------------------------------------------------
-            # typed payloads (keep, but Card2 handled above)
-            # ------------------------------------------------
             if "type" in data:
                 try:
                     _parse_typed_payload(data)
                 except Exception:
                     pass
 
-            # ------------------------------------------------
-            # legacy card-number payloads (safe to keep)
-            # DO NOT allow legacy "card:2" to overwrite Card2 anymore.
-            # ------------------------------------------------
             if "card" in data:
                 try:
                     cn = _safe_int(data.get("card"))
@@ -938,7 +989,6 @@ def webhook():
                 except Exception:
                     pass
 
-            # ------------------------------------------------
             _recompute_war_from_secret()
             _update_monitor_lane(meta)
 
@@ -952,6 +1002,30 @@ def webhook():
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
+
+
+@app.route("/node/<int:ref_id>", methods=["GET"])
+def node_debug(ref_id: int):
+    with STATE_LOCK:
+        rec = (STATE.get("nodes") or {}).get("by_ref", {}).get(str(ref_id))
+
+    if not rec:
+        return f"<pre>NO DATA FOR ref_id={ref_id}</pre>", 200
+
+    # tiny HTML page for commissioning
+    pretty = json.dumps(rec, indent=2, ensure_ascii=False)
+    return f"""
+    <html>
+      <head>
+        <title>Node {ref_id} — Commissioning</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body style="background:#050505;color:#ddd;font-family:ui-monospace,Menlo,Consolas,monospace;padding:16px;">
+        <h3 style="color:#BF953F;margin:0 0 12px 0;">NODE {ref_id} — COMMISSIONING</h3>
+        <pre style="white-space:pre-wrap;word-break:break-word;line-height:1.35;">{pretty}</pre>
+      </body>
+    </html>
+    """
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
