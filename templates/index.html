@@ -1164,31 +1164,7 @@ function __setNode(slot, payload){
     `status: ${status || "—"}`;
 }
 
-function renderWatchGridFromState(data){
-  // your state sometimes comes in as { state: {...} }
-  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
-  const mon  = root?.monitor;
 
-  if (!mon) return;
-
-  // prefer explicit watchlist if you add it later
-  const wl = Array.isArray(mon.watchlist) ? mon.watchlist : null;
-
-  // otherwise use last_by_ticker map (you already have this)
-  const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
-
-  const items = wl
-    ? wl
-    : (lbt ? Object.values(lbt) : []);
-
-  if (!items || !items.length) return;
-
-  for (const p of items){
-    const slot = __ensureSlot(p?.ticker);
-    if (slot == null) continue;
-    __setNode(slot, p);
-  }
-}
 
 function setDebugVisible(v){
   debugOn = !!v;
@@ -1955,48 +1931,60 @@ if (!Number.isFinite(ts)){
 // SCADA STOCK STATUS (per-slot)
 // ============================================================
 function applySCADAStockStatus(data) {
-  if (!data || !Array.isArray(data.watchlist)) return;
+  // normalize: allow {state:{...}} wrapper
+  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
 
-  data.watchlist.forEach((s, idx) => {
-    const slot = document.querySelector(
-      `.stock-item[data-slot="${idx}"]`
-    );
-    if (!slot) return;
+  // 1) if server provides watchlist array, use it
+  if (root && Array.isArray(root.watchlist)) {
+    root.watchlist.forEach((s, idx) => paintSlot(idx, s));
+    return;
+  }
 
-    const node   = slot.querySelector(".stock-node");
-    const label  = slot.querySelector(".stock-label");
-    const status = slot.querySelector(".stock-status");
+  // 2) otherwise: build a list from monitor.last_by_ticker (your current reality)
+  const mon = root?.monitor;
+  const lbt = (mon?.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
+  if (!lbt) return;
 
-    if (!node || !label || !status) return;
+  const items = Object.values(lbt);
+  for (const p of items) {
+    const slot = __ensureSlot(p?.ticker);
+    if (slot == null) continue;
+    paintSlot(slot, p);
+  }
 
-    // ---- label
-    label.textContent = s.ticker || "—";
+  function paintSlot(idx, s){
+    const slotEl = document.querySelector(`.stock-item[data-slot="${idx}"]`);
+    if (!slotEl) return;
 
-    // ---- build status lines
-    let lines = [];
+    const node  = slotEl.querySelector(".stock-node");
+    const label = slotEl.querySelector(".stock-label");
+    if (!node || !label) return;
 
-    if (!s.msa_ok) {
-      lines.push("MSA: ATTENTION");
-      node.className = "stock-node amber";
-    } else {
-      lines.push("MSA: OK");
-      node.className = "stock-node green";
-    }
+    const t = String(s?.ticker || "—").toUpperCase();
+    label.textContent = t;
 
-    if (s.msa_inZone) {
-      lines.push("IN ZONE");
-      node.classList.add("pulse");
-    }
+    // IMPORTANT: match your payload keys
+    const msa_ok     = s?.msa_ok === true;
+    const inzone     = (s?.msa_inzone === true) || (s?.msa_inZone === true); // tolerate both
+    const attn       = s?.msa_attention === true;
 
-    if (s.setup_D) lines.push("SETUP: D");
-    if (s.setup_4H) lines.push("SETUP: 4H");
+    const setupD     = s?.setup_D === true;
+    const setup4H    = s?.setup_4H === true;
+    const status     = String(s?.status || "").toUpperCase();
+    const isSetup    = setupD || setup4H || status === "SETUP";
 
-    if (!s.setup_D && !s.setup_4H) {
-      lines.push("—");
-    }
+    // reset
+    node.className = "stock-node grey";
 
-    status.innerHTML = lines.join("<br>");
-  });
+    // priority
+    if (isSetup) node.className = "stock-node green pulse";
+    else if (attn) node.className = "stock-node orange";
+    else if (s?.msa_ok === false) node.className = "stock-node red";
+    else if (msa_ok) node.className = "stock-node green";
+
+    // inzone overlay
+    if (inzone) node.classList.add("inzone");
+  }
 }
 
 function applyAllFromState(data) {
@@ -2013,8 +2001,7 @@ function applyAllFromState(data) {
   applyMonitoringFromState(data);
   applyMessageFromState(data);
   applySCADAStockStatus(data);
-  // ✅ NEW: watchlist node render (no Sentinel needed)
-  renderWatchGridFromState(data);
+  
 
   setSentinel("Sentinel: SILENCE");
 
