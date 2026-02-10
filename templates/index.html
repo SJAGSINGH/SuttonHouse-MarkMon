@@ -1682,31 +1682,37 @@ function applyWatchlistFromState(data){
   // SOCKET.IO
   // ----------------------------
   let socket = null;
-  try{
-    if (window.io){
-      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-      socket.on('connect', () => {
-        console.log('CONNECTED');
-      const el = document.getElementById("dbg-socket");
-      if (el){
-        el.textContent = "SOCKET: CONNECTED";
-        el.className = "badge badge-good";
-      }
+  // SOCKET.IO (polling-only on Render)
+if (window.__socket) {
+  try { window.__socket.close(); } catch(e) {}
+  window.__socket = null;
+}
+
+try {
+  if (window.io) {
+    window.__socket = io({
+      transports: ["polling"],
+      upgrade: false,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
     });
-      socket.on('connect_error', (e) => {
-        console.log('SOCKET ERROR', e);
-        const el = document.getElementById("dbg-socket");
-        if (el){
-          el.textContent = "SOCKET: ERROR";
-          el.className = "badge badge-bad";
-      }
+
+    window.__socket.on("connect", () => console.log("CONNECTED"));
+    window.__socket.on("connect_error", (e) => console.log("SOCKET ERROR", e));
+    window.__socket.on("macro_update", (d) => {
+      window.__RSC_LAST = d;
+      // your handlers...
     });
-    } else {
-      console.log('Socket.IO not loaded; clock will still run.');
-    }
-  } catch(e){
-    console.log('Socket init failed; clock will still run.', e);
+  } else {
+    console.log("Socket.IO not loaded");
   }
+} catch (e) {
+  console.log("Socket init failed", e);
+}
+
   function setTerminalStatus(mode){
   const dot  = document.getElementById('term-dot');
   const text = document.getElementById('term-text');
