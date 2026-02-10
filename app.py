@@ -103,7 +103,59 @@ def _log_debug(path, data, ok=True, err=None):
     with DEBUG_LOCK:
         DEBUG_LOG.appendleft(entry)
 
-_update_monitor_lane(meta, data)
+def _update_monitor_lane(meta, data=None):
+    """
+    Monitor lane:
+      - last_by_ticker: lightweight index (ticker -> {ts,type,ref_id})
+      - last_by_ref:    FULL payload snapshot for UI painting (ref_id -> payload fields)
+    """
+    now = int(time.time() * 1000)
+
+    ref    = meta.get("ref_id")
+    ticker = meta.get("ticker")
+    typ    = meta.get("type")
+
+    # --- Build full payload snapshot (for painting) ---
+    full = {}
+    if isinstance(data, dict):
+        # shallow copy is fine; use deepcopy if you ever embed nested objects
+        full = dict(data)
+        full["ts"] = now
+        full["type"] = typ
+        if ref is not None:
+            full["ref_id"] = ref
+        if ticker:
+            full["ticker"] = ticker
+
+    # --- last_by_ref (payload store) ---
+    if ref is not None:
+        STATE["monitor"]["last_by_ref"][str(ref)] = full or {
+            "ts": now,
+            "type": typ,
+            "ticker": ticker,
+            "ref_id": ref,
+        }
+
+    # --- last_by_ticker (index) ---
+    if ticker:
+        STATE["monitor"]["last_by_ticker"][ticker] = {
+            "ts": now,
+            "type": typ,
+            "ref_id": ref,
+        }
+
+    # --- HELLO lane (unchanged) ---
+    if isinstance(typ, str) and typ.startswith("HELLO"):
+        rec = STATE["monitor"]["last_hello"].get(ticker, {})
+        if "OPEN" in typ:
+            rec["open"] = now
+        elif "CLOSE" in typ:
+            rec["close"] = now
+        else:
+            rec["test"] = now
+        rec["ref_id"] = ref
+        STATE["monitor"]["last_hello"][ticker] = rec
+
 # ---- State persistence (warm start cache) ----
 DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var/data") else "/tmp/marketmonitor_state.json"
 STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
