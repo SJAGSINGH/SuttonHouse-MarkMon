@@ -796,8 +796,41 @@ body.war-room .scada-card{
   gap:6px;
 }
   
+.msa-label{
+  font-size:9px;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  width:16px;
+  text-align:center;
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
+}
   
-  
+.stock-node{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:#1e1e1e;     /* neutral logo base */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.12);
+}
+
+  .stock-node.grey{
+  box-shadow:none;
+}
+
+.stock-node.orange{
+  box-shadow:0 0 16px rgba(255,165,0,0.45);
+}
+
+.stock-node.green{
+  box-shadow:0 0 18px rgba(80,255,120,0.55);
+}
+
 </style>
 
 </head>
