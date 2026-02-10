@@ -824,6 +824,13 @@ body.war-room .scada-card{
   line-height: 1.15;
   color: rgba(255,255,255,0.70);
 }
+/* inZone outline (stock nodes) */
+.stock-node.inzone{
+  outline: 2px solid rgba(0,180,255,0.55);
+  outline-offset: 2px;
+}
+
+/* setup pulse (you already have .stock-node.pulse, keep it) */
   
   
 </style>
@@ -1072,6 +1079,116 @@ setTerminalStatus('OFFLINE');
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
+// ============================
+// WATCHLIST GRID RENDER (v1)
+// ============================
+const WATCH_SLOTS = 20;
+let __slotByTicker = Object.create(null);   // ticker -> slot index
+let __slotUsed = Array(WATCH_SLOTS).fill(false);
+
+function __normTicker(t){
+  return String(t || "").trim().toUpperCase();
+}
+
+function __ensureSlot(ticker){
+  const t = __normTicker(ticker);
+  if (!t) return null;
+
+  if (__slotByTicker[t] != null) return __slotByTicker[t];
+
+  // find first free slot
+  for (let i = 0; i < WATCH_SLOTS; i++){
+    if (!__slotUsed[i]) {
+      __slotUsed[i] = true;
+      __slotByTicker[t] = i;
+      return i;
+    }
+  }
+  return null; // full
+}
+
+function __setNode(slot, payload){
+  const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
+  if (!item) return;
+
+  const node = item.querySelector(".stock-node");
+  const label = item.querySelector(".stock-label");
+  if (!node || !label) return;
+
+  const t = __normTicker(payload?.ticker);
+  label.textContent = t || "—";
+
+  // flags (boolean-safe)
+  const msa_ok      = payload?.msa_ok === true;
+  const msa_inzone  = payload?.msa_inzone === true;
+  const msa_attn    = payload?.msa_attention === true;
+
+  const setupD      = payload?.setup_D === true;
+  const setup4H     = payload?.setup_4H === true;
+  const status      = String(payload?.status || "").toUpperCase();
+
+  const isSetup = setupD || setup4H || status === "SETUP";
+
+  // reset classes
+  node.classList.remove("grey","green","orange","red","pulse","inzone");
+
+  // apply inZone
+  if (msa_inzone) node.classList.add("inzone");
+
+  // colour priority:
+  // 1) setup (green + pulse)
+  // 2) attention (orange)
+  // 3) not ok (red)
+  // 4) ok (green)
+  // 5) unknown (grey)
+  if (isSetup) {
+    node.classList.add("green","pulse");
+  } else if (msa_attn) {
+    node.classList.add("orange");
+  } else if (payload?.msa_ok === false) {
+    node.classList.add("red");
+  } else if (msa_ok) {
+    node.classList.add("green");
+  } else {
+    node.classList.add("grey");
+  }
+
+  // optional hover debug
+  node.title =
+    `${t || "—"}\n` +
+    `msa_ok: ${payload?.msa_ok}\n` +
+    `msa_inzone: ${payload?.msa_inzone}\n` +
+    `msa_attention: ${payload?.msa_attention}\n` +
+    `setup_D: ${payload?.setup_D}\n` +
+    `setup_4H: ${payload?.setup_4H}\n` +
+    `status: ${status || "—"}`;
+}
+
+function renderWatchGridFromState(data){
+  // your state sometimes comes in as { state: {...} }
+  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
+  const mon  = root?.monitor;
+
+  if (!mon) return;
+
+  // prefer explicit watchlist if you add it later
+  const wl = Array.isArray(mon.watchlist) ? mon.watchlist : null;
+
+  // otherwise use last_by_ticker map (you already have this)
+  const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
+
+  const items = wl
+    ? wl
+    : (lbt ? Object.values(lbt) : []);
+
+  if (!items || !items.length) return;
+
+  for (const p of items){
+    const slot = __ensureSlot(p?.ticker);
+    if (slot == null) continue;
+    __setNode(slot, p);
+  }
+}
 
 function setDebugVisible(v){
   debugOn = !!v;
@@ -1896,6 +2013,9 @@ function applyAllFromState(data) {
   applyMonitoringFromState(data);
   applyMessageFromState(data);
   applySCADAStockStatus(data);
+  // ✅ NEW: watchlist node render (no Sentinel needed)
+  renderWatchGridFromState(data);
+
   setSentinel("Sentinel: SILENCE");
 
 // ============================================================
