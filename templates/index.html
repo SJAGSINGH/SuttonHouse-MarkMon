@@ -973,6 +973,10 @@ body.war-room .scada-card{
   </div>
 
   <script>
+const GRID_MAX = 20;
+const gridSlots = new Array(GRID_MAX).fill(null);   // index → ref_id
+const refToSlot = {};                               // ref_id → index
+
   // ----------------------------
   // CLOCK
   // ----------------------------
@@ -1029,7 +1033,72 @@ setTerminalStatus('OFFLINE');
   }
  
 
-  
+  function getSlotForRef(ref_id){
+  if (ref_id == null) return null;
+
+  if (refToSlot[ref_id] !== undefined) {
+    return refToSlot[ref_id];
+  }
+
+  const idx = gridSlots.findIndex(v => v === null);
+  if (idx === -1) return null;
+
+  gridSlots[idx] = ref_id;
+  refToSlot[ref_id] = idx;
+  return idx;
+}
+
+function setNode(slot, glow, ticker, msaText){
+  const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
+  if (!item) return;
+
+  const node  = item.querySelector(".stock-node");
+  const label = item.querySelector(".stock-label");
+  const msa   = item.querySelector(".msa-label");
+
+  node.classList.remove("grey","orange","green");
+  node.classList.add(glow || "grey");
+
+  if (label) label.textContent = ticker || "—";
+  if (msa)   msa.textContent   = msaText || "—";
+}
+function applyScadaStatus(msg){
+  const slot = getSlotForRef(msg.ref_id);
+  if (slot === null) return;
+
+  let glow = "grey";
+
+  if (msg.signal === true){
+    glow = "green";
+  } else if (msg.msa_ok && msg.msa_inzone){
+    glow = "orange";
+  }
+
+  const msa =
+    msg.msa_src === "AUTO" ? "AUTO" :
+    msg.msa_src === "MANUAL" ? "MAN" : "—";
+
+  setNode(slot, glow, msg.ticker, msa);
+}
+function applyWatch(msg){
+  const slot = getSlotForRef(msg.ref_id);
+  if (slot === null) return;
+
+  const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
+  const node = item.querySelector(".stock-node");
+
+  const glow =
+    node.classList.contains("green") ? "green" :
+    node.classList.contains("orange") ? "orange" :
+    "grey";
+
+  setNode(
+    slot,
+    glow,
+    msg.show_ticker ? msg.ticker : "—",
+    msg.msa_src === "MANUAL" ? "MAN" : "AUTO"
+  );
+}
 
   // ----------------------------
   // COLOR PALETTES (rhyme with Pine)
@@ -1717,20 +1786,26 @@ function applyWatchlistFromState(data){
     if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
     else applyAllFromState(payload);
   }
+// ----------------------------
+// SOCKET.IO  (Render-safe: polling-only)
+// Single instance, no duplicate listeners.
+// Routes ALL payloads through handleMacroUpdate().
+// ----------------------------
+let socket = null;
 
-  // ----------------------------
-  // SOCKET.IO
-  // ----------------------------
-  let socket = null;
-  // SOCKET.IO (polling-only on Render)
+// kill any prior instance (hot reload / double script include)
 if (window.__socket) {
-  try { window.__socket.close(); } catch(e) {}
+  try {
+    window.__socket.off();   // remove listeners
+    window.__socket
+    .close();
+  } catch(e) {}
   window.__socket = null;
 }
 
 try {
   if (window.io) {
-    window.__socket = io({
+    socket = io({
       transports: ["polling"],
       upgrade: false,
       reconnection: true,
@@ -1740,18 +1815,61 @@ try {
       timeout: 20000
     });
 
-    window.__socket.on("connect", () => console.log("CONNECTED"));
-    window.__socket.on("connect_error", (e) => console.log("SOCKET ERROR", e));
-    window.__socket.on("macro_update", (d) => {
-      window.__RSC_LAST = d;
-      // your handlers...
+    // expose for sanity checks in console
+    window.__socket = socket;
+
+    socket.on("connect", () => {
+      console.log("CONNECTED", socket.id);
+      const el = document.getElementById("dbg-socket");
+      if (el){
+        el.textContent = "SOCKET: CONNECTED";
+        el.className = "badge badge-good";
+      }
     });
+
+    socket.on("disconnect", (reason) => {
+      console.log("DISCONNECTED", reason);
+      const el = document.getElementById("dbg-socket");
+      if (el){
+        el.textContent = "SOCKET: DISCONNECTED";
+        el.className = "badge badge-warn";
+      }
+    });
+
+    socket.on("connect_error", (e) => {
+      console.log("SOCKET ERROR", e);
+      const el = document.getElementById("dbg-socket");
+      if (el){
+        el.textContent = "SOCKET: ERROR";
+        el.className = "badge badge-bad";
+      }
+    });
+
+    // ✅ live data lane
+    socket.on("macro_update", (data) => {
+      try { triggerPulse(); } catch(e){}
+
+      // canonical handler normalises envelopes + validates + paints
+      if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
+      else if (typeof window.applyAllFromState === "function") window.applyAllFromState(data);
+
+      // comms line should use the *normalised* payload if possible
+      const p = window.__RSC_LAST || data;
+      try { rscSetComms("socket.io macro_update", p); } catch(e){}
+
+      if (typeof debugOn !== "undefined" && debugOn) {
+        try { refreshDebugNow(); } catch(e){}
+      }
+    });
+
   } else {
-    console.log("Socket.IO not loaded");
+    console.log("Socket.IO not loaded; UI will rely on warm start / health fetch.");
   }
 } catch (e) {
   console.log("Socket init failed", e);
 }
+
+
 
   function setTerminalStatus(mode){
   const dot  = document.getElementById('term-dot');
