@@ -1101,7 +1101,7 @@ function applyScadaStatus(msg){
   setNode(slot, glow, msg.ticker, msa);
 }
 
-ffunction applyWatch(msg){
+function applyWatch(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
