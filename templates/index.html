@@ -1086,9 +1086,10 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   }
 
   // MSA (always visible)
+  let display = "NO STATE";
   if (msa){
     const norm = String(msaText || "").toUpperCase();
-    const display = norm || "NO STATE";
+    display = norm || "NO STATE";
 
     // commissioning: show RAW source if present
     if (window.COMMISSIONING && rawSrc != null && String(rawSrc).trim() !== ""){
@@ -1105,22 +1106,46 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
     else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
     else msa.classList.add("msa-na");
   }
+
+  // TOOLTIP on the CIRCLE (and label) — shows last reason if available
+  if (node){
+    const reasonMap = (window.__NODE_REASON__ || {});
+    const reason = reasonMap[String(slot)] || "";
+
+    const tip = window.COMMISSIONING
+      ? `TICKER:${(ticker || "—")} | GLOW:${(glow || "grey")} | MSA:${display}` + (rawSrc ? ` | msa_src:${rawSrc}` : "") + (reason ? ` | ${reason}` : "")
+      : "";
+
+    node.title = tip;
+    if (label) label.title = tip;
+  }
 }
 
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  let glow = "grey";
-  if (msg.signal === true) glow = "green";
-  else if (msg.msa_ok && msg.msa_inzone) glow = "orange";
+  const sig   = (msg.signal === true);
+  const setup = (!!msg.msa_ok && !!msg.msa_inzone);
 
+  let glow = "grey";
+  if (sig) glow = "green";
+  else if (setup) glow = "orange";
+
+  const src = String(msg.msa_src || "").trim().toUpperCase();
   const msa =
-    String(msg.msa_src || "").toUpperCase() === "AUTO"   ? "AUTO" :
-    String(msg.msa_src || "").toUpperCase() === "MANUAL" ? "MAN"  :
+    src === "AUTO"   ? "AUTO" :
+    src === "MANUAL" ? "MAN"  :
     "NO STATE";
 
-  // ✅ PASS RAW SOURCE
+  // store reason for tooltip (per slot)
+  window.__NODE_REASON__ = window.__NODE_REASON__ || {};
+  window.__NODE_REASON__[String(slot)] =
+    `type:${(msg.type || "—")} tf:${(msg.tf || "—")} ` +
+    `msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} signal:${msg.signal} ` +
+    `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H}`;
+
+  // ✅ PASS RAW SOURCE so commissioning can show it
   setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
 
