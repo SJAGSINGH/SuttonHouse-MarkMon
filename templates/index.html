@@ -1125,29 +1125,43 @@ function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  const sig   = (msg.signal === true);
-  const setup = (!!msg.msa_ok && !!msg.msa_inzone);
+  // ----------------------------
+  // NODE STATE (separate lanes)
+  // ----------------------------
+  const sig = (msg.signal === true);
+
+  // ✅ setup comes from setup flags (NOT MSA)
+  const setup =
+    (msg.setup_any === true) ||
+    (msg.setup_D === true) ||
+    (msg.setup_4H === true);
 
   let glow = "grey";
   if (sig) glow = "green";
   else if (setup) glow = "orange";
 
+  // ----------------------------
+  // MSA LABEL (separate lane)
+  // ----------------------------
   const src = String(msg.msa_src || "").trim().toUpperCase();
+
+  // treat SCADA as AUTO during commissioning if it appears
   const msa =
-    src === "AUTO"   ? "AUTO" :
-    src === "MANUAL" ? "MAN"  :
+    (src === "AUTO" || src === "SCADA") ? "AUTO" :
+    (src === "MANUAL" || src === "MAN") ? "MAN" :
     "NO STATE";
 
   // store reason for tooltip (per slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(slot)] =
     `type:${(msg.type || "—")} tf:${(msg.tf || "—")} ` +
-    `msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} signal:${msg.signal} ` +
-    `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H}`;
+    `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
+    `setup_any:${msg.setup_any} setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} signal:${msg.signal}`;
 
   // ✅ PASS RAW SOURCE so commissioning can show it
   setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
+
 
 function applyWatch(msg){
   const slot = getSlotForRef(msg.ref_id);
