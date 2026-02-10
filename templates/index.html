@@ -1999,14 +1999,19 @@ function renderWatchGridFromState(data){
   // otherwise use last_by_ticker map (you already have this)
   const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
 
-  cconst items = wl
-  ? wl
-  : (lbt
-      ? Object.entries(lbt).map(([ticker, v]) => ({
-          ticker,
-          ...(v.state || v)   // 👈 THIS IS THE KEY
-        }))
-      : []);
+  let items = [];
+
+  if (wl && Array.isArray(wl)) {
+    items = wl;
+  } else if (lbt && typeof lbt === "object") {
+    items = Object.entries(lbt).map(([ticker, v]) => {
+      const src = v.state || v || {};
+      return {
+        ticker,
+        ...src
+      };
+    });
+  }
 
 
   if (!items || !items.length) return;
