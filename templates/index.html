@@ -979,6 +979,12 @@ body.war-room .scada-card{
   // ----------------------------
  // Terminal line should always be visible.
 // Status color/text will reflect comms freshness (OFFLINE until first timestamp).
+const socket = io({
+  transports: ["websocket"],
+  upgrade: false,
+  timeout: 20000
+});
+    
 const term = document.getElementById('terminal-line');
 if (term) term.style.display = 'inline-flex';
 
