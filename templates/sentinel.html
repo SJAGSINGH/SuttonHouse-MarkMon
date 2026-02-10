@@ -30,10 +30,13 @@
  <div class="stock-grid" id="stock-grid">
   {% for i in range(20) %}
     <div class="stock-item" data-slot="{{ i }}">
-      <div class="stock-node grey"></div>
-      <div class="stock-label mono">—</div>
-    </div>
-  {% endfor %}
+      <div class="stock-row">
+      <div class="msa-label mono">—</div>
+    <div class="stock-node grey"></div>
+  </div>
+  <div class="stock-label mono">—</div>
+</div>
+{% endfor %}
 </div>
 
 
