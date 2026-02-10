@@ -831,6 +831,16 @@ body.war-room .scada-card{
 }
 
 /* setup pulse (you already have .stock-node.pulse, keep it) */
+.stock-msa{
+  font-size:10px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  opacity:0.85;
+}
+
+.stock-msa.ok     { color: var(--lime); }
+.stock-msa.manual { color: var(--orange); }
+.stock-msa.na     { color: var(--red); }
   
   
 </style>
@@ -1119,10 +1129,12 @@ function __setNode(slot, payload){
   label.textContent = t || "—";
 
   // flags (boolean-safe)
+  const msa_ok     = payload?.msa_ok === true;
+  const msa_attn   = payload?.msa_attention === true;  // manual
   const msa_inzone = payload?.msa_inzone === true;
 
-  const status = String(payload?.status || "").toUpperCase();
-  const isSetup  = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
+  const status  = String(payload?.status || "").toUpperCase();
+  const isSetup = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
   const isSignal = payload?.signal === true;
 
   // =========================
@@ -1148,6 +1160,26 @@ function __setNode(slot, payload){
   // inZone is an overlay only
   // =========================
   if (msa_inzone) node.classList.add("inzone");
+
+  // =========================
+  // MSA LABEL (separate channel)
+  // green = ok, amber = manual, red = na
+  // =========================
+  const msaEl = item.querySelector(".stock-msa");
+  if (msaEl){
+    msaEl.className = "stock-msa";
+
+    if (msa_ok) {
+      msaEl.textContent = "MSA OK";
+      msaEl.classList.add("ok");
+    } else if (msa_attn) {
+      msaEl.textContent = "MSA MANUAL";
+      msaEl.classList.add("manual");
+    } else {
+      msaEl.textContent = "MSA N/A";
+      msaEl.classList.add("na");
+    }
+  }
 
   // optional hover debug
   node.title =
