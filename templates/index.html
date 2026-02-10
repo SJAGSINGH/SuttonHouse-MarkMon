@@ -1796,10 +1796,9 @@ let socket = null;
 // kill any prior instance (hot reload / double script include)
 if (window.__socket) {
   try {
-    window.__socket.off();   // remove listeners
-    window.__socket
-    .close();
-  } catch(e) {}
+    window.__socket.off();
+    window.__socket.close();
+  } catch(e){}
   window.__socket = null;
 }
 
@@ -1815,9 +1814,12 @@ try {
       timeout: 20000
     });
 
-    // expose for sanity checks in console
+    // expose for sanity checks
     window.__socket = socket;
 
+    // ----------------------------
+    // CONNECTION STATE
+    // ----------------------------
     socket.on("connect", () => {
       console.log("CONNECTED", socket.id);
       const el = document.getElementById("dbg-socket");
@@ -1845,17 +1847,42 @@ try {
       }
     });
 
-    // ✅ live data lane
+    // ============================================================
+    // MACRO LANE (authoritative macro state)
+    // ============================================================
     socket.on("macro_update", (data) => {
       try { triggerPulse(); } catch(e){}
 
-      // canonical handler normalises envelopes + validates + paints
-      if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
-      else if (typeof window.applyAllFromState === "function") window.applyAllFromState(data);
+      if (typeof window.handleMacroUpdate === "function") {
+        window.handleMacroUpdate(data);
+      } else if (typeof window.applyAllFromState === "function") {
+        window.applyAllFromState(data);
+      }
 
-      // comms line should use the *normalised* payload if possible
       const p = window.__RSC_LAST || data;
       try { rscSetComms("socket.io macro_update", p); } catch(e){}
+
+      if (typeof debugOn !== "undefined" && debugOn) {
+        try { refreshDebugNow(); } catch(e){}
+      }
+    });
+
+    // ============================================================
+    // STOCK LANE (SCADA / WATCH nodes)
+    // ============================================================
+    socket.on("stock_update", (msg) => {
+      try { triggerPulse(); } catch(e){}
+
+      const t = String(msg?.type || "").toUpperCase();
+
+      if (t === "SCADA_STATUS") {
+        try { applyScadaStatus(msg); } catch(e){}
+      }
+      else if (t === "WATCH") {
+        try { applyWatch(msg); } catch(e){}
+      }
+
+      try { rscSetComms("socket.io stock_update", msg); } catch(e){}
 
       if (typeof debugOn !== "undefined" && debugOn) {
         try { refreshDebugNow(); } catch(e){}
@@ -1868,6 +1895,7 @@ try {
 } catch (e) {
   console.log("Socket init failed", e);
 }
+
 
 
 
