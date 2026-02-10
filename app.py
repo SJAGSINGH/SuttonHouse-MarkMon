@@ -14,8 +14,7 @@ from datetime import datetime
 app = Flask(__name__, static_folder="static")
 
 # Threading mode = compatible with Gunicorn gthreads on Render
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
-
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
@@ -44,12 +43,10 @@ STATE: Dict[str, Any] = {
     },
 
     "monitor": {
-        "by_ref": {},          # 🔑 merged ref state (THIS WAS MISSING)
         "last_by_ref": {},
         "last_by_ticker": {},
         "last_hello": {},
     },
-
 
     "secret": {
         "vix": None,
@@ -220,20 +217,6 @@ def _get_payload_any() -> Dict[str, Any]:
 
     raise ValueError("No valid payload found (expected JSON or form fields)")
 
-def _merge_ref_state(ref_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Merge incoming payload into persistent per-ref state.
-    Fields not present are preserved.
-    """
-    ref_key = str(ref_id)
-    cur = STATE["monitor"]["by_ref"].get(ref_key, {})
-
-    for k, v in payload.items():
-        if v is not None:
-            cur[k] = v
-
-    STATE["monitor"]["by_ref"][ref_key] = cur
-    return cur
 
 def _normalise_server_ts(ts) -> Optional[int]:
     """
@@ -876,29 +859,13 @@ def webhook():
                         _parse_card_payload(data)
                 except Exception:
                     pass
-                    
 
             # ------------------------------------------------
             _recompute_war_from_secret()
-            ref_id = meta.get("ref_id")
-            if ref_id is not None:
-                _merge_ref_state(ref_id, data)
-
             _update_monitor_lane(meta)
 
             _save_state_to_disk()
             payload = copy.deepcopy(STATE)
-
-            # 🔗 attach merged ref state to ticker lane
-            mon = payload.get("monitor", {})
-            by_ref = mon.get("by_ref", {})
-
-            for tkr, meta in mon.get("last_by_ticker", {}).items():
-                ref = meta.get("ref_id")
-                if ref is not None:
-                    ref_state = by_ref.get(str(ref), {})
-                    meta.update(ref_state)
-
 
         socketio.emit("macro_update", payload)
         _log_debug("/webhook", data, ok=True)
