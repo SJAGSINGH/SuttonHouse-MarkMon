@@ -778,15 +778,16 @@ body.war-room .scada-card{
   box-shadow:0 0 14px rgba(50,205,50,0.25);
 }
 
+.stock-node.orange{
+  background:var(--orange);
+  border-color:rgba(255,140,0,0.55);
+  box-shadow:0 0 14px rgba(255,140,0,0.22);
+}
 
 .stock-node.red{
   background:var(--red);
   border-color:rgba(255,68,68,0.60);
   box-shadow:0 0 14px rgba(255,68,68,0.22);
-}
-.stock-node.amber { 
-  background: var(--orange) !important; 
-  border-color: var(--orange) !important; 
 }
 
 #scada .node.idle   { opacity: 0.75; }
@@ -801,36 +802,6 @@ body.war-room .scada-card{
 .badge.attn { background: rgba(255,180,0,0.12); }
 
 .node.inzone.setup { outline: 1px solid rgba(0,180,255,0.25); }
-
-.stock-status {
-  font-size: 11px;
-  margin-top: 4px;
-  opacity: 0.9;
-}
-
-.stock-node.pulse {
-  filter: brightness(1.05);
-  box-shadow: 0 0 18px rgba(0,180,255,0.25), 0 0 10px rgba(255,255,255,0.06);
-}
-  
-.stock-node{
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.stock-status{
-  width: 74px;
-  text-align: center;
-  line-height: 1.15;
-  color: rgba(255,255,255,0.70);
-}
-/* inZone outline (stock nodes) */
-.stock-node.inzone{
-  outline: 2px solid rgba(0,180,255,0.55);
-  outline-offset: 2px;
-}
-
-/* setup pulse (you already have .stock-node.pulse, keep it) */
-  
   
 </style>
 
@@ -979,8 +950,6 @@ body.war-room .scada-card{
   // ----------------------------
  // Terminal line should always be visible.
 // Status color/text will reflect comms freshness (OFFLINE until first timestamp).
-
-    
 const term = document.getElementById('terminal-line');
 if (term) term.style.display = 'inline-flex';
 
@@ -1080,89 +1049,6 @@ setTerminalStatus('OFFLINE');
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
-// ============================
-// WATCHLIST GRID RENDER (v1)
-// ============================
-const WATCH_SLOTS = 20;
-let __slotByTicker = Object.create(null);   // ticker -> slot index
-let __slotUsed = Array(WATCH_SLOTS).fill(false);
-
-function __normTicker(t){
-  return String(t || "").trim().toUpperCase();
-}
-
-function __ensureSlot(ticker){
-  const t = __normTicker(ticker);
-  if (!t) return null;
-
-  if (__slotByTicker[t] != null) return __slotByTicker[t];
-
-  // find first free slot
-  for (let i = 0; i < WATCH_SLOTS; i++){
-    if (!__slotUsed[i]) {
-      __slotUsed[i] = true;
-      __slotByTicker[t] = i;
-      return i;
-    }
-  }
-  return null; // full
-}
-
-function __setNode(slot, payload){
-  const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
-  if (!item) return;
-
-  const node  = item.querySelector(".stock-node");
-  const label = item.querySelector(".stock-label");
-  if (!node || !label) return;
-
-  const t = __normTicker(payload?.ticker);
-  label.textContent = t || "—";
-
-  // flags (boolean-safe)
-  const msa_inzone = payload?.msa_inzone === true;
-
-  const status = String(payload?.status || "").toUpperCase();
-  const isSetup  = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
-  const isSignal = payload?.signal === true;
-
-  // =========================
-  // RESET (keep base class)
-  // =========================
-  node.className = "stock-node"; // hard reset: clears grey/amber/green/pulse/inzone/etc
-
-  // =========================
-  // EVENT-ONLY COLOUR (LOCKED)
-  // setup = amber
-  // signal = green (+pulse)
-  // silence = grey
-  // =========================
-  if (isSignal) {
-    node.classList.add("green", "pulse");
-  } else if (isSetup) {
-    node.classList.add("amber");
-  } else {
-    node.classList.add("grey");
-  }
-
-  // =========================
-  // inZone is an overlay only
-  // =========================
-  if (msa_inzone) node.classList.add("inzone");
-
-  // optional hover debug
-  node.title =
-    `${t || "—"}\n` +
-    `msa_ok: ${payload?.msa_ok}\n` +
-    `msa_inzone: ${payload?.msa_inzone}\n` +
-    `msa_attention: ${payload?.msa_attention}\n` +
-    `setup_D: ${payload?.setup_D}\n` +
-    `setup_4H: ${payload?.setup_4H}\n` +
-    `signal: ${payload?.signal}\n` +
-    `status: ${status || "—"}`;
-}
-
-
 
 function setDebugVisible(v){
   debugOn = !!v;
@@ -1787,9 +1673,9 @@ function applyWatchlistFromState(data){
 
     lab.textContent = ticker;
 
-    node.classList.remove("green","amber","red","grey");
+    node.classList.remove("green","orange","red","grey");
     if (state === "GREEN") node.classList.add("green");
-    else if (state === "AMBER" || state === "ORANGE") node.classList.add("AMBER");
+    else if (state === "AMBER" || state === "ORANGE") node.classList.add("orange");
     else if (state === "RED") node.classList.add("red");
     else node.classList.add("grey");
   }
@@ -1803,26 +1689,36 @@ function applyWatchlistFromState(data){
     if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
     else applyAllFromState(payload);
   }
-   
+
   // ----------------------------
   // SOCKET.IO
   // ----------------------------
-// SOCKET.IO (single authority)
-window.__socket = window.__socket || null;
-let socket = window.__socket;
-
-try{
-  if (window.io && !socket){
-    socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-    window.__socket = socket; // persist
-    socket.on('connect', () => { console.log('CONNECTED'); /* ... */ });
-    socket.on('connect_error', (e) => { console.log('SOCKET ERROR', e); /* ... */ });
-  } else if (!window.io){
-    console.log('Socket.IO not loaded; clock will still run.');
+  let socket = null;
+  try{
+    if (window.io){
+      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+      socket.on('connect', () => {
+        console.log('CONNECTED');
+      const el = document.getElementById("dbg-socket");
+      if (el){
+        el.textContent = "SOCKET: CONNECTED";
+        el.className = "badge badge-good";
+      }
+    });
+      socket.on('connect_error', (e) => {
+        console.log('SOCKET ERROR', e);
+        const el = document.getElementById("dbg-socket");
+        if (el){
+          el.textContent = "SOCKET: ERROR";
+          el.className = "badge badge-bad";
+      }
+    });
+    } else {
+      console.log('Socket.IO not loaded; clock will still run.');
+    }
+  } catch(e){
+    console.log('Socket init failed; clock will still run.', e);
   }
-} catch(e){
-  console.log('Socket init failed; clock will still run.', e);
-}
   function setTerminalStatus(mode){
   const dot  = document.getElementById('term-dot');
   const text = document.getElementById('term-text');
@@ -1915,112 +1811,106 @@ if (!Number.isFinite(ts)){
  // ============================
 // SCADA_STATUS renderer (nodes)
 // ============================
-// ============================================================
-// SCADA STOCK STATUS (per-slot)
-// ============================================================
-function applySCADAStockStatus(data) {
-  // normalize: allow {state:{...}} wrapper
-  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
+function applyScadaStatusFromState(data){
+  if(!data) return;
 
-  // 1) if server provides watchlist array, use it
-  if (root && Array.isArray(root.watchlist)) {
-    root.watchlist.forEach((s, idx) => paintSlot(idx, s));
+  // You may be receiving single payloads OR a merged STATE.
+  // If merged STATE: expect something like data.scada_status[ref_id]
+  // If single alert payload: data.type === "SCADA_STATUS"
+  const payloads = [];
+
+  if (data.type === "SCADA_STATUS") {
+    payloads.push(data);
+  } else if (data.scada_status && typeof data.scada_status === "object") {
+    // example merge shape: { scada_status: { "1": {...}, "2": {...} } }
+    Object.keys(data.scada_status).forEach(k => payloads.push(data.scada_status[k]));
+  } else {
     return;
   }
 
-  // 2) otherwise: build a list from monitor.last_by_ticker (your current reality)
-  const mon = root?.monitor;
-  const lbt = (mon?.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
-  if (!lbt) return;
+  payloads.forEach(p => {
+    const ref = p.ref_id;
+    if(ref === undefined || ref === null) return;
 
-  const items = Object.values(lbt);
-  for (const p of items) {
-    const slot = __ensureSlot(p?.ticker);
-    if (slot == null) continue;
-    paintSlot(slot, p);
-  }
+    const node = document.getElementById(`node-${ref}`);
+    if(!node) return;
 
-  function paintSlot(idx, s){
-    const slotEl = document.querySelector(`.stock-item[data-slot="${idx}"]`);
-    if (!slotEl) return;
+    const elStatus = node.querySelector(".wl-status");
+    const elSub    = node.querySelector(".wl-sub");
+    const elBadges = node.querySelector(".wl-badges");
 
-    const node  = slotEl.querySelector(".stock-node");
-    const label = slotEl.querySelector(".stock-label");
-    if (!node || !label) return;
+    // --- fields
+    const status     = (p.status || "IDLE").toUpperCase(); // IDLE/SETUP/SIGNAL
+    const msaOk      = !!p.msa_ok;
+    const msaSrc     = (p.msa_src || "NA").toUpperCase();  // SCADA/MANUAL/NA
+    const inZone     = !!p.msa_inzone;
 
-    const t = String(s?.ticker || "—").toUpperCase();
-    label.textContent = t;
+    const setupD     = !!p.setup_D;
+    const setup4H    = !!p.setup_4H;
+    const engD       = (p.setup_engine_D || "NA").toUpperCase();
+    const eng4H      = (p.setup_engine_4H || "NA").toUpperCase();
 
-    // IMPORTANT: match your payload keys
-    const msa_ok     = s?.msa_ok === true;
-    const inzone     = (s?.msa_inzone === true) || (s?.msa_inZone === true); // tolerate both
-    const attn       = s?.msa_attention === true;
+    const sigAny     = !!p.sig_any_ok;
+    const sigEng     = (p.sig_engine || "NA").toUpperCase();
 
-    const setupD     = s?.setup_D === true;
-    const setup4H    = s?.setup_4H === true;
-    const status     = String(s?.status || "").toUpperCase();
-    const isSetup    = setupD || setup4H || status === "SETUP";
+    // --- main status text
+    if (elStatus) elStatus.textContent = status;
 
-    // reset
-    node.className = "stock-node grey";
+    // --- sub line (setup preference)
+    let sub = "";
+    if (status === "SIGNAL" && sigAny) {
+      sub = `ENGINE: ${sigEng}`;
+    } else if (setup4H) {
+      sub = `SETUP 4H • ${eng4H}`;
+    } else if (setupD) {
+      sub = `SETUP D • ${engD}`;
+    } else {
+      sub = "";
+    }
+    if (elSub) elSub.textContent = sub;
 
-    // priority
-    if (isSetup) node.className = "stock-node green pulse";
-    else if (attn) node.className = "stock-node amber";
-    else if (s?.msa_ok === false) node.className = "stock-node red";
-    else if (msa_ok) node.className = "stock-node green";
+    // --- badges
+    if (elBadges) {
+      elBadges.innerHTML = ""; // reset
 
-    // inzone overlay
-    if (inzone) node.classList.add("inzone");
-  }
-}
-function renderWatchGridFromState(data){
-  // normalize common server shapes:
-  // - { state:{...} }
-  // - { payload:{...} }
-  // - { data:{...} }
-  const root =
-    (data && data.state   && typeof data.state   === "object") ? data.state :
-    (data && data.payload && typeof data.payload === "object") ? data.payload :
-    (data && data.data    && typeof data.data    === "object") ? data.data :
-    data;
+      // MSA badge
+      const msaBadge = document.createElement("span");
+      msaBadge.className = "badge";
+      if (msaOk && msaSrc !== "NA") {
+        msaBadge.textContent = `MSA OK (${msaSrc})`;
+        msaBadge.classList.add("ok");
+      } else {
+        msaBadge.textContent = `MSA NOT OK`;
+        msaBadge.classList.add("bad");
+      }
+      elBadges.appendChild(msaBadge);
 
-  const mon = root?.monitor;
-  if (!mon) return;
+      // Zone badge
+      const z = document.createElement("span");
+      z.className = "badge";
+      z.textContent = inZone ? "IN-ZONE" : "OUT-ZONE";
+      z.classList.add(inZone ? "inzone" : "outzone");
+      elBadges.appendChild(z);
 
-  // prefer explicit watchlist if you add it later
-  const wl  = Array.isArray(mon.watchlist) ? mon.watchlist : null;
+      // Attention badge when setup exists but msa not ready
+      if ((status === "SETUP" || setupD || setup4H) && msaSrc === "NA") {
+        const att = document.createElement("span");
+        att.className = "badge attn";
+        att.textContent = "MSA NEEDS ATTENTION";
+        elBadges.appendChild(att);
+      }
+    }
 
-  // otherwise use last_by_ticker map
-  const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
+    // --- node colour classes
+    node.classList.remove("idle","setup","signal");
+    if (status === "SIGNAL") node.classList.add("signal");
+    else if (status === "SETUP") node.classList.add("setup");
+    else node.classList.add("idle");
 
-  let items = [];
-
-  if (wl && Array.isArray(wl)) {
-    items = wl;
-  } else if (lbt && typeof lbt === "object") {
-    // support both shapes:
-    // last_by_ticker[t] = { ...fields }
-    // last_by_ticker[t] = { state:{...fields} }
-    items = Object.entries(lbt).map(([ticker, v]) => {
-      const obj = (v && typeof v === "object") ? v : {};
-      const src = (obj.state && typeof obj.state === "object") ? obj.state : obj;
-      return {
-        ticker: String(src.ticker || ticker || "").toUpperCase(),
-        ...src
-      };
-    });
-  }
-
-  if (!items.length) return;
-
-  for (const p of items){
-    const slot = __ensureSlot(p?.ticker);
-    if (slot == null) continue;
-    __setNode(slot, p);
-  }
-}
-
+    // Optional: if you want in-zone to add a subtle glow even in SETUP
+    node.classList.toggle("inzone", inZone);
+  });
+} 
 function applyAllFromState(data) {
   lastState = data || {};
 
@@ -2034,9 +1924,7 @@ function applyAllFromState(data) {
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  //applySCADAStockStatus(data);
-  renderWatchGridFromState(data);
-
+  applySCADAStatusFromState(data);
   setSentinel("Sentinel: SILENCE");
 
 // ============================================================
