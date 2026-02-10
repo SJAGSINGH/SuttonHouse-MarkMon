@@ -979,11 +979,7 @@ body.war-room .scada-card{
   // ----------------------------
  // Terminal line should always be visible.
 // Status color/text will reflect comms freshness (OFFLINE until first timestamp).
-const socket = io({
-  transports: ["websocket"],
-  upgrade: false,
-  timeout: 20000
-});
+
     
 const term = document.getElementById('terminal-line');
 if (term) term.style.display = 'inline-flex';
@@ -1807,36 +1803,26 @@ function applyWatchlistFromState(data){
     if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(payload);
     else applyAllFromState(payload);
   }
-
+   
   // ----------------------------
   // SOCKET.IO
   // ----------------------------
-  let socket = null;
-  try{
-    if (window.io){
-      socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
-      socket.on('connect', () => {
-        console.log('CONNECTED');
-      const el = document.getElementById("dbg-socket");
-      if (el){
-        el.textContent = "SOCKET: CONNECTED";
-        el.className = "badge badge-good";
-      }
-    });
-      socket.on('connect_error', (e) => {
-        console.log('SOCKET ERROR', e);
-        const el = document.getElementById("dbg-socket");
-        if (el){
-          el.textContent = "SOCKET: ERROR";
-          el.className = "badge badge-bad";
-      }
-    });
-    } else {
-      console.log('Socket.IO not loaded; clock will still run.');
-    }
-  } catch(e){
-    console.log('Socket init failed; clock will still run.', e);
+// SOCKET.IO (single authority)
+window.__socket = window.__socket || null;
+let socket = window.__socket;
+
+try{
+  if (window.io && !socket){
+    socket = io({ transports:['polling','websocket'], upgrade:true, reconnection:true });
+    window.__socket = socket; // persist
+    socket.on('connect', () => { console.log('CONNECTED'); /* ... */ });
+    socket.on('connect_error', (e) => { console.log('SOCKET ERROR', e); /* ... */ });
+  } else if (!window.io){
+    console.log('Socket.IO not loaded; clock will still run.');
   }
+} catch(e){
+  console.log('Socket init failed; clock will still run.', e);
+}
   function setTerminalStatus(mode){
   const dot  = document.getElementById('term-dot');
   const text = document.getElementById('term-text');
