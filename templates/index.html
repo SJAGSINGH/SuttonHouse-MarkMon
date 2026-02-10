@@ -789,6 +789,10 @@ body.war-room .scada-card{
   border-color:rgba(255,68,68,0.60);
   box-shadow:0 0 14px rgba(255,68,68,0.22);
 }
+.stock-node.amber { 
+  background: var(--orange) !important; 
+  border-color: var(--orange) !important; 
+}
 
 #scada .node.idle   { opacity: 0.75; }
 #scada .node.setup  { box-shadow: 0 0 0 2px rgba(255,180,0,0.25); }
@@ -1130,7 +1134,7 @@ function __setNode(slot, payload){
   const isSetup = setupD || setup4H || status === "SETUP";
 
   // reset classes
- node.classList.remove("grey","green","amber","amber","red","pulse","inzone");
+ node.classList.remove("grey","green","amber","red","pulse","inzone");
  node.classList.add("stock-node"); // ensures base class always present
 
 
@@ -1139,7 +1143,7 @@ function __setNode(slot, payload){
 
   // colour priority:
   // 1) setup (green + pulse)
-  // 2) attention (orange)
+  // 2) attention (amber)
   // 3) not ok (red)
   // 4) ok (green)
   // 5) unknown (grey)
