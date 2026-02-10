@@ -2016,10 +2016,7 @@ function applySCADAStockStatus(data) {
   }
 }
 function renderWatchGridFromState(data){
-  // normalize common server shapes:
-  // - { state:{...} }
-  // - { payload:{...} }
-  // - { data:{...} }
+  // normalize common server shapes
   const root =
     (data && data.state   && typeof data.state   === "object") ? data.state :
     (data && data.payload && typeof data.payload === "object") ? data.payload :
@@ -2029,35 +2026,45 @@ function renderWatchGridFromState(data){
   const mon = root?.monitor;
   if (!mon) return;
 
-  // prefer explicit watchlist if you add it later
-  const wl  = Array.isArray(mon.watchlist) ? mon.watchlist : null;
-
-  // otherwise use last_by_ticker map
   const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
+  const lbr = (mon.last_by_ref    && typeof mon.last_by_ref    === "object") ? mon.last_by_ref    : null;
+  if (!lbt || !lbr) return;
 
-  let items = [];
+  // build items from ticker->ref_id, then hydrate from last_by_ref (payload lives there)
+  let items = Object.entries(lbt).map(([ticker, v]) => {
+    const ref = (v && typeof v === "object") ? v.ref_id : null;
+    const refKey = (ref != null) ? String(ref) : null;
 
-  if (wl && Array.isArray(wl)) {
-    items = wl;
-  } else if (lbt && typeof lbt === "object") {
-    // support both shapes:
-    // last_by_ticker[t] = { ...fields }
-    // last_by_ticker[t] = { state:{...fields} }
-    items = Object.entries(lbt).map(([ticker, v]) => {
-      const obj = (v && typeof v === "object") ? v : {};
-      const src = (obj.state && typeof obj.state === "object") ? obj.state : obj;
-      return {
-        ticker: String(src.ticker || ticker || "").toUpperCase(),
-        ...src
-      };
-    });
-  }
+    const full = (refKey && lbr[refKey] && typeof lbr[refKey] === "object") ? lbr[refKey] : {};
+    // full is what your UI must paint (status/signal/msa_ok/etc)
+
+    return {
+      ticker: String(ticker || full.ticker || "").toUpperCase(),
+      ref_id: ref,
+      ...full
+    };
+  });
+
+  // keep only valid tickers
+  items = items.filter(x => x.ticker && x.ticker !== "—");
 
   if (!items.length) return;
 
-  for (const p of items){
-    const slot = __ensureSlot(p?.ticker);
-    if (slot == null) continue;
+  // stable order: by ref_id (Gold=1, CYM=6, etc)
+  items.sort((a,b) => (Number(a.ref_id)||9999) - (Number(b.ref_id)||9999));
+
+  // paint into slots deterministically: slot = index in sorted list
+  const maxSlots = document.querySelectorAll(".stock-item").length;
+
+  for (let slot = 0; slot < maxSlots; slot++){
+    const p = items[slot];
+
+    if (!p){
+      // clear unused slots
+      __setNode(slot, { ticker: "—" }); // will go grey
+      continue;
+    }
+
     __setNode(slot, p);
   }
 }
