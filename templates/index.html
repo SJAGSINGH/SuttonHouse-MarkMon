@@ -1065,38 +1065,32 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // ----------------------------
-  // NODE COLOUR (signal / setup)
-  // ----------------------------
+  // NODE COLOUR
   if (node){
     node.classList.remove("grey","orange","green","red");
     node.classList.add(glow || "grey");
   }
 
-  // ----------------------------
   // TICKER (always visible)
-  // ----------------------------
   if (label){
     label.textContent = ticker ? String(ticker).toUpperCase() : "—";
   }
 
-  // ----------------------------
-  // MSA LABEL (always visible)
-  // ----------------------------
+  // MSA (always visible)
   if (msa){
     const norm = String(msaText || "").toUpperCase();
     const display = norm || "NO STATE";
 
-    // 🔍 during commissioning show RAW source if available
-    if (window.COMMISSIONING && rawSrc){
+    // commissioning: show RAW source if present
+    if (window.COMMISSIONING && rawSrc != null && String(rawSrc).trim() !== ""){
       msa.textContent = String(rawSrc).toUpperCase();
-      msa.title = `msa_src: ${rawSrc}`;   // hover tooltip
+      msa.title = `msa_src: ${rawSrc}`;
     } else {
       msa.textContent = display;
       msa.title = "";
     }
 
-    // colouring
+    // colouring based on NORMALISED state, not raw
     msa.classList.remove("msa-auto","msa-man","msa-na");
     if (display === "AUTO") msa.classList.add("msa-auto");
     else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
@@ -1104,25 +1098,21 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   }
 }
 
-
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  // glow: signal > setup > none
   let glow = "grey";
   if (msg.signal === true) glow = "green";
   else if (msg.msa_ok && msg.msa_inzone) glow = "orange";
 
-  // MSA source colour token
   const msa =
-  msg.msa_src === "AUTO"   ? "AUTO" :
-  msg.msa_src === "MANUAL"? "MAN"  :
-  "NO STATE";
+    String(msg.msa_src || "").toUpperCase() === "AUTO"   ? "AUTO" :
+    String(msg.msa_src || "").toUpperCase() === "MANUAL" ? "MAN"  :
+    "NO STATE";
 
-
-  // ticker always shown
-  setNode(slot, glow, msg.ticker, msa);
+  // ✅ PASS RAW SOURCE
+  setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
 
 function applyWatch(msg){
@@ -1134,21 +1124,21 @@ function applyWatch(msg){
 
   const node = item.querySelector(".stock-node");
 
-  // keep current glow
   const glow =
     node?.classList.contains("green")  ? "green"  :
     node?.classList.contains("orange") ? "orange" :
     node?.classList.contains("red")    ? "red"    :
     "grey";
 
- const msa =
-  msg.msa_src === "AUTO"   ? "AUTO" :
-  msg.msa_src === "MANUAL"? "MAN"  :
-  "NO STATE";
+  const msa =
+    String(msg.msa_src || "").toUpperCase() === "AUTO"   ? "AUTO" :
+    String(msg.msa_src || "").toUpperCase() === "MANUAL" ? "MAN"  :
+    "NO STATE";
 
-
-  setNode(slot, glow, msg.ticker, msa);
+  // ✅ PASS RAW SOURCE (if WATCH has it)
+  setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
+
 
 
   // ----------------------------
