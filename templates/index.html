@@ -1986,7 +1986,31 @@ function applySCADAStockStatus(data) {
     if (inzone) node.classList.add("inzone");
   }
 }
+function renderWatchGridFromState(data){
+  // your state sometimes comes in as { state: {...} }
+  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
+  const mon  = root?.monitor;
 
+  if (!mon) return;
+
+  // prefer explicit watchlist if you add it later
+  const wl = Array.isArray(mon.watchlist) ? mon.watchlist : null;
+
+  // otherwise use last_by_ticker map (you already have this)
+  const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
+
+  const items = wl
+    ? wl
+    : (lbt ? Object.values(lbt) : []);
+
+  if (!items || !items.length) return;
+
+  for (const p of items){
+    const slot = __ensureSlot(p?.ticker);
+    if (slot == null) continue;
+    __setNode(slot, p);
+  }
+}
 function applyAllFromState(data) {
   lastState = data || {};
 
@@ -2000,8 +2024,8 @@ function applyAllFromState(data) {
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  applySCADAStockStatus(data);
-  
+  //applySCADAStockStatus(data);
+  renderWatchGridFromState(data);
 
   setSentinel("Sentinel: SILENCE");
 
