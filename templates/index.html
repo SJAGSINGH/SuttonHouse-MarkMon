@@ -1050,11 +1050,32 @@ setTerminalStatus('OFFLINE');
   refToSlot[ref_id] = idx;
   return idx;
 }
+function wireNodeClickDebug(){
+  document.addEventListener("click", (e) => {
+    const node = e.target.closest(".stock-node");
+    if (!node) return;
+
+    // Only in secret mode
+    if (!window.secretMode) return;
+
+    const item = node.closest(".stock-item");
+    if (!item) return;
+
+    const refId = item.dataset.refId;
+    if (!refId) return;
+
+    window.open(`/node/${refId}`, "_blank", "noopener");
+  });
+}
+
+window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 
 // COMMISSIONING MODE (set false when done)
 window.COMMISSIONING = true;
 
 function setNode(slot, glow, ticker, msaText, rawSrc){
+    // persist ref_id for this slot (so click knows what to open)
+  item.dataset.refId = String(gridSlots[slot] ?? "");
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
 
