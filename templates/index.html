@@ -1958,53 +1958,62 @@ try {
     });
 
     // ============================================================
-    // MACRO LANE (authoritative macro state)
-    // ============================================================
-    socket.on("macro_update", (data) => {
-      try { triggerPulse(); } catch(e){}
+// MACRO LANE (authoritative macro state)
+// ============================================================
+socket.on("macro_update", (data) => {
+  try { triggerPulse(); } catch(e){}
 
-      if (typeof window.handleMacroUpdate === "function") {
-        window.handleMacroUpdate(data);
-      } else if (typeof window.applyAllFromState === "function") {
-        window.applyAllFromState(data);
-      }
-
-      const p = window.__RSC_LAST || data;
-      try { rscSetComms("socket.io macro_update", p); } catch(e){}
-
-      if (typeof debugOn !== "undefined" && debugOn) {
-        try { refreshDebugNow(); } catch(e){}
-      }
-    });
-
-    // ============================================================
-    // STOCK LANE (SCADA / WATCH nodes)
-    // ============================================================
-    socket.on("stock_update", (msg) => {
-      try { triggerPulse(); } catch(e){}
-
-      const t = String(msg?.type || "").toUpperCase();
-
-      if (t === "SCADA_STATUS") {
-        try { applyScadaStatus(msg); } catch(e){}
-      }
-      else if (t === "WATCH") {
-        try { applyWatch(msg); } catch(e){}
-      }
-
-      try { rscSetComms("socket.io stock_update", msg); } catch(e){}
-
-      if (typeof debugOn !== "undefined" && debugOn) {
-        try { refreshDebugNow(); } catch(e){}
-      }
-    });
-
-  } else {
-    console.log("Socket.IO not loaded; UI will rely on warm start / health fetch.");
+  // canonical handler normalises + validates + paints
+  if (typeof window.handleMacroUpdate === "function") {
+    window.handleMacroUpdate(data);
+  } else if (typeof window.applyAllFromState === "function") {
+    window.applyAllFromState(data);
   }
-} catch (e) {
-  console.log("Socket init failed", e);
-}
+
+  // comms uses normalised payload if possible
+  const p = window.__RSC_LAST || data;
+  try { rscSetComms("socket.io macro_update", p); } catch(e){}
+
+  if (typeof debugOn !== "undefined" && debugOn) {
+    try { refreshDebugNow(); } catch(e){}
+  }
+});
+
+// ============================================================
+// STOCK LANE (SCADA / WATCH nodes) ✅
+// - SCADA_STATUS drives node glow (setup/signal) + MSA label
+// - WATCH can drive status/engine/meta if you want it later
+// ============================================================
+socket.on("stock_update", (msg) => {
+  try { triggerPulse(); } catch(e){}
+
+  if (!msg || typeof msg !== "object") return;
+
+  const t = String(msg.type || "").trim().toUpperCase();
+
+  if (t === "SCADA_STATUS") {
+    try { applyScadaStatus(msg); } catch(e){ console.warn("applyScadaStatus failed", e); }
+  }
+  else if (t === "WATCH") {
+    try { applyWatch(msg); } catch(e){ console.warn("applyWatch failed", e); }
+  }
+  else if (t === "SETUP_STATUS") {
+    // commissioning: keep for later node detail page (no UI change required here yet)
+    window.__SETUP_BY_REF__ = window.__SETUP_BY_REF__ || {};
+    const rid = (msg.ref_id != null) ? String(msg.ref_id) : null;
+    if (rid) window.__SETUP_BY_REF__[rid] = msg;
+  }
+  else {
+    // ignore unknown stock lane types safely
+    // console.log("[stock_update] unknown type:", t, msg);
+  }
+
+  try { rscSetComms("socket.io stock_update", msg); } catch(e){}
+
+  if (typeof debugOn !== "undefined" && debugOn) {
+    try { refreshDebugNow(); } catch(e){}
+  }
+});
 
 
 
@@ -2361,27 +2370,90 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
   }
 };
-  // ============================================================
-  // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
-  // ============================================================
-  if (socket){
-   socket.on('macro_update', (data) => {
-  triggerPulse();
 
-  // Let the canonical handler normalize + paint
-  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
-  else applyAllFromState(data);
 
-  // Use the normalized last payload if available
-  const p = window.__RSC_LAST || data;
-  rscSetComms("socket.io macro_update", p);
 
-  if (debugOn) refreshDebugNow();
-});
+// ============================================================
+// WARM START — NODE REHYDRATE (stocks lane) ✅ INSERTED HERE
+// Replays last SCADA_STATUS / WATCH snapshots from /health state.
+// ============================================================
+function rscRehydrateNodesFromState(state){
+  if (!state || typeof state !== "object") return;
+
+  const stocks = state.stocks;
+  if (!stocks || typeof stocks !== "object") return;
+
+  const scadaMap = stocks.last_scada_by_ref || {};
+  const watchMap = stocks.last_watch_by_ref || {};
+
+  const sortedKeys = (obj) =>
+    Object.keys(obj || {})
+      .map(k => String(k))
+      .sort((a,b) => (Number(a) - Number(b)));
+
+  // 1) SCADA first (defines glow + msa + ticker)
+  sortedKeys(scadaMap).forEach((k) => {
+    const msg = scadaMap[k];
+    if (!msg || typeof msg !== "object") return;
+    msg.type = "SCADA_STATUS";
+    try { applyScadaStatus(msg); } catch(e){ console.warn("rehydrate applyScadaStatus failed", e); }
+  });
+
+  // 2) WATCH second (adds watch metadata without overwriting glow)
+  sortedKeys(watchMap).forEach((k) => {
+    const msg = watchMap[k];
+    if (!msg || typeof msg !== "object") return;
+    msg.type = "WATCH";
+    try { applyWatch(msg); } catch(e){ console.warn("rehydrate applyWatch failed", e); }
+  });
+}
+
+
+
+    
+// ============================================================
+// ROUTE ALL LIVE DATA THROUGH ENTRY POINT
+// ============================================================
+if (socket){
+  // MACRO lane
+  socket.on('macro_update', (data) => {
+    try { triggerPulse(); } catch(e){}
+
+    if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
+    else if (typeof window.applyAllFromState === "function") window.applyAllFromState(data);
+
+    const p = window.__RSC_LAST || data;
+    try { rscSetComms("socket.io macro_update", p); } catch(e){}
+
+    if (typeof debugOn !== "undefined" && debugOn) {
+      try { refreshDebugNow(); } catch(e){}
+    }
+  });
+
+  // STOCK lane
+  socket.on("stock_update", (msg) => {
+    try { triggerPulse(); } catch(e){}
+
+    const t = String(msg?.type || "").toUpperCase();
+
+    if (t === "SCADA_STATUS") {
+      try { applyScadaStatus(msg); } catch(e){}
+    } else if (t === "WATCH") {
+      try { applyWatch(msg); } catch(e){}
     }
 
-  // ============================================================
-// WARM START (HEALTH)
+    try { rscSetComms("socket.io stock_update", msg); } catch(e){}
+
+    if (typeof debugOn !== "undefined" && debugOn) {
+      try { refreshDebugNow(); } catch(e){}
+    }
+  });
+}
+
+
+
+// ============================================================
+// WARM START (HEALTH) ✅ macro first, then node rehydrate
 // ============================================================
 (async function warmStart(){
   try{
@@ -2394,8 +2466,8 @@ window.handleMacroUpdate = function(payload){
 
     const state = j.state;
 
-    // ---- Macro first (authoritative) ----
-    rscSetComms("warmstart /health", state);
+    // ---- Comms + Macro first (authoritative) ----
+    try { rscSetComms("warmstart /health", state); } catch(e){}
 
     if (typeof window.handleMacroUpdate === "function") {
       window.handleMacroUpdate(state);
@@ -2403,21 +2475,11 @@ window.handleMacroUpdate = function(payload){
       window.applyAllFromState(state);
     }
 
-    // ---- Stock nodes (SCADA + WATCH replay) ----
-    const stocks = state?.stocks || {};
+    // ---- Nodes rehydrate (SCADA + WATCH replay) ----
+    try { rscRehydrateNodesFromState(state); } catch(e){}
 
-    // replay SCADA_STATUS (glow + msa + ticker)
-    if (stocks.last_scada_by_ref){
-      Object.values(stocks.last_scada_by_ref).forEach(msg => {
-        try { applyScadaStatus(msg); } catch(e){}
-      });
-    }
-
-    // replay WATCH (ticker visibility + msa label)
-    if (stocks.last_watch_by_ref){
-      Object.values(stocks.last_watch_by_ref).forEach(msg => {
-        try { applyWatch(msg); } catch(e){}
-      });
+    if (typeof debugOn !== "undefined" && debugOn) {
+      try { refreshDebugNow(); } catch(e){}
     }
 
   } catch(e){}
