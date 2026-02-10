@@ -1054,7 +1054,10 @@ setTerminalStatus('OFFLINE');
   return idx;
 }
 
-function setNode(slot, glow, ticker, msaText){
+// COMMISSIONING MODE (set false when done)
+window.COMMISSIONING = true;
+
+function setNode(slot, glow, ticker, msaText, rawSrc){
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
 
@@ -1062,26 +1065,45 @@ function setNode(slot, glow, ticker, msaText){
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // node colour (signal/setup/none)
+  // ----------------------------
+  // NODE COLOUR (signal / setup)
+  // ----------------------------
   if (node){
     node.classList.remove("grey","orange","green","red");
     node.classList.add(glow || "grey");
   }
 
-  // ALWAYS show ticker (you set wl_show_ticker=true)
-  if (label) label.textContent = (ticker ? String(ticker).toUpperCase() : "—");
+  // ----------------------------
+  // TICKER (always visible)
+  // ----------------------------
+  if (label){
+    label.textContent = ticker ? String(ticker).toUpperCase() : "—";
+  }
 
-  // ALWAYS show MSA + colour it
+  // ----------------------------
+  // MSA LABEL (always visible)
+  // ----------------------------
   if (msa){
-    const raw = String(msaText || "").toUpperCase();
-    msa.textContent = raw || "NA";
+    const norm = String(msaText || "").toUpperCase();
+    const display = norm || "NO STATE";
 
+    // 🔍 during commissioning show RAW source if available
+    if (window.COMMISSIONING && rawSrc){
+      msa.textContent = String(rawSrc).toUpperCase();
+      msa.title = `msa_src: ${rawSrc}`;   // hover tooltip
+    } else {
+      msa.textContent = display;
+      msa.title = "";
+    }
+
+    // colouring
     msa.classList.remove("msa-auto","msa-man","msa-na");
-    if (raw === "AUTO") msa.classList.add("msa-auto");
-    else if (raw === "MAN" || raw === "MANUAL") msa.classList.add("msa-man");
+    if (display === "AUTO") msa.classList.add("msa-auto");
+    else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
     else msa.classList.add("msa-na");
   }
 }
+
 
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
