@@ -14,7 +14,8 @@ from datetime import datetime
 app = Flask(__name__, static_folder="static")
 
 # Threading mode = compatible with Gunicorn gthreads on Render
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
 
 # Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
