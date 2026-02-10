@@ -1094,8 +1094,10 @@ function applyScadaStatus(msg){
 
   // MSA source colour token
   const msa =
-    msg.msa_src === "AUTO" ? "AUTO" :
-    msg.msa_src === "MANUAL" ? "MAN" : "NA";
+  msg.msa_src === "AUTO"   ? "AUTO" :
+  msg.msa_src === "MANUAL"? "MAN"  :
+  "NO STATE";
+
 
   // ticker always shown
   setNode(slot, glow, msg.ticker, msa);
@@ -1117,11 +1119,11 @@ function applyWatch(msg){
     node?.classList.contains("red")    ? "red"    :
     "grey";
 
-  // MSA always shown, colour by src
-  const msa =
-    msg.msa_src === "MANUAL" ? "MAN" :
-    msg.msa_src === "AUTO" ? "AUTO" :
-    "NA";
+ const msa =
+  msg.msa_src === "AUTO"   ? "AUTO" :
+  msg.msa_src === "MANUAL"? "MAN"  :
+  "NO STATE";
+
 
   setNode(slot, glow, msg.ticker, msa);
 }
