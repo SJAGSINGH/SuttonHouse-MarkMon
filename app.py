@@ -103,37 +103,7 @@ def _log_debug(path, data, ok=True, err=None):
     with DEBUG_LOCK:
         DEBUG_LOG.appendleft(entry)
 
-def _update_monitor_lane(meta):
-    now = int(time.time() * 1000)
-
-    ref = meta.get("ref_id")
-    ticker = meta.get("ticker")
-    typ = meta.get("type")
-
-    if ref is not None:
-        STATE["monitor"]["last_by_ref"][str(ref)] = {
-            "ts": now,
-            "type": typ,
-            "ticker": ticker,
-        }
-
-    if ticker:
-        STATE["monitor"]["last_by_ticker"][ticker] = {
-            "ts": now,
-            "type": typ,
-            "ref_id": ref,
-        }
-
-    if typ.startswith("HELLO"):
-        rec = STATE["monitor"]["last_hello"].get(ticker, {})
-        if "OPEN" in typ:
-            rec["open"] = now
-        elif "CLOSE" in typ:
-            rec["close"] = now
-        else:
-            rec["test"] = now
-        rec["ref_id"] = ref
-        STATE["monitor"]["last_hello"][ticker] = rec
+_update_monitor_lane(meta, data)
 # ---- State persistence (warm start cache) ----
 DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var/data") else "/tmp/marketmonitor_state.json"
 STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
@@ -883,7 +853,7 @@ def webhook():
             if ref_id is not None:
                 _merge_ref_state(ref_id, data)
 
-            _update_monitor_lane(meta)
+            _update_monitor_lane(meta, data)
 
             _save_state_to_disk()
             payload = copy.deepcopy(STATE)
