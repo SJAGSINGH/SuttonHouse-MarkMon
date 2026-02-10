@@ -785,10 +785,9 @@ body.war-room .scada-card{
   box-shadow:0 0 14px rgba(255,68,68,0.22);
 }
 .stock-node.amber { 
-  background: var(--orange);
-  border-color: var(--orange);
+  background: var(--orange) !important; 
+  border-color: var(--orange) !important; 
 }
-
 
 #scada .node.idle   { opacity: 0.75; }
 #scada .node.setup  { box-shadow: 0 0 0 2px rgba(255,180,0,0.25); }
@@ -831,16 +830,6 @@ body.war-room .scada-card{
 }
 
 /* setup pulse (you already have .stock-node.pulse, keep it) */
-.stock-msa{
-  font-size:10px;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  opacity:0.85;
-}
-
-.stock-msa.ok     { color: var(--lime); }
-.stock-msa.manual { color: var(--orange); }
-.stock-msa.na     { color: var(--red); }
   
   
 </style>
@@ -1129,12 +1118,10 @@ function __setNode(slot, payload){
   label.textContent = t || "—";
 
   // flags (boolean-safe)
-  const msa_ok     = payload?.msa_ok === true;
-  const msa_attn   = payload?.msa_attention === true;  // manual
   const msa_inzone = payload?.msa_inzone === true;
 
-  const status  = String(payload?.status || "").toUpperCase();
-  const isSetup = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
+  const status = String(payload?.status || "").toUpperCase();
+  const isSetup  = (payload?.setup_D === true) || (payload?.setup_4H === true) || (status === "SETUP");
   const isSignal = payload?.signal === true;
 
   // =========================
@@ -1160,26 +1147,6 @@ function __setNode(slot, payload){
   // inZone is an overlay only
   // =========================
   if (msa_inzone) node.classList.add("inzone");
-
-  // =========================
-  // MSA LABEL (separate channel)
-  // green = ok, amber = manual, red = na
-  // =========================
-  const msaEl = item.querySelector(".stock-msa");
-  if (msaEl){
-    msaEl.className = "stock-msa";
-
-    if (msa_ok) {
-      msaEl.textContent = "MSA OK";
-      msaEl.classList.add("ok");
-    } else if (msa_attn) {
-      msaEl.textContent = "MSA MANUAL";
-      msaEl.classList.add("manual");
-    } else {
-      msaEl.textContent = "MSA N/A";
-      msaEl.classList.add("na");
-    }
-  }
 
   // optional hover debug
   node.title =
@@ -2016,7 +1983,10 @@ function applySCADAStockStatus(data) {
   }
 }
 function renderWatchGridFromState(data){
-  // normalize common server shapes
+  // normalize common server shapes:
+  // - { state:{...} }
+  // - { payload:{...} }
+  // - { data:{...} }
   const root =
     (data && data.state   && typeof data.state   === "object") ? data.state :
     (data && data.payload && typeof data.payload === "object") ? data.payload :
@@ -2026,45 +1996,35 @@ function renderWatchGridFromState(data){
   const mon = root?.monitor;
   if (!mon) return;
 
+  // prefer explicit watchlist if you add it later
+  const wl  = Array.isArray(mon.watchlist) ? mon.watchlist : null;
+
+  // otherwise use last_by_ticker map
   const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
-  const lbr = (mon.last_by_ref    && typeof mon.last_by_ref    === "object") ? mon.last_by_ref    : null;
-  if (!lbt || !lbr) return;
 
-  // build items from ticker->ref_id, then hydrate from last_by_ref (payload lives there)
-  let items = Object.entries(lbt).map(([ticker, v]) => {
-    const ref = (v && typeof v === "object") ? v.ref_id : null;
-    const refKey = (ref != null) ? String(ref) : null;
+  let items = [];
 
-    const full = (refKey && lbr[refKey] && typeof lbr[refKey] === "object") ? lbr[refKey] : {};
-    // full is what your UI must paint (status/signal/msa_ok/etc)
-
-    return {
-      ticker: String(ticker || full.ticker || "").toUpperCase(),
-      ref_id: ref,
-      ...full
-    };
-  });
-
-  // keep only valid tickers
-  items = items.filter(x => x.ticker && x.ticker !== "—");
+  if (wl && Array.isArray(wl)) {
+    items = wl;
+  } else if (lbt && typeof lbt === "object") {
+    // support both shapes:
+    // last_by_ticker[t] = { ...fields }
+    // last_by_ticker[t] = { state:{...fields} }
+    items = Object.entries(lbt).map(([ticker, v]) => {
+      const obj = (v && typeof v === "object") ? v : {};
+      const src = (obj.state && typeof obj.state === "object") ? obj.state : obj;
+      return {
+        ticker: String(src.ticker || ticker || "").toUpperCase(),
+        ...src
+      };
+    });
+  }
 
   if (!items.length) return;
 
-  // stable order: by ref_id (Gold=1, CYM=6, etc)
-  items.sort((a,b) => (Number(a.ref_id)||9999) - (Number(b.ref_id)||9999));
-
-  // paint into slots deterministically: slot = index in sorted list
-  const maxSlots = document.querySelectorAll(".stock-item").length;
-
-  for (let slot = 0; slot < maxSlots; slot++){
-    const p = items[slot];
-
-    if (!p){
-      // clear unused slots
-      __setNode(slot, { ticker: "—" }); // will go grey
-      continue;
-    }
-
+  for (const p of items){
+    const slot = __ensureSlot(p?.ticker);
+    if (slot == null) continue;
     __setNode(slot, p);
   }
 }
