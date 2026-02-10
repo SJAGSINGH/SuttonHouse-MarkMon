@@ -778,8 +778,8 @@ body.war-room .scada-card{
   box-shadow:0 0 14px rgba(50,205,50,0.25);
 }
 
-.stock-node.orange{
-  background:var(--orange);
+.stock-node.amber{
+  background:var(--amber);
   border-color:rgba(255,140,0,0.55);
   box-shadow:0 0 14px rgba(255,140,0,0.22);
 }
@@ -1130,7 +1130,9 @@ function __setNode(slot, payload){
   const isSetup = setupD || setup4H || status === "SETUP";
 
   // reset classes
-  node.classList.remove("grey","green","orange","red","pulse","inzone");
+ node.classList.remove("grey","green","amber","amber","red","pulse","inzone");
+ node.classList.add("stock-node"); // ensures base class always present
+
 
   // apply inZone
   if (msa_inzone) node.classList.add("inzone");
@@ -1144,7 +1146,7 @@ function __setNode(slot, payload){
   if (isSetup) {
     node.classList.add("green","pulse");
   } else if (msa_attn) {
-    node.classList.add("orange");
+    node.classList.add("amber");
   } else if (payload?.msa_ok === false) {
     node.classList.add("red");
   } else if (msa_ok) {
@@ -1789,9 +1791,9 @@ function applyWatchlistFromState(data){
 
     lab.textContent = ticker;
 
-    node.classList.remove("green","orange","red","grey");
+    node.classList.remove("green","amber","red","grey");
     if (state === "GREEN") node.classList.add("green");
-    else if (state === "AMBER" || state === "ORANGE") node.classList.add("orange");
+    else if (state === "AMBER" || state === "ORANGE") node.classList.add("AMBER");
     else if (state === "RED") node.classList.add("red");
     else node.classList.add("grey");
   }
@@ -1978,7 +1980,7 @@ function applySCADAStockStatus(data) {
 
     // priority
     if (isSetup) node.className = "stock-node green pulse";
-    else if (attn) node.className = "stock-node orange";
+    else if (attn) node.className = "stock-node amber";
     else if (s?.msa_ok === false) node.className = "stock-node red";
     else if (msa_ok) node.className = "stock-node green";
 
