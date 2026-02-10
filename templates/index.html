@@ -802,6 +802,20 @@ body.war-room .scada-card{
 .badge.attn { background: rgba(255,180,0,0.12); }
 
 .node.inzone.setup { outline: 1px solid rgba(0,180,255,0.25); }
+
+.stock-status {
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.stock-node.green { background: #6dff6d; }
+.stock-node.amber { background: #ffb347; }
+
+.stock-node.pulse {
+  box-shadow: 0 0 12px rgba(124,255,124,0.8);
+}
+  
   
 </style>
 
@@ -1811,106 +1825,54 @@ if (!Number.isFinite(ts)){
  // ============================
 // SCADA_STATUS renderer (nodes)
 // ============================
-function applyScadaStatusFromState(data){
-  if(!data) return;
+// ============================================================
+// SCADA STOCK STATUS (per-slot)
+// ============================================================
+function applySCADAStockStatus(data) {
+  if (!data || !Array.isArray(data.watchlist)) return;
 
-  // You may be receiving single payloads OR a merged STATE.
-  // If merged STATE: expect something like data.scada_status[ref_id]
-  // If single alert payload: data.type === "SCADA_STATUS"
-  const payloads = [];
+  data.watchlist.forEach((s, idx) => {
+    const slot = document.querySelector(
+      `.stock-item[data-slot="${idx}"]`
+    );
+    if (!slot) return;
 
-  if (data.type === "SCADA_STATUS") {
-    payloads.push(data);
-  } else if (data.scada_status && typeof data.scada_status === "object") {
-    // example merge shape: { scada_status: { "1": {...}, "2": {...} } }
-    Object.keys(data.scada_status).forEach(k => payloads.push(data.scada_status[k]));
-  } else {
-    return;
-  }
+    const node   = slot.querySelector(".stock-node");
+    const label  = slot.querySelector(".stock-label");
+    const status = slot.querySelector(".stock-status");
 
-  payloads.forEach(p => {
-    const ref = p.ref_id;
-    if(ref === undefined || ref === null) return;
+    if (!node || !label || !status) return;
 
-    const node = document.getElementById(`node-${ref}`);
-    if(!node) return;
+    // ---- label
+    label.textContent = s.ticker || "—";
 
-    const elStatus = node.querySelector(".wl-status");
-    const elSub    = node.querySelector(".wl-sub");
-    const elBadges = node.querySelector(".wl-badges");
+    // ---- build status lines
+    let lines = [];
 
-    // --- fields
-    const status     = (p.status || "IDLE").toUpperCase(); // IDLE/SETUP/SIGNAL
-    const msaOk      = !!p.msa_ok;
-    const msaSrc     = (p.msa_src || "NA").toUpperCase();  // SCADA/MANUAL/NA
-    const inZone     = !!p.msa_inzone;
-
-    const setupD     = !!p.setup_D;
-    const setup4H    = !!p.setup_4H;
-    const engD       = (p.setup_engine_D || "NA").toUpperCase();
-    const eng4H      = (p.setup_engine_4H || "NA").toUpperCase();
-
-    const sigAny     = !!p.sig_any_ok;
-    const sigEng     = (p.sig_engine || "NA").toUpperCase();
-
-    // --- main status text
-    if (elStatus) elStatus.textContent = status;
-
-    // --- sub line (setup preference)
-    let sub = "";
-    if (status === "SIGNAL" && sigAny) {
-      sub = `ENGINE: ${sigEng}`;
-    } else if (setup4H) {
-      sub = `SETUP 4H • ${eng4H}`;
-    } else if (setupD) {
-      sub = `SETUP D • ${engD}`;
+    if (!s.msa_ok) {
+      lines.push("MSA: ATTENTION");
+      node.className = "stock-node amber";
     } else {
-      sub = "";
-    }
-    if (elSub) elSub.textContent = sub;
-
-    // --- badges
-    if (elBadges) {
-      elBadges.innerHTML = ""; // reset
-
-      // MSA badge
-      const msaBadge = document.createElement("span");
-      msaBadge.className = "badge";
-      if (msaOk && msaSrc !== "NA") {
-        msaBadge.textContent = `MSA OK (${msaSrc})`;
-        msaBadge.classList.add("ok");
-      } else {
-        msaBadge.textContent = `MSA NOT OK`;
-        msaBadge.classList.add("bad");
-      }
-      elBadges.appendChild(msaBadge);
-
-      // Zone badge
-      const z = document.createElement("span");
-      z.className = "badge";
-      z.textContent = inZone ? "IN-ZONE" : "OUT-ZONE";
-      z.classList.add(inZone ? "inzone" : "outzone");
-      elBadges.appendChild(z);
-
-      // Attention badge when setup exists but msa not ready
-      if ((status === "SETUP" || setupD || setup4H) && msaSrc === "NA") {
-        const att = document.createElement("span");
-        att.className = "badge attn";
-        att.textContent = "MSA NEEDS ATTENTION";
-        elBadges.appendChild(att);
-      }
+      lines.push("MSA: OK");
+      node.className = "stock-node green";
     }
 
-    // --- node colour classes
-    node.classList.remove("idle","setup","signal");
-    if (status === "SIGNAL") node.classList.add("signal");
-    else if (status === "SETUP") node.classList.add("setup");
-    else node.classList.add("idle");
+    if (s.msa_inZone) {
+      lines.push("IN ZONE");
+      node.classList.add("pulse");
+    }
 
-    // Optional: if you want in-zone to add a subtle glow even in SETUP
-    node.classList.toggle("inzone", inZone);
+    if (s.setup_D) lines.push("SETUP: D");
+    if (s.setup_4H) lines.push("SETUP: 4H");
+
+    if (!s.setup_D && !s.setup_4H) {
+      lines.push("—");
+    }
+
+    status.innerHTML = lines.join("<br>");
   });
-} 
+}
+
 function applyAllFromState(data) {
   lastState = data || {};
 
@@ -1924,7 +1886,7 @@ function applyAllFromState(data) {
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  applySCADAStatusFromState(data);
+  applyAllFromState(data);
   setSentinel("Sentinel: SILENCE");
 
 // ============================================================
