@@ -809,11 +809,20 @@ body.war-room .scada-card{
   opacity: 0.9;
 }
 
-.stock-node.green { background: #6dff6d; }
-.stock-node.amber { background: #ffb347; }
-
 .stock-node.pulse {
-  box-shadow: 0 0 12px rgba(124,255,124,0.8);
+  filter: brightness(1.05);
+  box-shadow: 0 0 18px rgba(0,180,255,0.25), 0 0 10px rgba(255,255,255,0.06);
+}
+  
+.stock-node{
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.stock-status{
+  width: 74px;
+  text-align: center;
+  line-height: 1.15;
+  color: rgba(255,255,255,0.70);
 }
   
   
