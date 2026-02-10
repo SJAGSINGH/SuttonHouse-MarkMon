@@ -830,6 +830,12 @@ body.war-room .scada-card{
 .stock-node.green{
   box-shadow:0 0 18px rgba(80,255,120,0.55);
 }
+/* MSA label colours */
+.msa-label{ color: rgba(255,255,255,0.45); }
+
+.msa-auto{ color: var(--lime) !important; text-shadow:0 0 10px rgba(50,205,50,.25); }
+.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
+.msa-na  { color: var(--red) !important; text-shadow:0 0 10px rgba(255,68,68,.22); }
 
 </style>
 
@@ -1056,49 +1062,70 @@ function setNode(slot, glow, ticker, msaText){
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  node.classList.remove("grey","orange","green");
-  node.classList.add(glow || "grey");
+  // node colour (signal/setup/none)
+  if (node){
+    node.classList.remove("grey","orange","green","red");
+    node.classList.add(glow || "grey");
+  }
 
-  if (label) label.textContent = ticker || "—";
-  if (msa)   msa.textContent   = msaText || "—";
+  // ALWAYS show ticker (you set wl_show_ticker=true)
+  if (label) label.textContent = (ticker ? String(ticker).toUpperCase() : "—");
+
+  // ALWAYS show MSA + colour it
+  if (msa){
+    const raw = String(msaText || "").toUpperCase();
+    msa.textContent = raw || "NA";
+
+    msa.classList.remove("msa-auto","msa-man","msa-na");
+    if (raw === "AUTO") msa.classList.add("msa-auto");
+    else if (raw === "MAN" || raw === "MANUAL") msa.classList.add("msa-man");
+    else msa.classList.add("msa-na");
+  }
 }
+
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
+  // glow: signal > setup > none
   let glow = "grey";
+  if (msg.signal === true) glow = "green";
+  else if (msg.msa_ok && msg.msa_inzone) glow = "orange";
 
-  if (msg.signal === true){
-    glow = "green";
-  } else if (msg.msa_ok && msg.msa_inzone){
-    glow = "orange";
-  }
-
+  // MSA source colour token
   const msa =
     msg.msa_src === "AUTO" ? "AUTO" :
-    msg.msa_src === "MANUAL" ? "MAN" : "—";
+    msg.msa_src === "MANUAL" ? "MAN" : "NA";
 
+  // ticker always shown
   setNode(slot, glow, msg.ticker, msa);
 }
-function applyWatch(msg){
+
+ffunction applyWatch(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
+  if (!item) return;
+
   const node = item.querySelector(".stock-node");
 
+  // keep current glow
   const glow =
-    node.classList.contains("green") ? "green" :
-    node.classList.contains("orange") ? "orange" :
+    node?.classList.contains("green")  ? "green"  :
+    node?.classList.contains("orange") ? "orange" :
+    node?.classList.contains("red")    ? "red"    :
     "grey";
 
-  setNode(
-    slot,
-    glow,
-    msg.show_ticker ? msg.ticker : "—",
-    msg.msa_src === "MANUAL" ? "MAN" : "AUTO"
-  );
+  // MSA always shown, colour by src
+  const msa =
+    msg.msa_src === "MANUAL" ? "MAN" :
+    msg.msa_src === "AUTO" ? "AUTO" :
+    "NA";
+
+  setNode(slot, glow, msg.ticker, msa);
 }
+
 
   // ----------------------------
   // COLOR PALETTES (rhyme with Pine)
