@@ -759,12 +759,13 @@ body.war-room .scada-card{
   letter-spacing:1.2px;
   text-transform:uppercase;
   color:rgba(255,255,255,0.55);
-  width:52px;
+  max-width:60px;          /* cap, don’t force */
   text-align:center;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
+
 
 /* node states */
 .stock-node.grey{
