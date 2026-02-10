@@ -2271,22 +2271,48 @@ window.handleMacroUpdate = function(payload){
     }
 
   // ============================================================
-  // WARM START (HEALTH)
-  // ============================================================
-  (async function warmStart(){
-    try{
-      const r = await fetch('/health', { cache:'no-store' });
-      debugSource = "warmstart /health";
-      if (!r.ok) return;
-      const j = await r.json();
-      if (j && j.state){
-         rscSetComms("warmstart /health", j.state);
+// WARM START (HEALTH)
+// ============================================================
+(async function warmStart(){
+  try{
+    const r = await fetch('/health', { cache:'no-store' });
+    debugSource = "warmstart /health";
+    if (!r.ok) return;
 
-        if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(j.state);
-        else applyAllFromState(j.state);
-      }
-    } catch(e){}
-  })();
+    const j = await r.json();
+    if (!j || !j.state) return;
+
+    const state = j.state;
+
+    // ---- Macro first (authoritative) ----
+    rscSetComms("warmstart /health", state);
+
+    if (typeof window.handleMacroUpdate === "function") {
+      window.handleMacroUpdate(state);
+    } else if (typeof window.applyAllFromState === "function") {
+      window.applyAllFromState(state);
+    }
+
+    // ---- Stock nodes (SCADA + WATCH replay) ----
+    const stocks = state?.stocks || {};
+
+    // replay SCADA_STATUS (glow + msa + ticker)
+    if (stocks.last_scada_by_ref){
+      Object.values(stocks.last_scada_by_ref).forEach(msg => {
+        try { applyScadaStatus(msg); } catch(e){}
+      });
+    }
+
+    // replay WATCH (ticker visibility + msa label)
+    if (stocks.last_watch_by_ref){
+      Object.values(stocks.last_watch_by_ref).forEach(msg => {
+        try { applyWatch(msg); } catch(e){}
+      });
+    }
+
+  } catch(e){}
+})();
+
 
   // ============================================================
   // PASSWORD MODAL
