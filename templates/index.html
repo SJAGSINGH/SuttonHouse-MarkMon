@@ -1988,16 +1988,23 @@ function applySCADAStockStatus(data) {
   }
 }
 function renderWatchGridFromState(data){
-  // your state sometimes comes in as { state: {...} }
-  const root = (data && data.state && typeof data.state === "object") ? data.state : data;
-  const mon  = root?.monitor;
+  // normalize common server shapes:
+  // - { state:{...} }
+  // - { payload:{...} }
+  // - { data:{...} }
+  const root =
+    (data && data.state   && typeof data.state   === "object") ? data.state :
+    (data && data.payload && typeof data.payload === "object") ? data.payload :
+    (data && data.data    && typeof data.data    === "object") ? data.data :
+    data;
 
+  const mon = root?.monitor;
   if (!mon) return;
 
   // prefer explicit watchlist if you add it later
-  const wl = Array.isArray(mon.watchlist) ? mon.watchlist : null;
+  const wl  = Array.isArray(mon.watchlist) ? mon.watchlist : null;
 
-  // otherwise use last_by_ticker map (you already have this)
+  // otherwise use last_by_ticker map
   const lbt = (mon.last_by_ticker && typeof mon.last_by_ticker === "object") ? mon.last_by_ticker : null;
 
   let items = [];
@@ -2005,17 +2012,20 @@ function renderWatchGridFromState(data){
   if (wl && Array.isArray(wl)) {
     items = wl;
   } else if (lbt && typeof lbt === "object") {
+    // support both shapes:
+    // last_by_ticker[t] = { ...fields }
+    // last_by_ticker[t] = { state:{...fields} }
     items = Object.entries(lbt).map(([ticker, v]) => {
-      const src = v.state || v || {};
+      const obj = (v && typeof v === "object") ? v : {};
+      const src = (obj.state && typeof obj.state === "object") ? obj.state : obj;
       return {
-        ticker,
+        ticker: String(src.ticker || ticker || "").toUpperCase(),
         ...src
       };
     });
   }
 
-
-  if (!items || !items.length) return;
+  if (!items.length) return;
 
   for (const p of items){
     const slot = __ensureSlot(p?.ticker);
@@ -2023,6 +2033,7 @@ function renderWatchGridFromState(data){
     __setNode(slot, p);
   }
 }
+
 function applyAllFromState(data) {
   lastState = data || {};
 
