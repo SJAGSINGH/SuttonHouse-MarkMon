@@ -141,6 +141,35 @@ STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 # ----------------------------
 # Helpers
 # ----------------------------
+def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    typ = str(msg.get("type") or "").strip().upper()
+    if typ not in ("SCADA_STATUS", "WATCH"):
+        return None
+
+    ref_id = msg.get("ref_id")
+    if ref_id is None:
+        return None
+
+    # normalize a few fields
+    try:
+        msg["ref_id"] = int(float(ref_id))
+    except Exception:
+        return None
+
+    if "ticker" in msg and msg["ticker"] is not None:
+        msg["ticker"] = str(msg["ticker"]).upper()
+
+    # timestamp passthrough
+    if "_server_ts" not in msg:
+        msg["_server_ts"] = int(time.time() * 1000)
+
+    # store
+    if typ == "SCADA_STATUS":
+        STATE["stocks"]["last_scada_by_ref"][str(msg["ref_id"])] = msg
+    else:
+        STATE["stocks"]["last_watch_by_ref"][str(msg["ref_id"])] = msg
+
+    return msg
 
 def _clamp_int(x: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, x))
@@ -692,6 +721,7 @@ def ingest_macro():
 
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
+# Adds: STOCK LANES (WATCH + SCADA_STATUS) -> socket "stock_update"
 # ============================================================
 
 @app.route("/webhook", methods=["POST"])
@@ -720,7 +750,61 @@ def webhook():
             abort(400)
 
         with STATE_LOCK:
+            # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
+
+            # ====================================================
+            # STOCK LANES (FAST PATH)
+            # Accepts:
+            #  {"type":"SCADA_STATUS", ...}
+            #  {"type":"WATCH", ...}
+            # Emits: socketio.emit("stock_update", msg)
+            # Persists into STATE["stocks"] for warm start
+            # ====================================================
+            typ = str(data.get("type") or "").strip().upper()
+
+            # Ensure storage exists (safe if you didn't add to STATE earlier)
+            if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
+                STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
+            if "last_scada_by_ref" not in STATE["stocks"]:
+                STATE["stocks"]["last_scada_by_ref"] = {}
+            if "last_watch_by_ref" not in STATE["stocks"]:
+                STATE["stocks"]["last_watch_by_ref"] = {}
+
+            if typ in ("SCADA_STATUS", "WATCH"):
+                # normalize minimal fields
+                try:
+                    ref_id = data.get("ref_id")
+                    ref_id = int(float(ref_id)) if ref_id is not None else None
+                except Exception:
+                    ref_id = None
+
+                if ref_id is None:
+                    abort(400)
+
+                out = dict(data)
+                out["type"] = typ
+                out["ref_id"] = ref_id
+
+                if out.get("ticker") is not None:
+                    out["ticker"] = str(out["ticker"]).upper()
+
+                # include server ts in this message too (helps comms/age)
+                out["_server_ts"] = int(time.time() * 1000)
+
+                # persist
+                if typ == "SCADA_STATUS":
+                    STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
+                else:
+                    STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
+
+                _update_monitor_lane(_extract_meta(out))
+                _save_state_to_disk()
+
+                # emit stock-only update (do NOT spam macro_update)
+                socketio.emit("stock_update", out)
+                _log_debug("/webhook", out, ok=True)
+                return "SUCCESS", 200
 
             # ------------------------------------------------
             # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
@@ -798,8 +882,6 @@ def webhook():
             #  B) macro payload: {"type":"MACRO", ... , "card2":{"state":"GREEN","text":"..."}}
             # ------------------------------------------------
             try:
-                typ = str(data.get("type") or "").strip().upper()
-
                 # ensure nested structure exists
                 if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
                     STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
@@ -813,13 +895,11 @@ def webhook():
                     if tx is not None:
                         STATE["card2"]["text"] = str(tx).strip()
 
-                    # optional metadata passthrough
                     for k in ("time", "tf", "ref_id"):
                         if k in data and data.get(k) not in (None, "", "NA", "na"):
                             STATE["card2"][k] = data.get(k)
 
                 else:
-                    # macro payload may carry nested card2
                     c2 = data.get("card2")
                     if isinstance(c2, dict):
                         st = c2.get("state")
@@ -842,8 +922,6 @@ def webhook():
             # ------------------------------------------------
             if "type" in data:
                 try:
-                    # IMPORTANT: _parse_typed_payload may still exist for other typed cards.
-                    # It must NOT overwrite STATE["card2"] anymore (or just let this run fail-soft).
                     _parse_typed_payload(data)
                 except Exception:
                     pass
@@ -874,8 +952,6 @@ def webhook():
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
-
-
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
