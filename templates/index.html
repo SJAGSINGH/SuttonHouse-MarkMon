@@ -724,46 +724,81 @@ body.war-room .scada-card{
 }
 
 /* ============================
-   STOCK ITEM LAYOUT (LOCKED)
-   2 columns: [MSA 16px] [NODE 44px]
-   2 rows:    [circle row] [ticker row]
+   STOCK ITEM (matches your DOM)
 ============================ */
 .stock-item{
-  display:grid;
-  grid-template-columns:16px 44px;
-  grid-template-rows:44px auto;
-  column-gap:6px;
-  row-gap:8px;
+  display:flex;
+  flex-direction:column;
   align-items:center;
-  justify-content:center;
-  min-height:46px;
+  justify-content:flex-start;
+  gap:8px;
+  min-height:62px;              /* circle(44) + label space */
   position:relative;
 }
 
-/* Node sits in column 2, row 1 */
+/* row that holds [MSA][NODE] */
+.stock-row{
+  display:flex;
+  align-items:center;            /* vertical centre lock */
+  justify-content:center;
+  gap:6px;                       /* spacing between msa + circle */
+  height:44px;                   /* hard lock = no drift on resize */
+}
+
+/* ============================
+   MSA label (stable on resize)
+   centre-left of circle, not absolute
+============================ */
+.msa-label{
+  width:14px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
+
+  font-size:9px;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+
+  pointer-events:none;
+  user-select:none;
+  opacity:.9;
+  z-index:4;
+}
+
+/* MSA label colours */
+.msa-label{ color: rgba(255,255,255,0.45); }
+.msa-auto{ color: var(--lime) !important;   text-shadow:0 0 10px rgba(50,205,50,.25); }
+.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
+.msa-na  { color: var(--red) !important;    text-shadow:0 0 10px rgba(255,68,68,.22); }
+
+/* ============================
+   STOCK NODE — IMAGE + HALO
+============================ */
 .stock-node{
-  grid-column:2;
-  grid-row:1;
   width:44px;
   height:44px;
   border-radius:50%;
   background:#1e1e1e;
   border:1px solid rgba(255,255,255,0.12);
   position:relative;
-  z-index:2;              /* keep above halo */
-  overflow:hidden;
+  z-index:1;
+  overflow:hidden;               /* keeps image inside circle */
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* image option stays */
+/* logo/image inside node (kept) */
 .stock-node img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:cover;              /* swap to contain if wanted */
   border-radius:50%;
-  z-index:3;
+  z-index:2;
   pointer-events:none;
 }
 
@@ -782,7 +817,8 @@ body.war-room .scada-card{
 /* SETUP — amber halo */
 .stock-node.orange::after{
   opacity:1;
-  background:radial-gradient(circle,
+  background:radial-gradient(
+    circle,
     rgba(255,165,0,.55) 0%,
     rgba(255,165,0,.30) 45%,
     rgba(255,165,0,0)   72%
@@ -792,7 +828,8 @@ body.war-room .scada-card{
 /* SIGNAL — lime halo */
 .stock-node.green::after{
   opacity:1;
-  background:radial-gradient(circle,
+  background:radial-gradient(
+    circle,
     rgba(80,255,120,.65) 0%,
     rgba(80,255,120,.35) 45%,
     rgba(80,255,120,0)   72%
@@ -802,99 +839,26 @@ body.war-room .scada-card{
 /* neutral */
 .stock-node.grey::after{ opacity:0; }
 
-/* ✅ MSA label: use GRID placement (NO absolute) so it never drifts */
-.msa-label{
-  grid-column:1;
-  grid-row:1;
-
-  height:44px;
-  width:16px;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-
-  font-size:9px;
-  letter-spacing:1.1px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,0.45);
-
-  pointer-events:none;
-  z-index:4;
-}
-
-/* MSA label colours */
-.msa-auto{ color: var(--lime) !important; text-shadow:0 0 10px rgba(50,205,50,.25); }
-.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
-.msa-na  { color: var(--red) !important; text-shadow:0 0 10px rgba(255,68,68,.22); }
-
-/* ✅ Ticker label: explicitly place it under node, spanning both columns */
+/* ============================
+   TICKER LABEL (always visible)
+============================ */
 .stock-label{
-  grid-column:1 / span 2;
-  grid-row:2;
-
   font-size:11px;
   letter-spacing:2px;
   text-transform:uppercase;
   color:#ffffff;
 
-  width:100%;
   text-align:center;
+  width:100%;
+  line-height:1;
+  margin-top:2px;
 
-  margin-top:0;
   pointer-events:none;
+  user-select:none;
 
   position:relative;
-  z-index:5;              /* never behind circle */
+  z-index:5;                     /* ensures never behind node */
 }
-
-
-  
-
-/* Image stays inside node */
-.stock-node img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:50%;
-  z-index:2;
-  pointer-events:none;
-}
-
-/* ============================
-   HALO (KEEP)
-============================ */
-.stock-node::after{
-  content:"";
-  position:absolute;
-  inset:-8px;
-  border-radius:50%;
-  z-index:-1;
-  opacity:0;
-  filter:blur(7px);
-  transition:opacity .25s ease;
-}
-
-.stock-node.orange::after{
-  opacity:1;
-  background:radial-gradient(circle, rgba(255,165,0,.55) 0%, rgba(255,165,0,.30) 45%, rgba(255,165,0,0) 72%);
-}
-
-.stock-node.green::after{
-  opacity:1;
-  background:radial-gradient(circle, rgba(80,255,120,.65) 0%, rgba(80,255,120,.35) 45%, rgba(80,255,120,0) 72%);
-}
-
-.stock-node.grey::after{ opacity:0; }
-
-/* MSA colours (KEEP) */
-.msa-auto{ color: var(--lime) !important;   text-shadow:0 0 10px rgba(50,205,50,.25); }
-.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
-.msa-na  { color: var(--red) !important;    text-shadow:0 0 10px rgba(255,68,68,.22); }
-
 
 </style>
 
