@@ -758,32 +758,40 @@ body.war-room .scada-card{
 
 /* MSA label sits in column 1, row 1 (left of node) */
 .msa-label{
-  grid-column:1;
-  grid-row:1;
-  width:16px;
-  height:44px;
+  position: absolute;
+  left: -18px;                 /* fixed offset from circle */
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
 
-  font-size:9px;
-  letter-spacing:1.1px;
-  text-transform:uppercase;
-  text-align:center;
+  height: 44px;
+  width: 14px;
 
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  writing-mode:vertical-rl;
-  transform:rotate(180deg);
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
 
-  color:rgba(255,255,255,0.45);
+  writing-mode: vertical-rl;
+  pointer-events: none;        /* never steals clicks */
 }
 
 /* Ticker label spans both columns under the circle */
+
 .stock-label{
   grid-column:1 / span 2;
   grid-row:2;
-  text-align:center;
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  white-space: nowrap;
 }
+  
 
 /* Image stays inside node */
 .stock-node img{
