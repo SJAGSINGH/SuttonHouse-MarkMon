@@ -1074,18 +1074,17 @@ window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 window.COMMISSIONING = true;
 
 function setNode(slot, glow, ticker, msaText, rawSrc){
+    // persist ref_id for this slot (so click knows what to open)
+  item.dataset.refId = String(gridSlots[slot] ?? "");
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
-
-  // persist ref_id for this slot (so click knows what to open)
-  item.dataset.refId = String(gridSlots[slot] ?? "");
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
   // ----------------------------
-  // NODE COLOUR (HALO ONLY)
+  // NODE COLOUR
   // ----------------------------
   if (node){
     node.classList.remove("grey","orange","green","red");
@@ -1093,32 +1092,55 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   }
 
   // ----------------------------
-  // TICKER
+  // TICKER (always visible)
   // ----------------------------
   const tkr = ticker ? String(ticker).toUpperCase() : "—";
   if (label) label.textContent = tkr;
 
   // ----------------------------
-  // MSA LABEL
+  // MSA (always visible)
   // ----------------------------
   const norm = String(msaText || "").toUpperCase();
   const display = norm || "NO STATE";
-  const rawUpper = rawSrc ? String(rawSrc).toUpperCase() : "";
+
+  const raw = (rawSrc == null) ? "" : String(rawSrc).trim();
+  const rawUpper = raw ? raw.toUpperCase() : "";
 
   if (msa){
+    // always show the normalised label in the UI
     msa.textContent = display;
-    msa.classList.remove("msa-auto","msa-man","msa-na");
 
-    if (display === "AUTO") msa.classList.add("msa-auto");
-    else if (display === "MAN") msa.classList.add("msa-man");
-    else msa.classList.add("msa-na");
-
+    // commissioning: keep raw source in tooltip
     if (window.COMMISSIONING && rawUpper){
       msa.title = `msa_src: ${rawUpper}`;
+    } else {
+      msa.title = "";
     }
+
+    // colouring based on NORMALISED state, not raw
+    msa.classList.remove("msa-auto","msa-man","msa-na");
+    if (display === "AUTO") msa.classList.add("msa-auto");
+    else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
+    else msa.classList.add("msa-na");
+  }
+
+  // ----------------------------
+  // TOOLTIP on the CIRCLE + LABEL (commissioning only)
+  // ----------------------------
+  if (node || label){
+    const reasonMap = (window.__NODE_REASON__ || {});
+    const reason = reasonMap[String(slot)] || "";
+
+    const tip = (window.COMMISSIONING)
+      ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
+        + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+        + (reason ? ` | ${reason}` : "")
+      : "";
+
+    if (node)  node.title  = tip;
+    if (label) label.title = tip;
   }
 }
-
 
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
@@ -2287,7 +2309,7 @@ window.applyAllFromState = applyAllFromState;
         if (ts < 1e12) ts = ts * 1000;
 
         const ageMs = Date.now() - ts;
-         console.log("[TS DEBUG]", { now: Date.now(), _server_ts: p._server_ts, ts_ms: ts, ageMs });
+         console.log("[TS DEBUG]", { now: Date.now(), _server_ts: p._server_ts, ageMs: Date.now() - p._server_ts });
         // if clock skew puts it in the future, don't drop it
         if (ageMs > 30 * 60 * 1000) return { ok:false, why:`stale_${Math.round(ageMs)}ms` };
       }
@@ -2340,7 +2362,23 @@ window.handleMacroUpdate = function(payload){
   }
 };
   // ============================================================
- 
+  // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
+  // ============================================================
+  if (socket){
+   socket.on('macro_update', (data) => {
+  triggerPulse();
+
+  // Let the canonical handler normalize + paint
+  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
+  else applyAllFromState(data);
+
+  // Use the normalized last payload if available
+  const p = window.__RSC_LAST || data;
+  rscSetComms("socket.io macro_update", p);
+
+  if (debugOn) refreshDebugNow();
+});
+    }
 
   // ============================================================
 // WARM START (HEALTH)
@@ -2371,39 +2409,19 @@ window.handleMacroUpdate = function(payload){
     // replay SCADA_STATUS (glow + msa + ticker)
     if (stocks.last_scada_by_ref){
       Object.values(stocks.last_scada_by_ref).forEach(msg => {
-    try {
-      msg.type = "SCADA_STATUS";
-      applyScadaStatus(msg);
-    } catch(e){}
-  });
-
+        try { applyScadaStatus(msg); } catch(e){}
+      });
     }
 
-// replay WATCH (ticker visibility + msa label) ✅ safe + deterministic + tooltip preserved
-if (stocks && stocks.last_watch_by_ref && typeof stocks.last_watch_by_ref === "object") {
+    // replay WATCH (ticker visibility + msa label)
+    if (stocks.last_watch_by_ref){
+      Object.values(stocks.last_watch_by_ref).forEach(msg => {
+        try { applyWatch(msg); } catch(e){}
+      });
+    }
 
-  // deterministic order: by numeric ref_id key
-  Object.keys(stocks.last_watch_by_ref)
-    .map(k => String(k))
-    .sort((a,b) => (Number(a) - Number(b)))
-    .forEach((k) => {
-      const msg = stocks.last_watch_by_ref[k];
-      if (!msg || typeof msg !== "object") return;
-
-      // normalise expected fields
-      if (!msg.type) msg.type = "WATCH";
-      if (msg.ref_id == null) msg.ref_id = Number(k);
-
-      if (msg.ticker != null) msg.ticker = String(msg.ticker).toUpperCase();
-      if (msg.status != null) msg.status = String(msg.status).toUpperCase();
-      if (msg.engine != null) msg.engine = String(msg.engine);
-
-      // preserve tooltip / commissioning behaviour
-      try { applyWatch(msg); }
-      catch(e){ console.warn("warmstart applyWatch failed", e, msg); }
-    });
-}
-
+  } catch(e){}
+})();
 
 
   // ============================================================
