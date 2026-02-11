@@ -2070,33 +2070,45 @@ try {
     });
 
     // ============================================================
-    // STOCK LANE (SCADA / WATCH nodes)
-    // ============================================================
-    socket.on("stock_update", (msg) => {
-      try { triggerPulse(); } catch(e){}
+// STOCK LANE (SCADA / WATCH nodes)
+// - Paint ONLY from SCADA_STATUS (authoritative)
+// - WATCH optional (slot/ticker visibility + msa label if you still use it)
+// - Keep SETUP_STATUS only for panel store (no painting, no comms spam)
+// ============================================================
+socket.on("stock_update", (msg) => {
+  try { triggerPulse(); } catch(e){}
 
-      const t = String(msg?.type || "").toUpperCase();
+  const t = String(msg?.type || "").toUpperCase();
 
-      if (t === "SCADA_STATUS") {
-        try { applyScadaStatus(msg); } catch(e){}
-      }
-      else if (t === "WATCH") {
-        try { applyWatch(msg); } catch(e){}
-      }
-      else if (t === "SETUP_STATUS") {
-        // store full setup payload per ref_id (for panel open on click)
-        window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
-        if (msg && msg.ref_id != null) {
-          window.__SETUP_STORE__[String(msg.ref_id)] = msg;
-        }
-      }
+  // ---------- AUTHORITATIVE NODE PAINT ----------
+  if (t === "SCADA_STATUS") {
+    try { applyScadaStatus(msg); } catch(e){}
+    try { rscSetComms("socket.io stock_update SCADA_STATUS", msg); } catch(e){}
+    if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
+    return;
+  }
 
-      try { rscSetComms("socket.io stock_update", msg); } catch(e){}
+  // ---------- OPTIONAL: WATCH (mapping/visibility) ----------
+  if (t === "WATCH") {
+    try { applyWatch(msg); } catch(e){}
+    try { rscSetComms("socket.io stock_update WATCH", msg); } catch(e){}
+    if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
+    return;
+  }
 
-      if (typeof debugOn !== "undefined" && debugOn) {
-        try { refreshDebugNow(); } catch(e){}
-      }
-    });
+  // ---------- KEEP: SETUP store for panel (NO PAINT / NO COMMS) ----------
+  if (t === "SETUP_STATUS") {
+    window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
+    const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
+    if (rid) window.__SETUP_STORE__[rid] = msg;
+    return;
+  }
+
+  // ---------- IGNORE EVERYTHING ELSE ----------
+  // (prevents halos/labels being driven by legacy emitters)
+  // console.log("[STOCK DROP]", t, msg);
+});
+
 
 
   } else {
