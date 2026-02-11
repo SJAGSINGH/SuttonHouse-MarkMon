@@ -834,6 +834,27 @@ body.war-room .scada-card{
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.12);
 }  
+
+  .stock-item{
+  position: relative;   /* anchor for absolute msa label */
+}
+
+/* MSA label pinned to LEFT of the node */
+.msa-label{
+  position: absolute;
+  left: -22px;          /* moves it to the left of the circle */
+  top: 2px;             /* aligns with node top */
+  height: 44px;         /* match node height */
+  width: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
 </style>
 
 </head>
@@ -1039,17 +1060,28 @@ setTerminalStatus('OFFLINE');
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
 
-  if (refToSlot[ref_id] !== undefined) {
-    return refToSlot[ref_id];
+  const n = Number(ref_id);
+  if (!Number.isFinite(n)) return null;
+
+  // ✅ HARD MAP: ref_id 1..GRID_MAX -> slot 0..GRID_MAX-1
+  if (n >= 1 && n <= GRID_MAX) {
+    const idx = n - 1;
+    gridSlots[idx] = n;
+    refToSlot[n] = idx;
+    return idx;
   }
+
+  // fallback (should not happen)
+  if (refToSlot[n] !== undefined) return refToSlot[n];
 
   const idx = gridSlots.findIndex(v => v === null);
   if (idx === -1) return null;
 
-  gridSlots[idx] = ref_id;
-  refToSlot[ref_id] = idx;
+  gridSlots[idx] = n;
+  refToSlot[n] = idx;
   return idx;
 }
+
 function wireNodeClickDebug(){
   document.addEventListener("click", (e) => {
     const node = e.target.closest(".stock-node");
