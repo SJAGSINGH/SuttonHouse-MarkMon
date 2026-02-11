@@ -20,6 +20,10 @@ window.onerror = function (msg, src, line, col, err) {
 // GLOBAL STATE (must exist before any JS uses it)
 let secretMode = false;
 let founderMode = false;
+// ==========================================
+// SETUP STORE (per ref_id)
+// ==========================================
+window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};  
 </script>
 
   <!-- Styles -->
@@ -2028,6 +2032,13 @@ try {
       else if (t === "WATCH") {
         try { applyWatch(msg); } catch(e){}
       }
+      else if (t === "SETUP_STATUS") {
+        // store full setup payload per ref_id (for panel open on click)
+        window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
+        if (msg && msg.ref_id != null) {
+          window.__SETUP_STORE__[String(msg.ref_id)] = msg;
+        }
+      }
 
       try { rscSetComms("socket.io stock_update", msg); } catch(e){}
 
@@ -2035,6 +2046,7 @@ try {
         try { refreshDebugNow(); } catch(e){}
       }
     });
+
 
   } else {
     console.log("Socket.IO not loaded; UI will rely on warm start / health fetch.");
@@ -2361,6 +2373,25 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
+document.addEventListener("click", function(e){
+
+  const node = e.target.closest(".stock-node");
+  if (!node) return;
+
+  // founder only
+  if (!secretMode) return;
+
+  const item = node.closest(".stock-item");
+  if (!item) return;
+
+  const slot = item.getAttribute("data-slot");
+  if (!slot) return;
+
+  const setup = window.__SETUP_STORE__?.[String(slot)];
+  if (!setup) return;
+
+  openSetupPanel(setup);
+});
 
 
 // ============================================================
