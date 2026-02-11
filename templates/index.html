@@ -1074,17 +1074,18 @@ window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 window.COMMISSIONING = true;
 
 function setNode(slot, glow, ticker, msaText, rawSrc){
-    // persist ref_id for this slot (so click knows what to open)
-  item.dataset.refId = String(gridSlots[slot] ?? "");
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
+
+  // persist ref_id for this slot (so click knows what to open)
+  item.dataset.refId = String(gridSlots[slot] ?? "");
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
   // ----------------------------
-  // NODE COLOUR
+  // NODE COLOUR (halo only)
   // ----------------------------
   if (node){
     node.classList.remove("grey","orange","green","red");
@@ -1107,7 +1108,6 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   const rawUpper = raw ? raw.toUpperCase() : "";
 
   if (msa){
-    // always show the normalised label in the UI
     msa.textContent = display;
 
     // commissioning: keep raw source in tooltip
@@ -1117,7 +1117,6 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
       msa.title = "";
     }
 
-    // colouring based on NORMALISED state, not raw
     msa.classList.remove("msa-auto","msa-man","msa-na");
     if (display === "AUTO") msa.classList.add("msa-auto");
     else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
@@ -1125,22 +1124,21 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   }
 
   // ----------------------------
-  // TOOLTIP on the CIRCLE + LABEL (commissioning only)
+  // TOOLTIP on node + label (commissioning only)
   // ----------------------------
-  if (node || label){
-    const reasonMap = (window.__NODE_REASON__ || {});
-    const reason = reasonMap[String(slot)] || "";
+  const reasonMap = (window.__NODE_REASON__ || {});
+  const reason = reasonMap[String(slot)] || "";
 
-    const tip = (window.COMMISSIONING)
-      ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
-        + (rawUpper ? ` | msa_src:${rawUpper}` : "")
-        + (reason ? ` | ${reason}` : "")
-      : "";
+  const tip = (window.COMMISSIONING)
+    ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
+      + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+      + (reason ? ` | ${reason}` : "")
+    : "";
 
-    if (node)  node.title  = tip;
-    if (label) label.title = tip;
-  }
+  if (node)  node.title  = tip;
+  if (label) label.title = tip;
 }
+
 
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
@@ -1193,18 +1191,19 @@ function applyWatch(msg){
 
   const node = item.querySelector(".stock-node");
 
+  // preserve current halo (SCADA_STATUS owns halo)
   const glow =
     node?.classList.contains("green")  ? "green"  :
     node?.classList.contains("orange") ? "orange" :
     node?.classList.contains("red")    ? "red"    :
     "grey";
 
+  const src = String(msg.msa_src || "").trim().toUpperCase();
   const msa =
-    String(msg.msa_src || "").toUpperCase() === "AUTO"   ? "AUTO" :
-    String(msg.msa_src || "").toUpperCase() === "MANUAL" ? "MAN"  :
+    (src === "AUTO" || src === "SCADA") ? "AUTO" :
+    (src === "MANUAL" || src === "MAN") ? "MAN"  :
     "NO STATE";
 
-  // ✅ PASS RAW SOURCE (if WATCH has it)
   setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 }
 
@@ -2383,6 +2382,9 @@ window.handleMacroUpdate = function(payload){
   // ============================================================
 // WARM START (HEALTH)
 // ============================================================
+// ============================================================
+// WARM START (HEALTH) — macro first, then deterministic node replay ✅
+// ============================================================
 (async function warmStart(){
   try{
     const r = await fetch('/health', { cache:'no-store' });
@@ -2395,7 +2397,7 @@ window.handleMacroUpdate = function(payload){
     const state = j.state;
 
     // ---- Macro first (authoritative) ----
-    rscSetComms("warmstart /health", state);
+    try { rscSetComms("warmstart /health", state); } catch(e){}
 
     if (typeof window.handleMacroUpdate === "function") {
       window.handleMacroUpdate(state);
@@ -2404,23 +2406,41 @@ window.handleMacroUpdate = function(payload){
     }
 
     // ---- Stock nodes (SCADA + WATCH replay) ----
-    const stocks = state?.stocks || {};
+    const stocks = (state && state.stocks && typeof state.stocks === "object") ? state.stocks : {};
 
-    // replay SCADA_STATUS (glow + msa + ticker)
-    if (stocks.last_scada_by_ref){
-      Object.values(stocks.last_scada_by_ref).forEach(msg => {
-        try { applyScadaStatus(msg); } catch(e){}
-      });
+    // 1) SCADA first (defines halo + msa + ticker)
+    if (stocks.last_scada_by_ref && typeof stocks.last_scada_by_ref === "object"){
+      Object.keys(stocks.last_scada_by_ref)
+        .sort((a,b) => (Number(a) - Number(b)))
+        .forEach((k) => {
+          const msg = stocks.last_scada_by_ref[k];
+          if (!msg || typeof msg !== "object") return;
+
+          if (!msg.type) msg.type = "SCADA_STATUS";
+          if (msg.ref_id == null) msg.ref_id = Number(k);
+
+          try { applyScadaStatus(msg); } catch(e){ console.warn("warmstart applyScadaStatus failed", e, msg); }
+        });
     }
 
-    // replay WATCH (ticker visibility + msa label)
-    if (stocks.last_watch_by_ref){
-      Object.values(stocks.last_watch_by_ref).forEach(msg => {
-        try { applyWatch(msg); } catch(e){}
-      });
+    // 2) WATCH second (adds watch info without owning halo)
+    if (stocks.last_watch_by_ref && typeof stocks.last_watch_by_ref === "object"){
+      Object.keys(stocks.last_watch_by_ref)
+        .sort((a,b) => (Number(a) - Number(b)))
+        .forEach((k) => {
+          const msg = stocks.last_watch_by_ref[k];
+          if (!msg || typeof msg !== "object") return;
+
+          if (!msg.type) msg.type = "WATCH";
+          if (msg.ref_id == null) msg.ref_id = Number(k);
+
+          try { applyWatch(msg); } catch(e){ console.warn("warmstart applyWatch failed", e, msg); }
+        });
     }
 
-  } catch(e){}
+  } catch(e){
+    console.warn("warmstart failed", e);
+  }
 })();
 
 
