@@ -1074,17 +1074,18 @@ window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 window.COMMISSIONING = true;
 
 function setNode(slot, glow, ticker, msaText, rawSrc){
-    // persist ref_id for this slot (so click knows what to open)
-  item.dataset.refId = String(gridSlots[slot] ?? "");
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
+
+  // persist ref_id for this slot (so click knows what to open)
+  item.dataset.refId = String(gridSlots[slot] ?? "");
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
   // ----------------------------
-  // NODE COLOUR
+  // NODE COLOUR (HALO ONLY)
   // ----------------------------
   if (node){
     node.classList.remove("grey","orange","green","red");
@@ -1092,55 +1093,32 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   }
 
   // ----------------------------
-  // TICKER (always visible)
+  // TICKER
   // ----------------------------
   const tkr = ticker ? String(ticker).toUpperCase() : "—";
   if (label) label.textContent = tkr;
 
   // ----------------------------
-  // MSA (always visible)
+  // MSA LABEL
   // ----------------------------
   const norm = String(msaText || "").toUpperCase();
   const display = norm || "NO STATE";
-
-  const raw = (rawSrc == null) ? "" : String(rawSrc).trim();
-  const rawUpper = raw ? raw.toUpperCase() : "";
+  const rawUpper = rawSrc ? String(rawSrc).toUpperCase() : "";
 
   if (msa){
-    // always show the normalised label in the UI
     msa.textContent = display;
+    msa.classList.remove("msa-auto","msa-man","msa-na");
 
-    // commissioning: keep raw source in tooltip
+    if (display === "AUTO") msa.classList.add("msa-auto");
+    else if (display === "MAN") msa.classList.add("msa-man");
+    else msa.classList.add("msa-na");
+
     if (window.COMMISSIONING && rawUpper){
       msa.title = `msa_src: ${rawUpper}`;
-    } else {
-      msa.title = "";
     }
-
-    // colouring based on NORMALISED state, not raw
-    msa.classList.remove("msa-auto","msa-man","msa-na");
-    if (display === "AUTO") msa.classList.add("msa-auto");
-    else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
-    else msa.classList.add("msa-na");
-  }
-
-  // ----------------------------
-  // TOOLTIP on the CIRCLE + LABEL (commissioning only)
-  // ----------------------------
-  if (node || label){
-    const reasonMap = (window.__NODE_REASON__ || {});
-    const reason = reasonMap[String(slot)] || "";
-
-    const tip = (window.COMMISSIONING)
-      ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
-        + (rawUpper ? ` | msa_src:${rawUpper}` : "")
-        + (reason ? ` | ${reason}` : "")
-      : "";
-
-    if (node)  node.title  = tip;
-    if (label) label.title = tip;
   }
 }
+
 
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
@@ -2409,19 +2387,33 @@ window.handleMacroUpdate = function(payload){
     // replay SCADA_STATUS (glow + msa + ticker)
     if (stocks.last_scada_by_ref){
       Object.values(stocks.last_scada_by_ref).forEach(msg => {
-        try { applyScadaStatus(msg); } catch(e){}
-      });
+    try {
+      msg.type = "SCADA_STATUS";
+      applyScadaStatus(msg);
+    } catch(e){}
+  });
+
     }
 
     // replay WATCH (ticker visibility + msa label)
-    if (stocks.last_watch_by_ref){
-      Object.values(stocks.last_watch_by_ref).forEach(msg => {
-        try { applyWatch(msg); } catch(e){}
-      });
-    }
+if (stocks && stocks.last_watch_by_ref && typeof stocks.last_watch_by_ref === "object") {
 
-  } catch(e){}
-})();
+  // deterministic order: by ref_id key (numeric)
+  Object.keys(stocks.last_watch_by_ref)
+    .sort((a,b) => (Number(a) - Number(b)))
+    .forEach((k) => {
+      const msg = stocks.last_watch_by_ref[k];
+      if (!msg || typeof msg !== "object") return;
+
+      // ensure type exists (some applyWatch paths expect it)
+      if (!msg.type) msg.type = "WATCH";
+
+      // ensure ref_id exists (your slot allocator needs it)
+      if (msg.ref_id == null) msg.ref_id = Number(k);
+
+      try { applyWatch(msg); } catch(e){ console.warn("warmstart applyWatch failed", e, msg); }
+    });
+}
 
 
   // ============================================================
