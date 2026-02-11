@@ -1216,17 +1216,27 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
     else msa.classList.add("msa-na");
   }
 
-  // ----------------------------
-  // TOOLTIP on node + label (commissioning only)
-  // ----------------------------
-  const reasonMap = (window.__NODE_REASON__ || {});
-  const reason = reasonMap[String(slot)] || "";
+ // ----------------------------
+// TOOLTIP on node + label (commissioning only)
+// ----------------------------
+const reasonMap = (window.__NODE_REASON__ || {});
+const reason = reasonMap[String(slot)] || "";
 
-  const tip = (window.COMMISSIONING)
-    ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
-      + (rawUpper ? ` | msa_src:${rawUpper}` : "")
-      + (reason ? ` | ${reason}` : "")
-    : "";
+// Best-effort: capture last source from reason string (SRC:...)
+// Falls back to msg.type if you pass it elsewhere later.
+let src = "";
+const m = reason.match(/SRC:([A-Z_]+)/);
+if (m && m[1]) src = m[1];
+
+const tip = (window.COMMISSIONING)
+  ? `SLOT:${slot}`
+    + ` | TICKER:${tkr}`
+    + ` | GLOW:${(glow || "grey")}`
+    + ` | MSA:${display}`
+    + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+    + (src ? ` | SRC:${src}` : "")
+    + (reason ? ` | ${reason}` : "")
+  : "";
 
   if (node)  node.title  = tip;
   if (label) label.title = tip;
@@ -1262,16 +1272,26 @@ function applyScadaStatus(msg){
     (src === "MANUAL" || src === "MAN") ? "MAN" :
     "NO STATE";
 
-  // store reason for tooltip (per slot)
-  window.__NODE_REASON__ = window.__NODE_REASON__ || {};
-  window.__NODE_REASON__[String(slot)] =
-    `type:${(msg.type || "—")} tf:${(msg.tf || "—")} `
-    + `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} `
-    + `setup_any:${msg.setup_any} setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} `
-    + `signal:${msg.signal}`;
+ // store reason for tooltip (per slot)
+window.__NODE_REASON__ = window.__NODE_REASON__ || {};
 
-  // pass RAW SOURCE so commissioning can show it in tooltip
-  setNode(slot, glow, msg.ticker, msa, msg.msa_src);
+// identify payload source cleanly
+const payloadSource = String(msg.type || "—").toUpperCase();
+
+window.__NODE_REASON__[String(slot)] =
+  `SRC:${payloadSource} `
+  + `| tf:${(msg.tf || "—")} `
+  + `| msa_src:${(msg.msa_src ?? "—")} `
+  + `| msa_ok:${msg.msa_ok} `
+  + `| msa_inzone:${msg.msa_inzone} `
+  + `| setup_any:${msg.setup_any} `
+  + `| setup_D:${msg.setup_D} `
+  + `| setup_4H:${msg.setup_4H} `
+  + `| signal:${msg.signal}`;
+
+// pass RAW SOURCE so commissioning can show it in tooltip
+setNode(slot, glow, msg.ticker, msa, msg.msa_src);
+
 }
 
 
