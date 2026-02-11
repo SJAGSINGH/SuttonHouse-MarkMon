@@ -737,7 +737,7 @@ body.war-room .scada-card{
   align-items:center;
   justify-content:center;
   min-height:46px;
-  position: relative;   /* 🔑 anchor point */
+  position:relative;
 }
 
 /* Node sits in column 2, row 1 */
@@ -750,42 +750,92 @@ body.war-room .scada-card{
   background:#1e1e1e;
   border:1px solid rgba(255,255,255,0.12);
   position:relative;
-  z-index:1;
+  z-index:2;              /* keep above halo */
   overflow:hidden;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* MSA label sits in column 1, row 1 (left of node) */
-.msa-label{
-  position:absolute;
+/* image option stays */
+.stock-node img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+  z-index:3;
+  pointer-events:none;
+}
 
-  /* centre-left of the circle */
-  left:-1px;
-  top:50%;
-  transform: translateY(-50%) rotate(180deg);
+/* halo layer (behind node) */
+.stock-node::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border-radius:50%;
+  z-index:-1;
+  opacity:0;
+  filter:blur(7px);
+  transition:opacity .25s ease;
+}
+
+/* SETUP — amber halo */
+.stock-node.orange::after{
+  opacity:1;
+  background:radial-gradient(circle,
+    rgba(255,165,0,.55) 0%,
+    rgba(255,165,0,.30) 45%,
+    rgba(255,165,0,0)   72%
+  );
+}
+
+/* SIGNAL — lime halo */
+.stock-node.green::after{
+  opacity:1;
+  background:radial-gradient(circle,
+    rgba(80,255,120,.65) 0%,
+    rgba(80,255,120,.35) 45%,
+    rgba(80,255,120,0)   72%
+  );
+}
+
+/* neutral */
+.stock-node.grey::after{ opacity:0; }
+
+/* ✅ MSA label: use GRID placement (NO absolute) so it never drifts */
+.msa-label{
+  grid-column:1;
+  grid-row:1;
 
   height:44px;
-  width:14px;
+  width:16px;
 
   display:flex;
   align-items:center;
   justify-content:center;
 
   writing-mode: vertical-rl;
+  transform: rotate(180deg);
+
   font-size:9px;
   letter-spacing:1.1px;
   text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
 
   pointer-events:none;
-  z-index:4;            /* above node + halo */
+  z-index:4;
 }
 
+/* MSA label colours */
+.msa-auto{ color: var(--lime) !important; text-shadow:0 0 10px rgba(50,205,50,.25); }
+.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
+.msa-na  { color: var(--red) !important; text-shadow:0 0 10px rgba(255,68,68,.22); }
 
-/* Ticker label spans both columns under the circle */
-
+/* ✅ Ticker label: explicitly place it under node, spanning both columns */
 .stock-label{
+  grid-column:1 / span 2;
+  grid-row:2;
+
   font-size:11px;
   letter-spacing:2px;
   text-transform:uppercase;
@@ -794,9 +844,13 @@ body.war-room .scada-card{
   width:100%;
   text-align:center;
 
-  margin-top:4px;
+  margin-top:0;
   pointer-events:none;
+
+  position:relative;
+  z-index:5;              /* never behind circle */
 }
+
 
   
 
