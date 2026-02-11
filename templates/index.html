@@ -713,68 +713,36 @@ body.war-room .scada-card{
 
 
 /* ============================
-   WATCHLIST: 20 instrument nodes
+   WATCHLIST GRID
 ============================ */
 .stock-grid{
   display:grid;
-  grid-template-columns:repeat(10, 1fr); /* 10 across = 2 rows */
+  grid-template-columns:repeat(10, 1fr);
   gap:18px 14px;
   margin-top:14px;
   align-items:start;
 }
 
 /* ============================
-   STOCK ITEM (LOCKED LAYOUT)
-   MSA label is a real column (no drift)
+   STOCK ITEM LAYOUT (LOCKED)
+   2 columns: [MSA 16px] [NODE 44px]
+   2 rows:    [circle row] [ticker row]
 ============================ */
 .stock-item{
   display:grid;
-  grid-template-columns:16px 44px; /* MSA rail + node */
-  grid-template-rows:44px auto;    /* node row + ticker row */
-  column-gap:8px;
+  grid-template-columns:16px 44px;
+  grid-template-rows:44px auto;
+  column-gap:6px;
   row-gap:8px;
   align-items:center;
   justify-content:center;
+  min-height:46px;
 }
 
-/* MSA label colours */
-.msa-label{ color: rgba(255,255,255,0.45); }
-.msa-auto{ color: var(--lime) !important; text-shadow:0 0 10px rgba(50,205,50,.25); }
-.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
-.msa-na  { color: var(--red) !important; text-shadow:0 0 10px rgba(255,68,68,.22); }
-
-/* MSA label (LOCKED to left of node) */
-.msa-label{
-  position:static !important;      /* kills absolute drift */
-  grid-column:1;
-  grid-row:1;
-
-  width:16px;
-  height:44px;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  font-size:9px;
-  letter-spacing:1.1px;
-  text-transform:uppercase;
-  text-align:center;
-
-  writing-mode:vertical-rl;
-  transform:rotate(180deg);
-}
-
-/* ============================
-   STOCK NODE — IMAGE + HALO
-   (UNCHANGED HALO SYSTEM)
-============================ */
-
-/* base node */
+/* Node sits in column 2, row 1 */
 .stock-node{
   grid-column:2;
   grid-row:1;
-
   width:44px;
   height:44px;
   border-radius:50%;
@@ -782,23 +750,54 @@ body.war-room .scada-card{
   border:1px solid rgba(255,255,255,0.12);
   position:relative;
   z-index:1;
-  overflow:hidden;               /* CRITICAL for images */
+  overflow:hidden;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* logo/image inside node */
+/* MSA label sits in column 1, row 1 (left of node) */
+.msa-label{
+  grid-column:1;
+  grid-row:1;
+  width:16px;
+  height:44px;
+
+  font-size:9px;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+  text-align:center;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
+
+  color:rgba(255,255,255,0.45);
+}
+
+/* Ticker label spans both columns under the circle */
+.stock-label{
+  grid-column:1 / span 2;
+  grid-row:2;
+  text-align:center;
+}
+
+/* Image stays inside node */
 .stock-node img{
   width:100%;
   height:100%;
-  object-fit:cover;              /* or 'contain' */
+  object-fit:cover;
   border-radius:50%;
-  z-index:2;                     /* above halo */
+  z-index:2;
   pointer-events:none;
 }
 
-/* halo layer (behind node) */
+/* ============================
+   HALO (KEEP)
+============================ */
 .stock-node::after{
   content:"";
   position:absolute;
@@ -810,48 +809,22 @@ body.war-room .scada-card{
   transition:opacity .25s ease;
 }
 
-/* SETUP — amber halo */
 .stock-node.orange::after{
   opacity:1;
-  background:radial-gradient(
-    circle,
-    rgba(255,165,0,.55) 0%,
-    rgba(255,165,0,.30) 45%,
-    rgba(255,165,0,0)   72%
-  );
+  background:radial-gradient(circle, rgba(255,165,0,.55) 0%, rgba(255,165,0,.30) 45%, rgba(255,165,0,0) 72%);
 }
 
-/* SIGNAL — lime halo */
 .stock-node.green::after{
   opacity:1;
-  background:radial-gradient(
-    circle,
-    rgba(80,255,120,.65) 0%,
-    rgba(80,255,120,.35) 45%,
-    rgba(80,255,120,0)   72%
-  );
+  background:radial-gradient(circle, rgba(80,255,120,.65) 0%, rgba(80,255,120,.35) 45%, rgba(80,255,120,0) 72%);
 }
 
-/* neutral */
-.stock-node.grey::after{
-  opacity:0;
-}
+.stock-node.grey::after{ opacity:0; }
 
-/* ticker under node (spans both columns) */
-.stock-label{
-  grid-column:1 / span 2;
-  grid-row:2;
-  text-align:center;
-}
-
-  .stock-node img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:50%;
-  z-index:2;
-  pointer-events:none;
-}
+/* MSA colours (KEEP) */
+.msa-auto{ color: var(--lime) !important;   text-shadow:0 0 10px rgba(50,205,50,.25); }
+.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
+.msa-na  { color: var(--red) !important;    text-shadow:0 0 10px rgba(255,68,68,.22); }
 
 
 </style>
