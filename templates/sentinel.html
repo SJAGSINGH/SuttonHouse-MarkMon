@@ -27,36 +27,19 @@
     </div>
   </div>
 
- <div class="stock-grid" id="stock-grid">
-  {% for i in range(20) %}
-    <div class="stock-item" data-slot="{{ i }}">
-      <div class="stock-row">
-      <div class="msa-label mono">—</div>
-    <div class="stock-node grey"></div>
+  <div class="stock-grid" id="stock-grid">
+    {% for i in range(20) %}
+      <div class="stock-item" data-slot="{{ i }}">
+        <div class="stock-row">
+          <div class="msa-label mono">—</div>
+          <div class="stock-node grey"></div>
+        </div>
+        <div class="stock-label mono">—</div>
+      </div>
+    {% endfor %}
   </div>
-  <div class="stock-label mono">—</div>
-</div>
-{% endfor %}
-</div>
-
 
 </div>
-
-
-  <div id="panel-meta" style="font-size:11px;color:#888;margin-bottom:10px;"></div>
-
-  <div id="panel-facts" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:11px;"></div>
-
-  <hr style="border:none;border-top:1px solid #222;margin:12px 0;">
-
-  <div id="panel-arrays" style="display:flex;flex-direction:column;gap:10px;"></div>
-
-  <pre id="panel-raw" style="margin-top:12px;font-size:10px;color:#666;white-space:pre-wrap;"></pre>
-</div>
-
-
-
-
 
 <!-- ============================
      SCADA DEBUG PANEL
