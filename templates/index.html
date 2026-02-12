@@ -864,6 +864,203 @@ body.war-room .scada-card{
   z-index:5;                     /* ensures never behind node */
   transform: translateX(10px);
 }
+/* ============================
+   Commision Rail
+============================ */  
+.commission-rail{
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+}
+
+.commission-rail.hidden{ display:none; }
+
+.cr-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:10px;
+}
+
+.cr-title{
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.9);
+}
+
+.cr-meta{
+  font-size:11px;
+  color:rgba(255,255,255,0.45);
+}
+
+.cr-grid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap:10px;
+}
+
+.cr-box{
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  padding:10px;
+  min-height:54px;
+}
+
+.cr-box .k{
+  font-size:9px;
+  letter-spacing:1.3px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  margin-bottom:6px;
+}
+
+.cr-box .v{
+  font-size:12px;
+  color:rgba(255,255,255,0.85);
+  word-break: break-word;
+}
+
+.cr-wide{
+  grid-column: 1 / -1;
+}
+
+.mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:11px;
+  color:rgba(255,255,255,0.75);
+}
+/* ============================
+   NODE DETAIL PANEL
+============================ */
+.node-panel{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: rgba(10,10,10,0.92);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+  border-radius: 14px;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.92);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+.node-panel.hidden{ display:none; }
+
+.node-panel__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 12px 12px 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.node-panel__title{
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.95);
+}
+
+.node-panel__meta{
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.node-panel__close{
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.80);
+  cursor:pointer;
+}
+
+.node-panel__body{ padding: 12px; }
+
+.np-facts{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.70);
+}
+.np-facts .k{ color: rgba(255,255,255,0.45); }
+.np-facts .v{ color: rgba(255,255,255,0.92); }
+
+.np-arrays{ display:flex; flex-direction:column; gap:10px; }
+
+.np-arr-row{
+  display:grid;
+  grid-template-columns: 70px 1fr;
+  align-items:center;
+  gap:10px;
+}
+
+.np-arr-label{
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.55);
+}
+
+.np-arr-cells{
+  display:grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap:6px;
+}
+
+.np-cell{
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+/* “latest” = first value */
+.np-cell.latest{
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 0 14px rgba(255,255,255,0.08);
+}
+
+/* value mapping (neutral / 1 / 2) */
+.np-cell.v0{ background: rgba(255,255,255,0.04); }
+
+.np-cell.v1{ background: rgba(80,255,120,0.22); border-color: rgba(80,255,120,0.22); }
+.np-cell.v2{ background: rgba(255,165,0,0.22); border-color: rgba(255,165,0,0.22); }
+
+/* special: MSA meaning (you said 1 = DOWN) */
+.np-cell.msa1{ background: rgba(255,68,68,0.22); border-color: rgba(255,68,68,0.22); }  /* DOWN */
+.np-cell.msa2{ background: rgba(80,255,120,0.22); border-color: rgba(80,255,120,0.22); } /* UP */
+
+.np-raw{
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.75);
+  max-height: 180px;
+  overflow:auto;
+}
 
 </style>
 
@@ -1065,7 +1262,55 @@ setTerminalStatus('OFFLINE');
     document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
- 
+
+ // ============================
+// STORES
+// ============================
+//window.__SCADA_STORE__ = window.__SCADA_STORE__ || {}; // per ref_id
+//window.__WATCH_STORE__ = window.__WATCH_STORE__ || {}; // per ref_id
+   
+ function showCommissionRail(slot){
+  if (!window.COMMISSIONING) return;
+
+  const rail = document.getElementById("commission-rail");
+  if (!rail) return;
+
+  // Prefer SCADA_STATUS as truth for details
+  const scadaStore = (window.__SCADA_STORE__ || {}); // add this store in applyScadaStatus
+  const setupStore = (window.__SETUP_STORE__ || {});
+  const sc = scadaStore[String(slot)] || null;
+  const st = setupStore[String(slot)] || null;
+
+  // Fallback: reason string
+  const reason = (window.__NODE_REASON__ || {})[String(slot)] || "";
+
+  const ticker = sc?.ticker || st?.ticker || "—";
+  const tf     = sc?.tf || st?.tf || "—";
+  const src    = sc?.type || st?.type || (reason.match(/SRC:([A-Z_]+)/)?.[1] || "—");
+
+  document.getElementById("cr-title").textContent = `SLOT ${slot} — ${ticker}`;
+  document.getElementById("cr-meta").textContent  = sc?.time ? `time:${sc.time}` : "";
+
+  document.getElementById("cr-src").textContent    = src;
+  document.getElementById("cr-tf").textContent     = tf;
+
+  // Keep these defensive (msg fields vary by type)
+  const msaTxt = `ok:${sc?.msa_ok ?? "—"} inzone:${sc?.msa_inzone ?? "—"} src:${sc?.msa_src ?? "—"}`;
+  document.getElementById("cr-msa").textContent = msaTxt;
+
+  const setupTxt = `D:${sc?.setup_D ?? "—"} 4H:${sc?.setup_4H ?? "—"}`;
+  document.getElementById("cr-setup").textContent = setupTxt;
+
+  document.getElementById("cr-signal").textContent = `${sc?.signal ?? "—"}`;
+
+  const engTxt = `D:${sc?.setup_engine_D ?? "—"} 4H:${sc?.setup_engine_4H ?? "—"}`;
+  document.getElementById("cr-engine").textContent = engTxt;
+
+  document.getElementById("cr-dump").textContent = sc?.arr_dump || "—";
+
+  rail.classList.remove("hidden");
+}
+
 
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
@@ -1218,11 +1463,19 @@ window.__NODE_REASON__[String(slot)] =
   + `| setup_D:${msg.setup_D} `
   + `| setup_4H:${msg.setup_4H} `
   + `| signal:${msg.signal}`;
+  
+window.__SCADA_STORE__ = window.__SCADA_STORE__ || {};
+if (msg && msg.ref_id != null) window.__SCADA_STORE__[String(msg.ref_id)] = msg;
 
 // pass RAW SOURCE so commissioning can show it in tooltip
 setNode(slot, glow, msg.ticker, msa, msg.msa_src);
 
 }
+    
+item.addEventListener("click", () => {
+  const slot = item.getAttribute("data-slot");
+  showCommissionRail(slot);
+});
 
 
 function applyWatch(msg){
@@ -2054,9 +2307,16 @@ socket.on("stock_update", (msg) => {
     return;
   }
 
-  // ---------- IGNORE EVERYTHING ELSE ----------
-  // (prevents halos/labels being driven by legacy emitters)
-  // console.log("[STOCK DROP]", t, msg);
+ // optional (if you re-enable later)
+    window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
+    if (ref) window.__SETUP_STORE__[ref] = msg;
+  }
+
+  try { rscSetComms("socket.io stock_update", msg); } catch(e){}
+
+  if (typeof debugOn !== "undefined" && debugOn) {
+    try { refreshDebugNow(); } catch(e){}
+  }
 });
 
 
@@ -2068,6 +2328,137 @@ socket.on("stock_update", (msg) => {
   console.log("Socket init failed", e);
 }
 
+// ============================
+// NODE PANEL (open on click)
+// ============================
+(function(){
+  const panel = document.getElementById("node-panel");
+  const title = document.getElementById("np-title");
+  const meta  = document.getElementById("np-meta");
+  const facts = document.getElementById("np-facts");
+  const rawEl = document.getElementById("np-raw");
+  const close = document.getElementById("np-close");
+
+  if (!panel || !close) return;
+
+  close.addEventListener("click", () => panel.classList.add("hidden"));
+
+  function parseArrDump(s){
+    // "IND_X;0;0;1...|MSA;2;2..."
+    const out = {};
+    if (!s || typeof s !== "string") return out;
+
+    s.split("|").forEach(chunk => {
+      const parts = chunk.split(";");
+      const key = (parts.shift() || "").trim();
+      if (!key) return;
+      out[key] = parts.map(x => {
+        const n = parseInt(String(x).trim(), 10);
+        return Number.isFinite(n) ? n : 0;
+      });
+    });
+    return out;
+  }
+
+  function paintCells(key, vals){
+    const host = document.getElementById(`np-${key}`);
+    if (!host) return;
+
+    const COLS = 8;
+    host.innerHTML = "";
+
+    for (let i = 0; i < COLS; i++){
+      const v = (vals && vals[i] != null) ? vals[i] : 0;
+
+      const cell = document.createElement("div");
+      cell.classList.add("np-cell");
+      if (i === 0) cell.classList.add("latest");
+
+      if (key === "MSA"){
+        // your rule: 1 = DOWN (red), 2 = UP (green), else neutral
+        if (v === 1) cell.classList.add("msa1");
+        else if (v === 2) cell.classList.add("msa2");
+        else cell.classList.add("v0");
+      } else {
+        if (v === 1) cell.classList.add("v1");
+        else if (v === 2) cell.classList.add("v2");
+        else cell.classList.add("v0");
+      }
+
+      host.appendChild(cell);
+    }
+  }
+
+  function setFacts(obj){
+    const rows = [
+      ["type", obj?.type ?? "—"],
+      ["tf", obj?.tf ?? "—"],
+      ["msa_src", obj?.msa_src ?? "—"],
+      ["msa_ok", String(obj?.msa_ok)],
+      ["msa_inzone", String(obj?.msa_inzone)],
+      ["setup_D", String(obj?.setup_D)],
+      ["setup_4H", String(obj?.setup_4H)],
+      ["signal", String(obj?.signal)],
+    ];
+
+    facts.innerHTML = rows.map(([k,v]) =>
+      `<div class="k">${k}</div><div class="v">${v}</div>`
+    ).join("");
+  }
+
+  function openPanelForSlot(slot){
+    const ref = String(slot);
+
+    const sc = (window.__SCADA_STORE__ || {})[ref] || null;
+    const wa = (window.__WATCH_STORE__ || {})[ref] || null;
+    const se = (window.__SETUP_STORE__ || {})[ref] || null;
+
+    const tkr = sc?.ticker || wa?.ticker || "—";
+    const tf  = sc?.tf || "—";
+
+    title.textContent = `SLOT ${ref} — ${tkr}`;
+    meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
+
+    // prefer SCADA for facts
+    const base = sc || wa || {};
+    setFacts(base);
+
+    // arrays (SCADA arr_dump)
+    const arrs = parseArrDump(sc?.arr_dump);
+    paintCells("IND_X", arrs.IND_X);
+    paintCells("IND_Y", arrs.IND_Y);
+    paintCells("INDX_DIV", arrs.INDX_DIV);
+    paintCells("MSA", arrs.MSA);
+    paintCells("JR", arrs.JR);
+
+    // raw commissioning view (optional)
+    const showRaw = !!window.COMMISSIONING;
+    rawEl.classList.toggle("hidden", !showRaw);
+    if (showRaw){
+      rawEl.textContent =
+        "SCADA:\n" + JSON.stringify(sc, null, 2) +
+        "\n\nWATCH:\n" + JSON.stringify(wa, null, 2) +
+        (se ? "\n\nSETUP:\n" + JSON.stringify(se, null, 2) : "");
+    }
+
+    panel.classList.remove("hidden");
+  }
+
+  // click binding: each .stock-item should have data-slot="1..20"
+  document.addEventListener("click", (e) => {
+    const item = e.target.closest(".stock-item");
+    if (!item) return;
+
+    // only in secret mode OR commissioning (your call)
+    if (!(window.secretMode || window.COMMISSIONING)) return;
+
+    const slot = item.getAttribute("data-slot") || item.dataset.slot;
+    if (!slot) return;
+
+    openPanelForSlot(slot);
+  });
+
+})();
 
 
 
