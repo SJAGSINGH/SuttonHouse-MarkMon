@@ -907,7 +907,7 @@ body.war-room .scada-card{
 ========================================= */
 #node-panel {
   position: fixed;
-  top: 100px;              /* push below macro row */
+  top: 225px;              /* push below macro row */
   left: 20px;              /* pull away from edge */
   width: 420px;
   max-height: 420px;        /* don't take full screen */
@@ -941,6 +941,123 @@ body.war-room .scada-card{
 /* MSA rule colours (your doctrine) */
 .np-cell.msa1 { background: rgba(255, 60, 60, .55); }  /* 1 = DOWN */
 .np-cell.msa2 { background: rgba(60, 255, 140, .55); } /* 2 = UP */
+
+.commission-rail.hidden { display:none; }
+
+.commission-rail{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid rgba(31,166,122,.25);
+  border-radius:14px;
+  background:rgba(0,0,0,.22);
+}
+
+.cr-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.cr-title{
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--lime);
+}
+
+.cr-meta{
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.55);
+  flex:1;
+  text-align:left;
+}
+
+.cr-close{
+  background:transparent;
+  border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.6);
+  font-size:10px;
+  padding:6px 10px;
+  border-radius:10px;
+  cursor:pointer;
+}
+.cr-close:hover{ border-color:rgba(31,166,122,.35); color:rgba(255,255,255,.8); }
+
+.cr-grid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+.cr-box{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:10px;
+  background:rgba(0,0,0,.15);
+}
+.cr-box .k{
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.4);
+  margin-bottom:6px;
+}
+.cr-box .v{ font-size:11px; color:rgba(255,255,255,.85); }
+.cr-wide{ grid-column: 1 / -1; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+.cr-arrays{
+  display:grid;
+  gap:10px;
+}
+
+.arr-row{
+  display:grid;
+  grid-template-columns: 90px 1fr 60px;
+  gap:10px;
+  align-items:center;
+}
+
+.arr-name{
+  font-size:10px;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.55);
+}
+
+.arr-strip{
+  display:grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap:6px;
+}
+
+.arr-cell{
+  height:10px;
+  border-radius:6px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.arr-cell.v0{ background:rgba(255,255,255,.08); }
+.arr-cell.v1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
+.arr-cell.v2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
+
+/* MSA flip: 1=DOWN red, 2=UP green */
+.arr-cell.msa1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
+.arr-cell.msa2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
+
+.arr-last{
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.45);
+  text-align:right;
+}
+
   
 </style>
 
@@ -1065,6 +1182,27 @@ body.war-room .scada-card{
   <div class="primary-text recession-text" id="val-4">AWAITING</div>
   <div class="secondary-text" id="sub-4" style="display:none;"></div>
 </div>
+<!-- Commissioning Detail Rail (below nodes) -->
+<div id="commission-rail" class="commission-rail hidden">
+  <div class="cr-head">
+    <div id="cr-title" class="cr-title">SLOT —</div>
+    <div id="cr-meta"  class="cr-meta"></div>
+    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
+  </div>
+
+  <div class="cr-grid">
+    <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
+    <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
+    <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
+    <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
+    <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
+  </div>
+
+  <!-- arrays illustration goes HERE (so no bottom-left stray text) -->
+  <div class="cr-arrays" id="cr-arrays"></div>
+</div>
 
   </main>
 
@@ -1143,38 +1281,152 @@ setTerminalStatus('OFFLINE');
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
  function parseArrDump(dump){
-  const out = {
-    IND_X: [],
-    IND_Y: [],
-    INDX_DIV: [],
-    MSA: [],
-    JR: []
-  };
+  const out = { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] };
+  if (!dump) return out;
 
-  if (!dump || typeof dump !== "string") return out;
+  const s = String(dump);
 
-  // split arrays by single pipe
-  const lanes = dump.split("|")
-    .map(s => s.trim())
-    .filter(Boolean);
+  // ✅ your format: arrays split by |   values split by ;
+  const parts = s.split("|").map(x => x.trim()).filter(Boolean);
 
-  for (const lane of lanes){
-    // expect: KEY;v;v;v;v;v;v;v;v
-    const parts = lane.split(";")
-      .map(s => s.trim())
-      .filter(s => s.length);
+  for (const p of parts){
+    const toks = p.split(";").map(x => x.trim());
+    const key = String(toks.shift() || "").toUpperCase();
 
-    const key = (parts[0] || "").toUpperCase();
-    const vals = parts.slice(1).map(x => {
-      const n = Number(x);
+    const vals = toks.map(v => {
+      const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     });
 
-    if (out[key]) out[key] = vals;
+    // enforce exactly 8 values
+    while (vals.length < 8) vals.push(0);
+    if (vals.length > 8) vals.length = 8;
+
+    if (key === "IND_X") out.IND_X = vals;
+    else if (key === "IND_Y") out.IND_Y = vals;
+    else if (key === "INDX_DIV" || key === "IND_X_DIV" || key === "INDXDRIV") out.INDX_DIV = vals;
+    else if (key === "MSA") out.MSA = vals;
+    else if (key === "JR") out.JR = vals;
   }
 
   return out;
 }
+
+function renderArraysToRail(arrDump){
+  const root = document.getElementById("cr-arrays");
+  if (!root) return;
+
+  const data = parseArrDump(arrDump);
+
+  const lanes = [
+    { key:"IND_X",    label:"IND_X" },
+    { key:"IND_Y",    label:"IND_Y" },
+    { key:"INDX_DIV", label:"INDX_DIV" },
+    { key:"MSA",      label:"MSA" },
+    { key:"JR",       label:"JR" },
+  ];
+
+  root.innerHTML = lanes.map(l => {
+    const arr = data[l.key] || [];
+    const last = (arr.length ? arr[arr.length - 1] : 0);
+
+    const cells = arr.map((v, i) => {
+      let cls = "v0";
+      if (l.key === "MSA"){
+        if (v === 1) cls = "msa1";
+        else if (v === 2) cls = "msa2";
+        else cls = "v0";
+      } else {
+        if (v === 1) cls = "v1";
+        else if (v === 2) cls = "v2";
+        else cls = "v0";
+      }
+
+      // tooltip: show index + value
+      return `<div class="arr-cell ${cls}" title="${l.key}[${i}] = ${v}"></div>`;
+    }).join("");
+
+    return `
+      <div class="arr-row">
+        <div class="arr-name">${l.label}</div>
+        <div class="arr-strip">${cells}</div>
+        <div class="arr-last">last:${last}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openRailForSlot(slot){
+  const ref = String(slot);
+
+  const sc = (window.__SCADA_STORE__ || {})[ref] || null;
+  const wa = (window.__WATCH_STORE__ || {})[ref] || null;
+  const se = (window.__SETUP_STORE__ || {})[ref] || null;
+
+  const tkr = sc?.ticker || wa?.ticker || "—";
+  const tf  = sc?.tf || wa?.tf || "—";
+
+  const rail = document.getElementById("commission-rail");
+  if (!rail) return;
+
+  // header
+  const title = document.getElementById("cr-title");
+  const meta  = document.getElementById("cr-meta");
+  if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
+  if (meta)  meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
+
+  // boxes
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v == null ? "—" : String(v)); };
+
+  // SRC = prefer SCADA payload type, otherwise WATCH
+  set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
+  set("cr-tf",     tf);
+  set("cr-msa",    (sc?.msa_src ?? wa?.msa_src) ?? "—");
+  set("cr-setup",  String(!!(sc?.setup_any || sc?.setup_D || sc?.setup_4H || se)));
+  set("cr-signal", String(!!sc?.signal));
+  set("cr-engine", (sc?.setup_engine_D || sc?.setup_engine_4H) ?? "—");
+  set("cr-dump",   sc?.arr_dump ?? "—");
+
+  // ✅ paint arrays (8 cells) from arr_dump
+  renderArraysToRail(sc?.arr_dump);
+
+  rail.classList.remove("hidden");
+}
+
+function closeRail(){
+  const rail = document.getElementById("commission-rail");
+  if (rail) rail.classList.add("hidden");
+}
+
+document.addEventListener("click", (e) => {
+  // node circle OR label OR wrapper
+  const el =
+    e.target.closest("[data-slot]") ||
+    e.target.closest(".stock-item") ||
+    e.target.closest(".stock-node") ||
+    e.target.closest(".stock-label") ||
+    e.target.closest(".msa-label");
+
+  if (!el) return;
+
+  // allow commissioning even if secretMode is false
+  if (!(window.COMMISSIONING || window.secretMode)) return;
+
+  const slot = el.getAttribute("data-slot") || el.dataset.slot;
+  if (!slot) return;
+
+  openRailForSlot(slot);
+});
+
+// close button + Escape
+window.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("cr-close");
+  if (btn) btn.addEventListener("click", closeRail);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeRail();
+  });
+});
 
 
 
