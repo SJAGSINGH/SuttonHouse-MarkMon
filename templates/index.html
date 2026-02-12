@@ -2475,25 +2475,31 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
-document.addEventListener("click", function(e){
+document.addEventListener("click", (e) => {
+  // accept clicks on node circle, label, or wrapper
+  const el =
+    e.target.closest("[data-slot]") ||
+    e.target.closest(".stock-item") ||
+    e.target.closest(".node") ||
+    e.target.closest(".stock-node") ||
+    e.target.closest(".slot");
 
-  const node = e.target.closest(".stock-node");
-  if (!node) return;
+  if (!el) return;
 
-  // founder only
-  if (!secretMode) return;
+  // IMPORTANT: allow commissioning to open even if secretMode is false
+  if (!(window.COMMISSIONING || window.secretMode)) return;
 
-  const item = node.closest(".stock-item");
-  if (!item) return;
+  const slot =
+    el.getAttribute("data-slot") ||
+    el.dataset.slot ||
+    el.getAttribute("data-ref") ||
+    el.dataset.ref;
 
-  const slot = item.getAttribute("data-slot");
   if (!slot) return;
 
-  const setup = window.__SETUP_STORE__?.[String(slot)];
-  if (!setup) return;
-
-  openSetupPanel(setup);
+  openPanelForSlot(slot);
 });
+
 
 
 // ============================================================
