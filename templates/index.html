@@ -2437,24 +2437,40 @@ function renderArrayCards(dump){
   const root = document.getElementById("cr-arrays");
   if (!root) return;
 
-  const data = parseArrDump(dump);
+  const data = parseArrDump(dump) || {};
 
   // fixed order (your 5 arrays)
   const lanes = [
-    { key:"VIX",  label:"VIX X" },
-    { key:"VIXG", label:"VIX GOLD" },
-    { key:"VIXD", label:"VIX DIV" },
-    { key:"MSA",  label:"MSA" },
-    { key:"JR",   label:"jR" }
+    { key:"IND_X",    label:"VIX X" },
+    { key:"IND_Y",    label:"VIX GOLD" },
+    { key:"INDX_DIV", label:"VIX DIV" },
+    { key:"MSA",      label:"MSA" },
+    { key:"JR",       label:"jR" }
   ];
 
-  root.innerHTML = lanes.map(l => {
-    const arr = (data[l.key] || []);
-    // ensure 10 cells; take last 10 (latest on right)
-    const last10 = arr.slice(-10);
-    while (last10.length < 10) last10.unshift(0);
+  const COLS = 8;
 
-    const lastVal = last10[last10.length - 1] ?? 0;
+  root.innerHTML = lanes.map(l => {
+    const arr = Array.isArray(data[l.key]) ? data[l.key] : [];
+
+    // take last COLS (latest on RIGHT)
+    const last = arr.slice(-COLS).map(x => Number(x) || 0);
+    while (last.length < COLS) last.unshift(0);
+
+    const lastVal = last[last.length - 1] ?? 0;
+
+    const cellsHtml = last.map((v, i) => {
+      // MSA rule: 1=DOWN (red), 2=UP (green), else neutral
+      let cls = "s0";
+      if (l.key === "MSA") {
+        cls = (v === 1) ? "msa1" : (v === 2) ? "msa2" : "s0";
+      } else {
+        cls = (v === 1) ? "s1" : (v === 2) ? "s2" : "s0";
+      }
+
+      const latest = (i === COLS - 1) ? "latest" : "";
+      return `<div class="arr-cell ${cls} ${latest}" title="${l.key}[${i - (COLS - 1)}]=${v}"></div>`;
+    }).join("");
 
     return `
       <div class="arr-card">
@@ -2462,111 +2478,14 @@ function renderArrayCards(dump){
           <div class="arr-name">${l.label}</div>
           <div class="arr-last">last:${lastVal}</div>
         </div>
-        <div class="arr-strip">
-          ${last10.map((v,i) => `
-            const cls = (l.key === "MSA")
-  ? (v === 1 ? "s2" : v === 2 ? "s1" : "s0") // flip for MSA
-  : (v === 1 ? "s1" : v === 2 ? "s2" : "s0");
-
-return `
-  <div class="arr-cell ${cls} ${i === 9 ? "latest" : ""}"
-       title="${l.key}[${i-9}]=${v}">
-  </div>
-`;
-
-                 title="${l.key}[${i-9}]=${v}"></div>
-          `).join("")}
-        </div>
+        <div class="arr-strip">${cellsHtml}</div>
       </div>
     `;
   }).join("");
 }
 
 
-  function paintCells(key, vals){
-    const host = document.getElementById(`np-${key}`);
-    if (!host) return;
-
-    const COLS = 8;
-    host.innerHTML = "";
-
-    for (let i = 0; i < COLS; i++){
-      const v = (vals && vals[i] != null) ? vals[i] : 0;
-
-      const cell = document.createElement("div");
-      cell.classList.add("np-cell");
-      if (i === 0) cell.classList.add("latest");
-
-      if (key === "MSA"){
-        // your rule: 1 = DOWN (red), 2 = UP (green), else neutral
-        if (v === 1) cell.classList.add("msa1");
-        else if (v === 2) cell.classList.add("msa2");
-        else cell.classList.add("v0");
-      } else {
-        if (v === 1) cell.classList.add("v1");
-        else if (v === 2) cell.classList.add("v2");
-        else cell.classList.add("v0");
-      }
-
-      host.appendChild(cell);
-    }
-  }
-
-  function setFacts(obj){
-    const rows = [
-      ["type", obj?.type ?? "—"],
-      ["tf", obj?.tf ?? "—"],
-      ["msa_src", obj?.msa_src ?? "—"],
-      ["msa_ok", String(obj?.msa_ok)],
-      ["msa_inzone", String(obj?.msa_inzone)],
-      ["setup_D", String(obj?.setup_D)],
-      ["setup_4H", String(obj?.setup_4H)],
-      ["signal", String(obj?.signal)],
-    ];
-
-    facts.innerHTML = rows.map(([k,v]) =>
-      `<div class="k">${k}</div><div class="v">${v}</div>`
-    ).join("");
-  }
-
-  function openPanelForSlot(slot){
-    const ref = String(slot);
-
-    const sc = (window.__SCADA_STORE__ || {})[ref] || null;
-    const wa = (window.__WATCH_STORE__ || {})[ref] || null;
-    const se = (window.__SETUP_STORE__ || {})[ref] || null;
-
-    const tkr = sc?.ticker || wa?.ticker || "—";
-    const tf  = sc?.tf || "—";
-
-    title.textContent = `SLOT ${ref} — ${tkr}`;
-    meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
-
-    // prefer SCADA for facts
-    const base = sc || wa || {};
-    setFacts(base);
-
-    // arrays (SCADA arr_dump)
-    const arrs = parseArrDump(sc?.arr_dump);
-    paintCells("IND_X", arrs.IND_X);
-    paintCells("IND_Y", arrs.IND_Y);
-    paintCells("INDX_DIV", arrs.INDX_DIV);
-    paintCells("MSA", arrs.MSA);
-    paintCells("JR", arrs.JR);
-
-    // raw commissioning view (optional)
-    const showRaw = !!window.COMMISSIONING;
-    rawEl.classList.toggle("hidden", !showRaw);
-    if (showRaw){
-      rawEl.textContent =
-        "SCADA:\n" + JSON.stringify(sc, null, 2) +
-        "\n\nWATCH:\n" + JSON.stringify(wa, null, 2) +
-        (se ? "\n\nSETUP:\n" + JSON.stringify(se, null, 2) : "");
-    }
-
-    panel.classList.remove("hidden");
-  }
-
+  function paintCells
   // click binding: each .stock-item should have data-slot="1..20"
   document.addEventListener("click", (e) => {
     const item = e.target.closest(".stock-item");
