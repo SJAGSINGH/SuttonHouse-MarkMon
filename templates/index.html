@@ -864,43 +864,7 @@ body.war-room .scada-card{
   z-index:5;                     /* ensures never behind node */
   transform: translateX(10px);
 }
-.setup-panel{
-  position:fixed;
-  right:-420px;
-  top:0;
-  width:420px;
-  height:100vh;
-  background:#0c0c0c;
-  border-left:1px solid rgba(255,255,255,0.08);
-  padding:20px;
-  transition:right .3s ease;
-  z-index:9999;
-  display:flex;
-  flex-direction:column;
-}
 
-.setup-panel.open{
-  right:0;
-}
-
-.setup-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
-  color:var(--lime);
-  font-weight:600;
-}
-
-#setup-content{
-  flex:1;
-  overflow:auto;
-  font-size:12px;
-  color:#aaa;
-}
-#setup-panel {
-  display: none !important;
-}
 </style>
 
 </head>
@@ -1128,40 +1092,6 @@ setTerminalStatus('OFFLINE');
   return idx;
 }
 
-function wireNodeClickDebug(){
-  document.addEventListener("click", (e) => {
-    const node = e.target.closest(".stock-node");
-    if (!node) return;
-
-    // Only in secret mode
-    if (!window.secretMode) return;
-
-    const item = node.closest(".stock-item");
-    if (!item) return;
-
-    const refId = item.dataset.refId;
-    if (!refId) return;
-
-    window.open(`/node/${refId}`, "_blank", "noopener");
-  });
-}
-    
-function openSetupPanel(data){
-  const panel = document.getElementById("setup-panel");
-  const content = document.getElementById("setup-content");
-
-  if (!panel || !content) return;
-
-  content.textContent = JSON.stringify(data, null, 2);
-  panel.classList.add("open");
-}
-
-function closeSetupPanel(){
-  const panel = document.getElementById("setup-panel");
-  if (panel) panel.classList.remove("open");
-}
-
-window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 
 // COMMISSIONING MODE (set false when done)
 window.COMMISSIONING = true;
