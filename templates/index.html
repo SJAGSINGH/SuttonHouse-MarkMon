@@ -901,6 +901,22 @@ body.war-room .scada-card{
 #setup-panel {
   display: none !important;
 }
+
+/* =========================================
+   NODE PANEL (SLIDE FROM LEFT)
+========================================= */
+#node-panel{
+  left:-420px;
+  right:auto;
+  border-right:1px solid rgba(255,255,255,0.08);
+  border-left:none;
+  transition:left .3s ease;
+}
+
+#node-panel.open{
+  left:0;
+}
+  
 </style>
 
 </head>
