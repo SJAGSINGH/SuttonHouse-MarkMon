@@ -1061,6 +1061,68 @@ body.war-room .scada-card{
   max-height: 180px;
   overflow:auto;
 }
+.cr-arrays{
+  margin-top: 12px;
+  display:grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap:10px;
+}
+
+.arr-card{
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  padding:10px;
+  background: rgba(0,0,0,0.18);
+}
+
+.arr-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+
+.arr-name{
+  font-size:9px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.55);
+}
+
+.arr-last{
+  font-size:10px;
+  color:rgba(255,255,255,0.85);
+}
+
+.arr-strip{
+  display:grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap:6px;
+  align-items:center;
+}
+
+.arr-cell{
+  height:10px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+/* state colours */
+.arr-cell.s0{ background: rgba(255,255,255,0.10); }
+.arr-cell.s1{ background: rgba(80,255,120,0.75); box-shadow: 0 0 10px rgba(80,255,120,0.18); }
+.arr-cell.s2{ background: rgba(255,68,68,0.75);   box-shadow: 0 0 10px rgba(255,68,68,0.18); }
+
+/* subtle "latest" indicator */
+.arr-cell.latest{
+  transform: scaleY(1.25);
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .cr-arrays{ grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+}
 
 </style>
 
@@ -1307,6 +1369,7 @@ setTerminalStatus('OFFLINE');
   document.getElementById("cr-engine").textContent = engTxt;
 
   document.getElementById("cr-dump").textContent = sc?.arr_dump || "—";
+  renderArrayCards(sc?.arr_dump || "");
 
   rail.classList.remove("hidden");
 }
@@ -2343,22 +2406,82 @@ socket.on("stock_update", (msg) => {
 
   close.addEventListener("click", () => panel.classList.add("hidden"));
 
-  function parseArrDump(s){
-    // "IND_X;0;0;1...|MSA;2;2..."
-    const out = {};
-    if (!s || typeof s !== "string") return out;
+ function parseArrDump(dump){
+  const out = {};
+  if (!dump || typeof dump !== "string") return out;
 
-    s.split("|").forEach(chunk => {
-      const parts = chunk.split(";");
-      const key = (parts.shift() || "").trim();
-      if (!key) return;
-      out[key] = parts.map(x => {
-        const n = parseInt(String(x).trim(), 10);
-        return Number.isFinite(n) ? n : 0;
-      });
+  // Split arrays by |
+  const arrays = dump.split("|");
+
+  arrays.forEach(block => {
+    const parts = block.trim().split(";");
+    if (!parts.length) return;
+
+    const name = String(parts[0] || "").trim().toUpperCase();
+    if (!name) return;
+
+    // Remaining values
+    const vals = parts.slice(1).map(v => {
+      const n = parseInt(String(v).trim(), 10);
+      return Number.isFinite(n) ? n : 0;
     });
-    return out;
-  }
+
+    out[name] = vals;
+  });
+
+  return out;
+}
+
+
+function renderArrayCards(dump){
+  const root = document.getElementById("cr-arrays");
+  if (!root) return;
+
+  const data = parseArrDump(dump);
+
+  // fixed order (your 5 arrays)
+  const lanes = [
+    { key:"VIX",  label:"VIX X" },
+    { key:"VIXG", label:"VIX GOLD" },
+    { key:"VIXD", label:"VIX DIV" },
+    { key:"MSA",  label:"MSA" },
+    { key:"JR",   label:"jR" }
+  ];
+
+  root.innerHTML = lanes.map(l => {
+    const arr = (data[l.key] || []);
+    // ensure 10 cells; take last 10 (latest on right)
+    const last10 = arr.slice(-10);
+    while (last10.length < 10) last10.unshift(0);
+
+    const lastVal = last10[last10.length - 1] ?? 0;
+
+    return `
+      <div class="arr-card">
+        <div class="arr-head">
+          <div class="arr-name">${l.label}</div>
+          <div class="arr-last">last:${lastVal}</div>
+        </div>
+        <div class="arr-strip">
+          ${last10.map((v,i) => `
+            const cls = (l.key === "MSA")
+  ? (v === 1 ? "s2" : v === 2 ? "s1" : "s0") // flip for MSA
+  : (v === 1 ? "s1" : v === 2 ? "s2" : "s0");
+
+return `
+  <div class="arr-cell ${cls} ${i === 9 ? "latest" : ""}"
+       title="${l.key}[${i-9}]=${v}">
+  </div>
+`;
+
+                 title="${l.key}[${i-9}]=${v}"></div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
 
   function paintCells(key, vals){
     const host = document.getElementById(`np-${key}`);
