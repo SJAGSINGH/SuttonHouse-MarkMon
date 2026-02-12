@@ -1101,7 +1101,39 @@ setTerminalStatus('OFFLINE');
     document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
- 
+ function parseArrDump(dump){
+  const out = { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] };
+  if (!dump) return out;
+
+  const s = String(dump);
+
+  // split arrays by |
+  const parts = s.split("|").map(x => x.trim()).filter(Boolean);
+
+  for (const p of parts){
+    // expect KEY;v;v;v...
+    const toks = p.split(";").map(x => x.trim());
+    const key = String(toks.shift() || "").toUpperCase();
+
+    const vals = toks.map(v => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    });
+
+    // enforce exactly 8 values
+    while (vals.length < 8) vals.push(0);
+    if (vals.length > 8) vals.length = 8;
+
+    if (key === "IND_X") out.IND_X = vals;
+    else if (key === "IND_Y") out.IND_Y = vals;
+    else if (key === "INDX_DIV" || key === "IND_X_DIV" || key === "INDXDRIV") out.INDX_DIV = vals;
+    else if (key === "MSA") out.MSA = vals;
+    else if (key === "JR") out.JR = vals;
+  }
+
+  return out;
+}
+
 
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
@@ -1219,14 +1251,15 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   // ----------------------------
   // TOOLTIP on node + label (commissioning only)
   // ----------------------------
-  const reasonMap = (window.__NODE_REASON__ || {});
-  const reason = reasonMap[String(slot)] || "";
+ const reasonMap = (window.__NODE_REASON__ || {});
+const reason = reasonMap[String(slot)] || "";
 
-  const tip = (window.COMMISSIONING)
-    ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
-      + (rawUpper ? ` | msa_src:${rawUpper}` : "")
-      + (reason ? ` | ${reason}` : "")
-    : "";
+const tip = (window.COMMISSIONING)
+  ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
+    + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+    + (reason ? ` | ${reason}` : "")
+  : "";
+
 
   if (node)  node.title  = tip;
   if (label) label.title = tip;
@@ -1265,10 +1298,11 @@ function applyScadaStatus(msg){
   // store reason for tooltip (per slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(slot)] =
-    `type:${(msg.type || "—")} tf:${(msg.tf || "—")} `
-    + `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} `
-    + `setup_any:${msg.setup_any} setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} `
-    + `signal:${msg.signal}`;
+  `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
+  `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
+  `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
+  `signal:${msg.signal}`;
+
 
   // pass RAW SOURCE so commissioning can show it in tooltip
   setNode(slot, glow, msg.ticker, msa, msg.msa_src);
@@ -2069,44 +2103,49 @@ try {
       }
     });
 
-    // ============================================================
+// ============================================================
 // STOCK LANE (SCADA / WATCH nodes)
-// - Paint ONLY from SCADA_STATUS (authoritative)
-// - WATCH optional (slot/ticker visibility + msa label if you still use it)
-// - Keep SETUP_STATUS only for panel store (no painting, no comms spam)
+// AUTHORITATIVE: SCADA_STATUS paints halo + MSA label + ticker.
+// OPTIONAL: WATCH can fill ticker/MSA only (does NOT own halo).
+// KEEP: SETUP_STATUS store only (panel use), no paint, no comms spam.
 // ============================================================
 socket.on("stock_update", (msg) => {
   try { triggerPulse(); } catch(e){}
 
   const t = String(msg?.type || "").toUpperCase();
 
-  // ---------- AUTHORITATIVE NODE PAINT ----------
+  // stores (per ref_id)
+  window.__SCADA_STORE__ = window.__SCADA_STORE__ || {};
+  window.__WATCH_STORE__ = window.__WATCH_STORE__ || {};
+  window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
+
   if (t === "SCADA_STATUS") {
+    const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
+    if (rid) window.__SCADA_STORE__[rid] = msg;
+
     try { applyScadaStatus(msg); } catch(e){}
     try { rscSetComms("socket.io stock_update SCADA_STATUS", msg); } catch(e){}
     if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
     return;
   }
 
-  // ---------- OPTIONAL: WATCH (mapping/visibility) ----------
   if (t === "WATCH") {
+    const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
+    if (rid) window.__WATCH_STORE__[rid] = msg;
+
     try { applyWatch(msg); } catch(e){}
     try { rscSetComms("socket.io stock_update WATCH", msg); } catch(e){}
     if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
     return;
   }
 
-  // ---------- KEEP: SETUP store for panel (NO PAINT / NO COMMS) ----------
   if (t === "SETUP_STATUS") {
-    window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
     const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
     if (rid) window.__SETUP_STORE__[rid] = msg;
     return;
   }
 
-  // ---------- IGNORE EVERYTHING ELSE ----------
-  // (prevents halos/labels being driven by legacy emitters)
-  // console.log("[STOCK DROP]", t, msg);
+  // everything else ignored (legacy payloads)
 });
 
 
