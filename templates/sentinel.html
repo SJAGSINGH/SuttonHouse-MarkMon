@@ -42,12 +42,26 @@
 
 </div>
 <!-- NODE DETAIL PANEL (commissioning / secret) -->
-<div id="node-panel" class="node-panel hidden">
-  <div class="node-panel__head">
-    <div class="node-panel__title" id="np-title">SLOT —</div>
-    <div class="node-panel__meta" id="np-meta">—</div>
-    <button id="np-close" class="node-panel__close" aria-label="Close">×</button>
+<!-- =========================================
+     NODE INSPECT PANEL (COMMISSIONING)
+========================================= -->
+<div id="node-panel" class="setup-panel">
+  <div class="setup-header">
+    <div id="panel-title">SLOT —</div>
+    <button onclick="closeNodePanel()" style="background:none;border:1px solid #333;color:#888;padding:4px 8px;font-size:10px;cursor:pointer;">CLOSE</button>
   </div>
+
+  <div id="panel-meta" style="font-size:11px;color:#888;margin-bottom:10px;"></div>
+
+  <div id="panel-facts" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:11px;"></div>
+
+  <hr style="border:none;border-top:1px solid #222;margin:12px 0;">
+
+  <div id="panel-arrays" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+  <pre id="panel-raw" style="margin-top:12px;font-size:10px;color:#666;white-space:pre-wrap;"></pre>
+</div>
+
 
   <div class="node-panel__body">
     <!-- quick facts -->
