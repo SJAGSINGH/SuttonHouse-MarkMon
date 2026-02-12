@@ -929,7 +929,7 @@ body.war-room .scada-card{
 
 /* open/close */
 #commission-rail.open{ transform: translateX(0); }
-#commission-rail.hidden{ display:block; } /* keep DOM alive */
+#commission-rail.hidden{ display:none; } /* keep DOM alive */
 
 /* your existing internals can stay */
 .cr-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
@@ -1112,7 +1112,32 @@ body.war-room .scada-card{
   <div class="primary-text recession-text" id="val-4">AWAITING</div>
   <div class="secondary-text" id="sub-4" style="display:none;"></div>
 </div>
+    
+ <div id="password-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:20px;text-transform:uppercase;">Encryption Key Required</h2>
+      <input type="password" id="pass-input" class="modal-input" placeholder="****" />
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="checkPass()" style="background:var(--gold);border:none;color:#000;padding:8px 15px;font-weight:bold;cursor:pointer;font-size:10px;">VERIFY</button>
+        <button onclick="closeModal()" style="background:none;border:1px solid #333;color:#555;padding:8px 15px;cursor:pointer;font-size:10px;">ABORT</button>
+      </div>
+    </div>
+  </div>
 
+<!-- Commissioning Detail Rail (below nodes) -->
+<div id="commission-rail" class="commission-rail hidden">
+  <div class="cr-head">
+    <div id="cr-title" class="cr-title">SLOT —</div>
+    <div id="cr-meta"  class="cr-meta"></div>
+    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
+  </div>
+<!-- Commissioning Detail Rail (below nodes) -->
+<div id="commission-rail" class="hidden">
+  <div class="cr-head">
+    <div id="cr-title" class="cr-title">SLOT —</div>
+    <div id="cr-meta"  class="cr-meta"></div>
+    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
+  </div>
 
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
@@ -1124,34 +1149,19 @@ body.war-room .scada-card{
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
   </div>
 
-  <!-- arrays illustration goes HERE (so no bottom-left stray text) -->
+  <!-- arrays paint here -->
   <div class="cr-arrays" id="cr-arrays"></div>
 </div>
 
   </main>
 
 {% include "sentinel.html" %}
-<!-- Commissioning Detail Rail (below nodes) -->
-<div id="commission-rail" class="commission-rail hidden">
-  <div class="cr-head">
-    <div id="cr-title" class="cr-title">SLOT —</div>
-    <div id="cr-meta"  class="cr-meta"></div>
-    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
-  </div>
 
 
 
 
-  <div id="password-modal">
-    <div class="modal-content">
-      <h2 style="color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:20px;text-transform:uppercase;">Encryption Key Required</h2>
-      <input type="password" id="pass-input" class="modal-input" placeholder="****" />
-      <div style="display:flex;gap:10px;justify-content:center;">
-        <button onclick="checkPass()" style="background:var(--gold);border:none;color:#000;padding:8px 15px;font-weight:bold;cursor:pointer;font-size:10px;">VERIFY</button>
-        <button onclick="closeModal()" style="background:none;border:1px solid #333;color:#555;padding:8px 15px;cursor:pointer;font-size:10px;">ABORT</button>
-      </div>
-    </div>
-  </div>
+
+ 
 
   <script>
 const GRID_MAX = 20;
@@ -1329,8 +1339,11 @@ function openRailForSlot(slot){
 
 function closeRail(){
   const rail = document.getElementById("commission-rail");
-  if (rail) rail.classList.add("hidden");
+  if (!rail) return;
+  rail.classList.remove("open");
+  rail.classList.add("hidden");
 }
+
 
 document.addEventListener("click", (e) => {
   // node circle OR label OR wrapper
@@ -2902,98 +2915,7 @@ function setMsgStep(stepNum, transitionText){
 // Step 3: setup ON but no signal
 // Step 4: signal present
 // Step 5: (optional) when your monitor lane marks setup closed
-// =========================================
-// NODE PANEL LOGIC
-// =========================================
 
-function closeNodePanel(){
-  const p = document.getElementById("node-panel");
-  if (p) p.classList.remove("open");
-}
-
-function paintCells(key, vals){
-  let host = document.getElementById(`np-${key}`);
-  if (!host) return; // keep as-is, OR auto-create (see below)
-
-  const wrap = document.createElement("div");
-  wrap.style.display = "flex";
-  wrap.style.alignItems = "center";
-  wrap.style.gap = "6px";
-
-  const label = document.createElement("div");
-  label.textContent = key;
-  label.style.width = "70px";
-  label.style.fontSize = "10px";
-  label.style.color = "#888";
-
-  wrap.appendChild(label);
-
-  for (let i=0;i<8;i++){
-    const v = vals && vals[i] ? vals[i] : 0;
-
-    const cell = document.createElement("div");
-    cell.style.width = "14px";
-    cell.style.height = "14px";
-    cell.style.borderRadius = "3px";
-    cell.style.background =
-      v === 2 ? "var(--lime)" :
-      v === 1 ? "var(--red)" :
-      "#222";
-
-    wrap.appendChild(cell);
-  }
-
-  return wrap;
-}
-
-function openPanelForSlot(slot){
-  const ref = String(slot);
-
-  const sc = (window.__SCADA_STORE__ || {})[ref] || null;
-  const wa = (window.__WATCH_STORE__ || {})[ref] || null;
-
-  const panel = document.getElementById("node-panel");
-  const title = document.getElementById("panel-title");
-  const meta  = document.getElementById("panel-meta");
-  const facts = document.getElementById("panel-facts");
-  const arrays= document.getElementById("panel-arrays");
-  const raw   = document.getElementById("panel-raw");
-
-  if (!panel) return;
-
-  const base = sc || wa || {};
-
-  title.textContent = `SLOT ${slot} — ${base.ticker || "—"}`;
-  meta.textContent  = sc ? `SCADA_STATUS • ${base.tf || "—"}` : `WATCH • ${base.tf || "—"}`;
-
-  const rows = [
-    ["msa_src", base.msa_src],
-    ["msa_ok", base.msa_ok],
-    ["msa_inzone", base.msa_inzone],
-    ["setup_D", base.setup_D],
-    ["setup_4H", base.setup_4H],
-    ["signal", base.signal]
-  ];
-
-  facts.innerHTML = rows.map(([k,v]) =>
-    `<div style="color:#555">${k}</div><div style="color:#fff">${v ?? "—"}</div>`
-  ).join("");
-
-  arrays.innerHTML = "";
-
-  if (sc && sc.arr_dump){
-    const parsed = parseArrDump(sc.arr_dump);
-    arrays.appendChild(paintCells("IND_X", parsed.IND_X));
-    arrays.appendChild(paintCells("IND_Y", parsed.IND_Y));
-    arrays.appendChild(paintCells("INDX_DIV", parsed.INDX_DIV));
-    arrays.appendChild(paintCells("MSA", parsed.MSA));
-    arrays.appendChild(paintCells("JR", parsed.JR));
-  }
-
-  raw.textContent = JSON.stringify(base, null, 2);
-
-  panel.classList.add("open");
-}
    
 </script>
 </body>
