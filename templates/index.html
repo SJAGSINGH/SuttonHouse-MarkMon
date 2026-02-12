@@ -2749,6 +2749,9 @@ function closeNodePanel(){
 }
 
 function paintCells(key, vals){
+  let host = document.getElementById(`np-${key}`);
+  if (!host) return; // keep as-is, OR auto-create (see below)
+
   const wrap = document.createElement("div");
   wrap.style.display = "flex";
   wrap.style.alignItems = "center";
