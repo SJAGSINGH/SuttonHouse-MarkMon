@@ -1130,37 +1130,39 @@ setTerminalStatus('OFFLINE');
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
  function parseArrDump(dump){
-  const out = { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] };
-  if (!dump) return out;
+  const out = {
+    IND_X: [],
+    IND_Y: [],
+    INDX_DIV: [],
+    MSA: [],
+    JR: []
+  };
 
-  const s = String(dump);
+  if (!dump || typeof dump !== "string") return out;
 
-  // split arrays by |
-  const parts = s.split("|").map(x => x.trim()).filter(Boolean);
+  // split arrays by single pipe
+  const lanes = dump.split("|")
+    .map(s => s.trim())
+    .filter(Boolean);
 
-  for (const p of parts){
-    // expect KEY;v;v;v...
-    const toks = p.split(";").map(x => x.trim());
-    const key = String(toks.shift() || "").toUpperCase();
+  for (const lane of lanes){
+    // expect: KEY;v;v;v;v;v;v;v;v
+    const parts = lane.split(";")
+      .map(s => s.trim())
+      .filter(s => s.length);
 
-    const vals = toks.map(v => {
-      const n = Number(v);
+    const key = (parts[0] || "").toUpperCase();
+    const vals = parts.slice(1).map(x => {
+      const n = Number(x);
       return Number.isFinite(n) ? n : 0;
     });
 
-    // enforce exactly 8 values
-    while (vals.length < 8) vals.push(0);
-    if (vals.length > 8) vals.length = 8;
-
-    if (key === "IND_X") out.IND_X = vals;
-    else if (key === "IND_Y") out.IND_Y = vals;
-    else if (key === "INDX_DIV" || key === "IND_X_DIV" || key === "INDXDRIV") out.INDX_DIV = vals;
-    else if (key === "MSA") out.MSA = vals;
-    else if (key === "JR") out.JR = vals;
+    if (out[key]) out[key] = vals;
   }
 
   return out;
 }
+
 
 
   function getSlotForRef(ref_id){
