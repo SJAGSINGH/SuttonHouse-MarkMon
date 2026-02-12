@@ -905,16 +905,28 @@ body.war-room .scada-card{
 /* =========================================
    NODE PANEL (SLIDE FROM LEFT)
 ========================================= */
-#node-panel{
-  left:-420px;
-  right:auto;
-  border-right:1px solid rgba(255,255,255,0.08);
-  border-left:none;
-  transition:left .3s ease;
+#node-panel {
+  position: fixed;
+  top: 160px;              /* push below macro row */
+  left: 20px;              /* pull away from edge */
+  width: 420px;
+  max-height: 420px;        /* don't take full screen */
+  overflow-y: auto;
+
+  backdrop-filter: blur(6px);
+  background: rgba(12,15,20,0.85);
+
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+
+  transform: translateX(-110%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
 }
 
-#node-panel.open{
-  left:0;
+#node-panel.open {
+  transform: translateX(0);
 }
   
 </style>
