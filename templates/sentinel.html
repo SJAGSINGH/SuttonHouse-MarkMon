@@ -41,6 +41,46 @@
 
 
 </div>
+<!-- NODE DETAIL PANEL (commissioning / secret) -->
+<div id="node-panel" class="node-panel hidden">
+  <div class="node-panel__head">
+    <div class="node-panel__title" id="np-title">SLOT —</div>
+    <div class="node-panel__meta" id="np-meta">—</div>
+    <button id="np-close" class="node-panel__close" aria-label="Close">×</button>
+  </div>
+
+  <div class="node-panel__body">
+    <!-- quick facts -->
+    <div class="np-facts" id="np-facts"></div>
+
+    <!-- arrays -->
+    <div class="np-arrays">
+      <div class="np-arr-row" data-key="IND_X">
+        <div class="np-arr-label">IND_X</div>
+        <div class="np-arr-cells" id="np-IND_X"></div>
+      </div>
+      <div class="np-arr-row" data-key="IND_Y">
+        <div class="np-arr-label">IND_Y</div>
+        <div class="np-arr-cells" id="np-IND_Y"></div>
+      </div>
+      <div class="np-arr-row" data-key="INDX_DIV">
+        <div class="np-arr-label">INDX_DIV</div>
+        <div class="np-arr-cells" id="np-INDX_DIV"></div>
+      </div>
+      <div class="np-arr-row" data-key="MSA">
+        <div class="np-arr-label">MSA</div>
+        <div class="np-arr-cells" id="np-MSA"></div>
+      </div>
+      <div class="np-arr-row" data-key="JR">
+        <div class="np-arr-label">JR</div>
+        <div class="np-arr-cells" id="np-JR"></div>
+      </div>
+    </div>
+
+    <!-- optional raw text (commissioning only) -->
+    <pre class="np-raw hidden" id="np-raw"></pre>
+  </div>
+</div>
 
 <!-- Commissioning Detail Rail (below nodes) -->
 <div id="commission-rail" class="commission-rail hidden">
@@ -60,6 +100,9 @@
   </div>
 </div>
 
+<div class="cr-arrays" id="cr-arrays">
+  <!-- JS will render 5 array cards here -->
+</div>
 
 
 
