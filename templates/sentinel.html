@@ -42,13 +42,24 @@
 
 </div>
 
-<div id="setup-panel" class="setup-panel">
-  <div class="setup-header">
-    <span id="setup-title">SETUP DATA</span>
-    <button onclick="closeSetupPanel()">✕</button>
+<!-- Commissioning Detail Rail (below nodes) -->
+<div id="commission-rail" class="commission-rail hidden">
+  <div class="cr-head">
+    <div id="cr-title" class="cr-title">SLOT —</div>
+    <div id="cr-meta"  class="cr-meta"></div>
   </div>
-  <pre id="setup-content"></pre>
+
+  <div class="cr-grid">
+    <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
+    <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
+    <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
+    <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
+    <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
+  </div>
 </div>
+
 
 
 
