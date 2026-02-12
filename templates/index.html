@@ -907,7 +907,7 @@ body.war-room .scada-card{
 ========================================= */
 #node-panel {
   position: fixed;
-  top: 160px;              /* push below macro row */
+  top: 100px;              /* push below macro row */
   left: 20px;              /* pull away from edge */
   width: 420px;
   max-height: 420px;        /* don't take full screen */
@@ -928,6 +928,19 @@ body.war-room .scada-card{
 #node-panel.open {
   transform: translateX(0);
 }
+.np-grid { display: grid; gap: 10px; margin-top: 10px; }
+.np-row  { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: center; }
+.np-label{ font-size: 12px; letter-spacing: .08em; opacity: .85; }
+.np-strip{ display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.np-cell { height: 12px; border-radius: 999px; background: rgba(255,255,255,.08); }
+.np-cell.latest { outline: 1px solid rgba(255,255,255,.22); }
+.np-cell.v0 { background: rgba(255,255,255,.08); }
+.np-cell.v1 { background: rgba(255,255,255,.25); }
+.np-cell.v2 { background: rgba(255,255,255,.35); }
+
+/* MSA rule colours (your doctrine) */
+.np-cell.msa1 { background: rgba(255, 60, 60, .55); }  /* 1 = DOWN */
+.np-cell.msa2 { background: rgba(60, 255, 140, .55); } /* 2 = UP */
   
 </style>
 
