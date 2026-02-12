@@ -902,15 +902,17 @@ body.war-room .scada-card{
   display: none !important;
 }
 
+
 /* =========================================
-   NODE PANEL (SLIDE FROM LEFT)
+   COMMISSION RAIL (SLIDE FROM LEFT) — CANONICAL
+   Replaces legacy #node-panel
 ========================================= */
-#node-panel {
+#commission-rail{
   position: fixed;
-  top: 225px;              /* push below macro row */
-  left: 20px;              /* pull away from edge */
+  top: 100px;                 /* sits under macro row */
+  left: 20px;
   width: 420px;
-  max-height: 420px;        /* don't take full screen */
+  max-height: 420px;
   overflow-y: auto;
 
   backdrop-filter: blur(6px);
@@ -922,59 +924,17 @@ body.war-room .scada-card{
 
   transform: translateX(-110%);
   transition: transform 0.3s ease;
-  z-index: 1000;
+  z-index: 10000;
 }
 
-#node-panel.open {
-  transform: translateX(0);
-}
-.np-grid { display: grid; gap: 10px; margin-top: 10px; }
-.np-row  { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: center; }
-.np-label{ font-size: 12px; letter-spacing: .08em; opacity: .85; }
-.np-strip{ display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-.np-cell { height: 12px; border-radius: 999px; background: rgba(255,255,255,.08); }
-.np-cell.latest { outline: 1px solid rgba(255,255,255,.22); }
-.np-cell.v0 { background: rgba(255,255,255,.08); }
-.np-cell.v1 { background: rgba(255,255,255,.25); }
-.np-cell.v2 { background: rgba(255,255,255,.35); }
+/* open/close */
+#commission-rail.open{ transform: translateX(0); }
+#commission-rail.hidden{ display:block; } /* keep DOM alive */
 
-/* MSA rule colours (your doctrine) */
-.np-cell.msa1 { background: rgba(255, 60, 60, .55); }  /* 1 = DOWN */
-.np-cell.msa2 { background: rgba(60, 255, 140, .55); } /* 2 = UP */
-
-.commission-rail.hidden { display:none; }
-
-.commission-rail{
-  margin-top:12px;
-  padding:12px;
-  border:1px solid rgba(31,166,122,.25);
-  border-radius:14px;
-  background:rgba(0,0,0,.22);
-}
-
-.cr-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:10px;
-}
-
-.cr-title{
-  font-size:12px;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color:var(--lime);
-}
-
-.cr-meta{
-  font-size:10px;
-  letter-spacing:1.2px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.55);
-  flex:1;
-  text-align:left;
-}
+/* your existing internals can stay */
+.cr-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.cr-title{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--lime); }
+.cr-meta{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,.55); flex:1; text-align:left; }
 
 .cr-close{
   background:transparent;
@@ -989,7 +949,7 @@ body.war-room .scada-card{
 
 .cr-grid{
   display:grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap:10px;
   margin-bottom:12px;
 }
@@ -1008,55 +968,25 @@ body.war-room .scada-card{
 }
 .cr-box .v{ font-size:11px; color:rgba(255,255,255,.85); }
 .cr-wide{ grid-column: 1 / -1; }
-.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
 
-.cr-arrays{
-  display:grid;
-  gap:10px;
-}
-
-.arr-row{
-  display:grid;
-  grid-template-columns: 90px 1fr 60px;
-  gap:10px;
-  align-items:center;
-}
-
-.arr-name{
-  font-size:10px;
-  letter-spacing:1.6px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.55);
-}
-
-.arr-strip{
-  display:grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap:6px;
-}
-
+.cr-arrays{ display:grid; gap:10px; }
+.arr-row{ display:grid; grid-template-columns: 90px 1fr 60px; gap:10px; align-items:center; }
+.arr-name{ font-size:10px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(255,255,255,.55); }
+.arr-strip{ display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; }
 .arr-cell{
   height:10px;
   border-radius:6px;
   background:rgba(255,255,255,.10);
   border:1px solid rgba(255,255,255,.08);
 }
-
 .arr-cell.v0{ background:rgba(255,255,255,.08); }
 .arr-cell.v1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
 .arr-cell.v2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
-
-/* MSA flip: 1=DOWN red, 2=UP green */
 .arr-cell.msa1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
 .arr-cell.msa2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
 
-.arr-last{
-  font-size:10px;
-  letter-spacing:1.2px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.45);
-  text-align:right;
-}
+.arr-last{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,.45); text-align:right; }
+
 
   
 </style>
@@ -1182,13 +1112,7 @@ body.war-room .scada-card{
   <div class="primary-text recession-text" id="val-4">AWAITING</div>
   <div class="secondary-text" id="sub-4" style="display:none;"></div>
 </div>
-<!-- Commissioning Detail Rail (below nodes) -->
-<div id="commission-rail" class="commission-rail hidden">
-  <div class="cr-head">
-    <div id="cr-title" class="cr-title">SLOT —</div>
-    <div id="cr-meta"  class="cr-meta"></div>
-    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
-  </div>
+
 
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
@@ -1207,6 +1131,14 @@ body.war-room .scada-card{
   </main>
 
 {% include "sentinel.html" %}
+<!-- Commissioning Detail Rail (below nodes) -->
+<div id="commission-rail" class="commission-rail hidden">
+  <div class="cr-head">
+    <div id="cr-title" class="cr-title">SLOT —</div>
+    <div id="cr-meta"  class="cr-meta"></div>
+    <button id="cr-close" class="cr-close" type="button">CLOSE</button>
+  </div>
+
 
 
 
@@ -1391,6 +1323,8 @@ function openRailForSlot(slot){
   renderArraysToRail(sc?.arr_dump);
 
   rail.classList.remove("hidden");
+  rail.classList.add("open");
+
 }
 
 function closeRail(){
@@ -2770,30 +2704,7 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
-document.addEventListener("click", (e) => {
-  // accept clicks on node circle, label, or wrapper
-  const el =
-    e.target.closest("[data-slot]") ||
-    e.target.closest(".stock-item") ||
-    e.target.closest(".node") ||
-    e.target.closest(".stock-node") ||
-    e.target.closest(".slot");
 
-  if (!el) return;
-
-  // IMPORTANT: allow commissioning to open even if secretMode is false
-  if (!(window.COMMISSIONING || window.secretMode)) return;
-
-  const slot =
-    el.getAttribute("data-slot") ||
-    el.dataset.slot ||
-    el.getAttribute("data-ref") ||
-    el.dataset.ref;
-
-  if (!slot) return;
-
-  openPanelForSlot(slot);
-});
 
 
 
