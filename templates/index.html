@@ -2712,6 +2712,95 @@ function setMsgStep(stepNum, transitionText){
 // Step 3: setup ON but no signal
 // Step 4: signal present
 // Step 5: (optional) when your monitor lane marks setup closed
+// =========================================
+// NODE PANEL LOGIC
+// =========================================
+
+function closeNodePanel(){
+  const p = document.getElementById("node-panel");
+  if (p) p.classList.remove("open");
+}
+
+function paintCells(key, vals){
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.alignItems = "center";
+  wrap.style.gap = "6px";
+
+  const label = document.createElement("div");
+  label.textContent = key;
+  label.style.width = "70px";
+  label.style.fontSize = "10px";
+  label.style.color = "#888";
+
+  wrap.appendChild(label);
+
+  for (let i=0;i<8;i++){
+    const v = vals && vals[i] ? vals[i] : 0;
+
+    const cell = document.createElement("div");
+    cell.style.width = "14px";
+    cell.style.height = "14px";
+    cell.style.borderRadius = "3px";
+    cell.style.background =
+      v === 2 ? "var(--lime)" :
+      v === 1 ? "var(--red)" :
+      "#222";
+
+    wrap.appendChild(cell);
+  }
+
+  return wrap;
+}
+
+function openPanelForSlot(slot){
+  const ref = String(slot);
+
+  const sc = (window.__SCADA_STORE__ || {})[ref] || null;
+  const wa = (window.__WATCH_STORE__ || {})[ref] || null;
+
+  const panel = document.getElementById("node-panel");
+  const title = document.getElementById("panel-title");
+  const meta  = document.getElementById("panel-meta");
+  const facts = document.getElementById("panel-facts");
+  const arrays= document.getElementById("panel-arrays");
+  const raw   = document.getElementById("panel-raw");
+
+  if (!panel) return;
+
+  const base = sc || wa || {};
+
+  title.textContent = `SLOT ${slot} — ${base.ticker || "—"}`;
+  meta.textContent  = sc ? `SCADA_STATUS • ${base.tf || "—"}` : `WATCH • ${base.tf || "—"}`;
+
+  const rows = [
+    ["msa_src", base.msa_src],
+    ["msa_ok", base.msa_ok],
+    ["msa_inzone", base.msa_inzone],
+    ["setup_D", base.setup_D],
+    ["setup_4H", base.setup_4H],
+    ["signal", base.signal]
+  ];
+
+  facts.innerHTML = rows.map(([k,v]) =>
+    `<div style="color:#555">${k}</div><div style="color:#fff">${v ?? "—"}</div>`
+  ).join("");
+
+  arrays.innerHTML = "";
+
+  if (sc && sc.arr_dump){
+    const parsed = parseArrDump(sc.arr_dump);
+    arrays.appendChild(paintCells("IND_X", parsed.IND_X));
+    arrays.appendChild(paintCells("IND_Y", parsed.IND_Y));
+    arrays.appendChild(paintCells("INDX_DIV", parsed.INDX_DIV));
+    arrays.appendChild(paintCells("MSA", parsed.MSA));
+    arrays.appendChild(paintCells("JR", parsed.JR));
+  }
+
+  raw.textContent = JSON.stringify(base, null, 2);
+
+  panel.classList.add("open");
+}
    
 </script>
 </body>
