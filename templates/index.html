@@ -1222,12 +1222,22 @@ setTerminalStatus('OFFLINE');
 
   const s = String(dump);
 
-  // ✅ your format: arrays split by |   values split by ;
+  // arrays split by |   values split by ;
   const parts = s.split("|").map(x => x.trim()).filter(Boolean);
 
   for (const p of parts){
     const toks = p.split(";").map(x => x.trim());
-    const key = String(toks.shift() || "").toUpperCase();
+
+    let key = String(toks.shift() || "").toUpperCase();
+
+    // -------------------------------------------------
+    // ✅ NORMALISE YOUR SCADA LANE NAMES
+    // -------------------------------------------------
+    if (key.startsWith("INDICATOR_X")) key = "IND_X";
+    else if (key.startsWith("INDICATOR_Y")) key = "IND_Y";
+    else if (key.startsWith("INDICATOR_DIV")) key = "INDX_DIV";
+    else if (key.startsWith("MSA")) key = "MSA";
+    else if (key.startsWith("JR")) key = "JR";
 
     const vals = toks.map(v => {
       const n = Number(v);
@@ -1240,13 +1250,14 @@ setTerminalStatus('OFFLINE');
 
     if (key === "IND_X") out.IND_X = vals;
     else if (key === "IND_Y") out.IND_Y = vals;
-    else if (key === "INDX_DIV" || key === "IND_X_DIV" || key === "INDXDRIV") out.INDX_DIV = vals;
+    else if (key === "INDX_DIV") out.INDX_DIV = vals;
     else if (key === "MSA") out.MSA = vals;
     else if (key === "JR") out.JR = vals;
   }
 
   return out;
 }
+
 
 function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
@@ -1293,7 +1304,13 @@ function renderArraysToRail(arrDump){
 }
 
 function openRailForSlot(slot){
-  const ref = String(slot);
+  // slot is 0-based grid index from data-slot
+  const slotIdx = Number(slot);
+  if (!Number.isFinite(slotIdx)) return;
+
+  // ✅ convert slot -> ref_id (1..GRID_MAX)
+  const refId = gridSlots[slotIdx] ?? (slotIdx + 1);
+  const ref = String(refId);
 
   const sc = (window.__SCADA_STORE__ || {})[ref] || null;
   const wa = (window.__WATCH_STORE__ || {})[ref] || null;
@@ -1314,7 +1331,6 @@ function openRailForSlot(slot){
   // boxes
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v == null ? "—" : String(v)); };
 
-  // SRC = prefer SCADA payload type, otherwise WATCH
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    (sc?.msa_src ?? wa?.msa_src) ?? "—");
@@ -1323,13 +1339,12 @@ function openRailForSlot(slot){
   set("cr-engine", (sc?.setup_engine_D || sc?.setup_engine_4H) ?? "—");
   set("cr-dump",   sc?.arr_dump ?? "—");
 
-  // ✅ paint arrays (8 cells) from arr_dump
   renderArraysToRail(sc?.arr_dump);
 
   rail.classList.remove("hidden");
   rail.classList.add("open");
-
 }
+
 
 function closeRail(){
   const rail = document.getElementById("commission-rail");
