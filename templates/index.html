@@ -1177,9 +1177,7 @@ body.war-room .scada-card{
   overflow: auto;
 }
 .hidden{ display:none; }
- /* REMOVE DUMP BOX FROM COMMISSION RAIL */
-#commission-rail .cr-box.cr-wide{
-  display: none !important;
+
 }
  
 </style>
@@ -1408,7 +1406,13 @@ setTerminalStatus('OFFLINE');
   tick();
   setInterval(tick, 1000);
 
- 
+ function summariseDumpWithAgg(dump, d1, h41){
+  const s = String(dump || "");
+  if (!s) return "—";
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean).length;
+  return `OK • ${s.length} chars • ${lanes} lanes • D 1s:${d1} • 4H 1s:${h41}`;
+}
+
  
   
 function parseArrDump(dump){
@@ -1464,7 +1468,7 @@ function parseArrDump(dump){
 
 function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
-  if (!root) return;
+  if (!root) return { d1:0, h41:0 };
 
   const parsed = parseArrDump(arrDump) || {};
   const dataD  = parsed.D  || {};
@@ -1511,24 +1515,31 @@ function renderArraysToRail(arrDump){
       const { html, c1 } = mkCells(l.key, arr, tfLabel);
       panelC1 += c1;
 
-      // ✅ aggregate per indicator (no last/row clutter)
+      // ✅ NO per-indicator badge next to IND_X etc
       return `
         <div class="arr-row">
-          <div class="arr-name">${l.label}<span class="arr-agg">1s:${c1}</span></div>
+          <div class="arr-name">${l.label}</div>
           <div class="arr-strip">${html}</div>
         </div>
       `;
     }).join("");
 
-    return `
+    // ✅ keep panels clean too (no totals here if you only want totals in dump summary)
+    return { html: `
       <div class="cr-panel">
-        <div class="cr-panel-title">${tfLabel} • total 1s:${panelC1}</div>
+        <div class="cr-panel-title">${tfLabel}</div>
         ${rows}
       </div>
-    `;
+    `, panelC1 };
   };
 
-  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
+  const pD  = mkPanel("D",  dataD);
+  const pH4 = mkPanel("4H", dataH4);
+
+  root.innerHTML = pD.html + pH4.html;
+
+  // return totals so caller can inject into dump summary
+  return { d1: pD.panelC1, h41: pH4.panelC1 };
 }
 
 function openRailForSlot(slot){
@@ -1546,6 +1557,13 @@ function openRailForSlot(slot){
 
   // ✅ DEFINE DUMP EARLY (before any use)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+
+  // render pills and capture totals
+  const totals = renderArraysToRail(dump) || { d1: 0, h41: 0 };
+
+  // keep dump summary, but add aggregates here
+  set("cr-dump", dump ? summariseDumpWithAgg(dump, totals.d1, totals.h41) : "—");
+
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
