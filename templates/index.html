@@ -927,6 +927,8 @@ body.war-room .scada-card{
     rgba(8,12,16,0.94)
   );
 
+  
+
   border: 1px solid rgba(0,255,170,0.22);
   border-radius: 16px;
 
@@ -941,7 +943,11 @@ body.war-room .scada-card{
 
 /* OPEN STATE */
 #commission-rail.open{
-  transform: translate(-50%, 0);      /* ✅ slides up into view */
+  transform: translate(-50%, 0);
+  box-shadow:
+    0 0 0 1px rgba(0,255,170,0.10) inset,
+    0 0 40px rgba(0,255,170,0.18),
+    0 30px 90px rgba(0,0,0,0.85);
 }
 
 /* hidden still keeps DOM alive */
