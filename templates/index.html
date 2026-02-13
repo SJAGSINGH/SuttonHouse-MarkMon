@@ -910,9 +910,9 @@ body.war-room .scada-card{
 #commission-rail{
   position: fixed;
 
-  left: 50%;
+  left: 20px;              /* ✅ far left */
   bottom: 20px;
-  transform: translate(-50%, 110%);   /* ✅ start hidden below screen */
+  transform: translateY(110%);   /* slide up from bottom */
 
   width: 720px;                       /* wider */
   max-width: 95vw;
@@ -959,6 +959,13 @@ body.war-room .scada-card{
 /* open/close */
 #commission-rail.open{ transform: translateX(0); }
 #commission-rail.hidden{ display:none; }
+#commission-rail.open{
+  transform: translateY(0);    /* ✅ slides up */
+}
+
+#commission-rail.hidden{
+  display:none;
+}  
 /* =========================================
    COMMISSION RAIL — ARRAYS (D + 4H)
    SCADA GREEN GLASS VERSION
@@ -1068,7 +1075,69 @@ body.war-room .scada-card{
   text-align: right;
 }
 
+/* Header */
+.cr-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
 
+.cr-title{
+  font-size:13px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.90);   /* stronger */
+}
+
+.cr-meta{
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.55);
+  flex:1;
+  text-align:left;
+}
+
+/* Top data grid */
+.cr-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr); /* better use of width */
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.cr-box{
+  border:1px solid rgba(0,255,170,0.14);
+  border-radius:12px;
+  padding:10px;
+  background: rgba(0,0,0,0.15);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+
+/* LABEL (this is what you lost visually) */
+.cr-box .k{
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.55);   /* restored visibility */
+  margin-bottom:6px;
+}
+
+/* VALUE */
+.cr-box .v{
+  font-size:12px;
+  color: rgba(255,255,255,0.92);
+}
+
+.cr-wide{
+  grid-column: 1 / -1;
+}
+
+.cr-arrays{
+  margin-top: 6px;
+}
   
 </style>
 
