@@ -1008,12 +1008,31 @@ body.war-room .scada-card{
 }
 
 /* rows */
+/* ROW: remove right-side last column */
 .arr-row{
   display: grid;
-  grid-template-columns: 72px 1fr 54px;
-  gap: 8px;
+  grid-template-columns: 90px 1fr; /* label + strip only */
+  gap: 10px;
   align-items: center;
-  margin: 6px 0;
+}
+
+/* not used anymore */
+.arr-last{
+  display: none !important;
+}
+
+/* small aggregate badge next to label */
+.arr-agg{
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.70);
+  border: 1px solid rgba(0,255,170,0.18);
+  background: rgba(0,255,170,0.06);
 }
 
 .arr-name{
@@ -1158,7 +1177,11 @@ body.war-room .scada-card{
   overflow: auto;
 }
 .hidden{ display:none; }
-  
+ /* REMOVE DUMP BOX FROM COMMISSION RAIL */
+#commission-rail .cr-box.cr-wide{
+  display: none !important;
+}
+ 
 </style>
 
 </head>
@@ -1455,20 +1478,17 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
-  // Builds 8 cells, returns html + counts
+  // Builds 8 cells, returns html + aggregate counts
   const mkCells = (laneKey, arr, tfLabel) => {
     const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
     while (vals.length < 8) vals.push(0);
 
     let c1 = 0;
-    let c2 = 0;
 
     const html = vals.map((v, i) => {
       if (v === 1) c1++;
-      if (v === 2) c2++;
 
       let cls = "v0";
-
       if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
@@ -1480,26 +1500,22 @@ function renderArraysToRail(arrDump){
       return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
     }).join("");
 
-    const last = vals[7]; // always 8
-    return { html, last, c1, c2 };
+    return { html, c1 };
   };
 
   const mkPanel = (tfLabel, data) => {
     let panelC1 = 0;
-    let panelC2 = 0;
 
     const rows = lanes.map(l => {
       const arr = data[l.key] || [];
-      const { html, last, c1, c2 } = mkCells(l.key, arr, tfLabel);
-
+      const { html, c1 } = mkCells(l.key, arr, tfLabel);
       panelC1 += c1;
-      panelC2 += c2;
 
+      // ✅ aggregate per indicator (no last/row clutter)
       return `
         <div class="arr-row">
-          <div class="arr-name">${l.label}</div>
+          <div class="arr-name">${l.label}<span class="arr-agg">1s:${c1}</span></div>
           <div class="arr-strip">${html}</div>
-          <div class="arr-last">1s:${c1} • last:${last}</div>
         </div>
       `;
     }).join("");
@@ -1556,8 +1572,7 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ show summary instead of full dump
-  set("cr-dump", dump ? summariseDump(dump) : "—");
+
 
   // ✅ render pills from dump
   renderArraysToRail(dump);
