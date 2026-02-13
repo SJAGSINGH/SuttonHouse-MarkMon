@@ -1397,12 +1397,7 @@ setTerminalStatus('OFFLINE');
   });
 })();
 
-  function summariseDump(dump){
-  if (!dump) return "—";
-  const s = String(dump);
-  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
-  return `OK • ${s.length} chars • ${lanes.length} lanes`;
-}
+ 
   
 function parseArrDump(dump){
   const blank = () => ({ IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] });
@@ -1532,50 +1527,67 @@ function renderArraysToRail(arrDump){
 }
 
 function openRailForSlot(slot){
-  // slot is 0-based grid index from data-slot
   const slotIdx = Number(slot);
   if (!Number.isFinite(slotIdx)) return;
 
-  // ✅ convert slot -> ref_id (1..GRID_MAX)
-  const refId = gridSlots[slotIdx] ?? (slotIdx + 1);
+  const refId = (window.gridSlots && window.gridSlots[slotIdx] != null) ? window.gridSlots[slotIdx] : (slotIdx + 1);
   const ref = String(refId);
 
   const sc = (window.__SCADA_STORE__ || {})[ref] || null;
   const wa = (window.__WATCH_STORE__ || {})[ref] || null;
   const se = (window.__SETUP_STORE__ || {})[ref] || null;
 
-  const tkr = sc?.ticker || wa?.ticker || "—";
-  const tf  = sc?.tf || wa?.tf || "—";
+  const msg  = sc || wa || se;
+
+  // ✅ DEFINE DUMP EARLY (before any use)
+  const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
   // header
+  const tkr = msg?.ticker || "—";
+  const tf  = msg?.tf || "—";
+
   const title = document.getElementById("cr-title");
   const meta  = document.getElementById("cr-meta");
-  const full = document.getElementById("cr-dump-full");
-  if (full) full.textContent = dump || "";
-
   if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
   if (meta)  meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
 
   // boxes
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v == null ? "—" : String(v)); };
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
+  };
 
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    (sc?.msa_src ?? wa?.msa_src) ?? "—");
-  set("cr-setup",  String(!!(sc?.setup_any || sc?.setup_D || sc?.setup_4H || se)));
-  set("cr-signal", String(!!sc?.signal));
-  set("cr-engine", (sc?.setup_engine_D || sc?.setup_engine_4H) ?? "—");
-  const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+  set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
+  set("cr-signal", String(!!msg?.signal));
+  set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+
+  // ✅ show summary instead of full dump
   set("cr-dump", dump ? summariseDump(dump) : "—");
+
+  // ✅ render pills from dump
   renderArraysToRail(dump);
 
+  // ✅ open animation (no jump)
   rail.classList.remove("hidden");
-  rail.classList.add("open");
+  requestAnimationFrame(() => rail.classList.add("open"));
+
+  // optional: store ref for live updates
+  rail.setAttribute("data-ref", ref);
+  rail.setAttribute("data-slot", String(slotIdx));
 }
 
+function summariseDump(dump){
+  const s = String(dump || "");
+  if (!s) return "—";
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
+  return `OK • ${s.length} chars • ${lanes.length} lanes`;
+}
 
 function closeRail(){
   const rail = document.getElementById("commission-rail");
