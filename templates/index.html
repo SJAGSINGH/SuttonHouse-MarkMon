@@ -1380,23 +1380,7 @@ setTerminalStatus('OFFLINE');
   tick();
   setInterval(tick, 1000);
 
-  function triggerPulse(){
-    document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
-    setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
-  }
-  (function(){
-  const head = document.getElementById("cr-dump");
-  const full = document.getElementById("cr-dump-full");
-  if (!head || !full) return;
-
-  head.style.cursor = "pointer";
-  head.title = "Click to toggle full dump";
-
-  head.addEventListener("click", () => {
-    full.classList.toggle("hidden");
-  });
-})();
-
+ 
  
   
 function parseArrDump(dump){
@@ -1691,6 +1675,22 @@ window.addEventListener("DOMContentLoaded", wireNodeClickDebug);
 
 // COMMISSIONING MODE (set false when done)
 window.COMMISSIONING = true;
+ function triggerPulse(){
+    document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
+    setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
+  }
+  (function(){
+  const head = document.getElementById("cr-dump");
+  const full = document.getElementById("cr-dump-full");
+  if (!head || !full) return;
+
+  head.style.cursor = "pointer";
+  head.title = "Click to toggle full dump";
+
+  head.addEventListener("click", () => {
+    full.classList.toggle("hidden");
+  });
+})();
 
 function setNode(slot, glow, ticker, msaText, rawSrc){
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
