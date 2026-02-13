@@ -1138,6 +1138,21 @@ body.war-room .scada-card{
 .cr-arrays{
   margin-top: 6px;
 }
+.cr-dump-full{
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,255,170,0.14);
+  background: rgba(0,0,0,0.20);
+  color: rgba(255,255,255,0.75);
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow: auto;
+}
+.hidden{ display:none; }
   
 </style>
 
@@ -1294,10 +1309,13 @@ body.war-room .scada-card{
   </div>
 
   <div class="cr-arrays" id="cr-arrays"></div>
-</div>
+  </div>
 
+ <div class="k">DUMP</div>
+ <div id="cr-dump" class="v mono">—</div>
+ <pre id="cr-dump-full" class="cr-dump-full hidden"></pre>
 
-  </main>
+ </main>
 
 {% include "sentinel.html" %}
 
@@ -1366,6 +1384,26 @@ setTerminalStatus('OFFLINE');
     document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
+  (function(){
+  const head = document.getElementById("cr-dump");
+  const full = document.getElementById("cr-dump-full");
+  if (!head || !full) return;
+
+  head.style.cursor = "pointer";
+  head.title = "Click to toggle full dump";
+
+  head.addEventListener("click", () => {
+    full.classList.toggle("hidden");
+  });
+})();
+
+  function summariseDump(dump){
+  if (!dump) return "—";
+  const s = String(dump);
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
+  return `OK • ${s.length} chars • ${lanes.length} lanes`;
+}
+  
 function parseArrDump(dump){
   const blank = () => ({ IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] });
   const out = { D: blank(), H4: blank() };
@@ -1433,47 +1471,58 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
+  // Builds 8 cells, returns html + counts
   const mkCells = (laneKey, arr, tfLabel) => {
     const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
     while (vals.length < 8) vals.push(0);
 
-    return vals.map((v, i) => {
+    let c1 = 0;
+    let c2 = 0;
+
+    const html = vals.map((v, i) => {
+      if (v === 1) c1++;
+      if (v === 2) c2++;
+
       let cls = "v0";
 
       if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
-        else cls = "v0";
       } else {
         if (v === 1) cls = "v1";
         else if (v === 2) cls = "v2";
-        else cls = "v0";
       }
 
       return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
     }).join("");
+
+    const last = vals[7]; // always 8
+    return { html, last, c1, c2 };
   };
 
   const mkPanel = (tfLabel, data) => {
-    const rows = lanes.map(l => {
-      const arr  = data[l.key] || [];
-      const vals = Array.isArray(arr) ? arr : [];
-      const last = vals.length ? vals[Math.min(vals.length - 1, 7)] : 0; // last within 8
+    let panelC1 = 0;
+    let panelC2 = 0;
 
-      const cells = mkCells(l.key, vals, tfLabel);
+    const rows = lanes.map(l => {
+      const arr = data[l.key] || [];
+      const { html, last, c1, c2 } = mkCells(l.key, arr, tfLabel);
+
+      panelC1 += c1;
+      panelC2 += c2;
 
       return `
         <div class="arr-row">
           <div class="arr-name">${l.label}</div>
-          <div class="arr-strip">${cells}</div>
-          <div class="arr-last">last:${last}</div>
+          <div class="arr-strip">${html}</div>
+          <div class="arr-last">1s:${c1} • last:${last}</div>
         </div>
       `;
     }).join("");
 
     return `
       <div class="cr-panel">
-        <div class="cr-panel-title">${tfLabel}</div>
+        <div class="cr-panel-title">${tfLabel} • total 1s:${panelC1}</div>
         ${rows}
       </div>
     `;
@@ -1504,6 +1553,9 @@ function openRailForSlot(slot){
   // header
   const title = document.getElementById("cr-title");
   const meta  = document.getElementById("cr-meta");
+  const full = document.getElementById("cr-dump-full");
+  if (full) full.textContent = dump || "";
+
   if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
   if (meta)  meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
 
@@ -1516,9 +1568,9 @@ function openRailForSlot(slot){
   set("cr-setup",  String(!!(sc?.setup_any || sc?.setup_D || sc?.setup_4H || se)));
   set("cr-signal", String(!!sc?.signal));
   set("cr-engine", (sc?.setup_engine_D || sc?.setup_engine_4H) ?? "—");
-  set("cr-dump",   sc?.arr_dump ?? "—");
-
-  renderArraysToRail((sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "");
+  const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+  set("cr-dump", dump ? summariseDump(dump) : "—");
+  renderArraysToRail(dump);
 
   rail.classList.remove("hidden");
   rail.classList.add("open");
