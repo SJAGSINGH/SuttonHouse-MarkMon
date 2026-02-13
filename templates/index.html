@@ -909,105 +909,158 @@ body.war-room .scada-card{
 ========================================= */
 #commission-rail{
   position: fixed;
-  top: 100px;                 /* sits under macro row */
-  left: 20px;
-  width: 420px;
-  max-height: 420px;
+
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 110%);   /* ✅ start hidden below screen */
+
+  width: 720px;                       /* wider */
+  max-width: 95vw;
+  max-height: 60vh;
   overflow-y: auto;
 
-  backdrop-filter: blur(6px);
-  background: rgba(12,15,20,0.85);
+  backdrop-filter: blur(10px);
 
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  background: linear-gradient(
+    180deg,
+    rgba(0,255,170,0.20),
+    rgba(8,12,16,0.94)
+  );
 
-  transform: translateX(-110%);
-  transition: transform 0.3s ease;
-  z-index: 10000;
-}
-/* subtle SCADA tint without losing the glass */
-#commission-rail{
-  background: linear-gradient(180deg, rgba(0,255,170,0.06), rgba(12,15,20,0.86));
+  border: 1px solid rgba(0,255,170,0.22);
+  border-radius: 16px;
+
   box-shadow:
-    0 0 0 1px rgba(0,255,170,0.06) inset,
-    0 0 40px rgba(0,0,0,0.6);
+    0 0 0 1px rgba(0,255,170,0.08) inset,
+    0 0 30px rgba(0,255,170,0.10),
+    0 25px 80px rgba(0,0,0,0.75);
+
+  transition: transform 0.35s cubic-bezier(.25,.8,.25,1);
+  z-index: 20000;
+}
+
+/* OPEN STATE */
+#commission-rail.open{
+  transform: translate(-50%, 0);      /* ✅ slides up into view */
+}
+
+/* hidden still keeps DOM alive */
+#commission-rail.hidden{
+  display: none;
+}
+
+
+/* open/close */
+#commission-rail.open{ transform: translateX(0); }
+#commission-rail.hidden{ display:none; }
+/* =========================================
+   COMMISSION RAIL — ARRAYS (D + 4H)
+   SCADA GREEN GLASS VERSION
+========================================= */
+
+/* host becomes two columns */
+#cr-arrays{
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* D | 4H */
+  gap: 12px;
+}
+
+/* panel wrapper */
+.cr-panel{
+  border: 1px solid rgba(0,255,170,0.16);
+  border-radius: 12px;
+  padding: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(0,255,170,0.08),
+    rgba(0,0,0,0.18)
+  );
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 20px rgba(0,255,170,0.06);
 }
 
 /* panel title */
 .cr-panel-title{
-  font-size:10px;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color: rgba(0,255,170,0.70);
-  margin: 6px 0 4px 0;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.85);
+  margin: 0 0 8px 0;
 }
-.cr-panel{ margin-bottom: 10px; }
-/* make the "off" cells slightly green-tinted glass */
+
+/* rows */
+.arr-row{
+  display: grid;
+  grid-template-columns: 72px 1fr 54px;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.arr-name{
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.55);
+}
+
+.arr-strip{
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+/* base cell — green glass "off" */
+.arr-cell{
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(0,255,170,0.07);
+  border: 1px solid rgba(0,255,170,0.12);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* explicit off */
 .arr-cell.v0{
   background: rgba(0,255,170,0.06);
   border: 1px solid rgba(0,255,170,0.10);
 }
 
-/* open/close */
-#commission-rail.open{ transform: translateX(0); }
-#commission-rail.hidden{ display:none; } /* keep DOM alive */
-
-/* your existing internals can stay */
-.cr-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
-.cr-title{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--lime); }
-.cr-meta{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,.55); flex:1; text-align:left; }
-
-.cr-close{
-  background:transparent;
-  border:1px solid rgba(255,255,255,.18);
-  color:rgba(255,255,255,.6);
-  font-size:10px;
-  padding:6px 10px;
-  border-radius:10px;
-  cursor:pointer;
+/* red signal */
+.arr-cell.v1{
+  background: rgba(255,0,80,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 14px rgba(255,0,80,0.25);
 }
-.cr-close:hover{ border-color:rgba(31,166,122,.35); color:rgba(255,255,255,.8); }
 
-.cr-grid{
-  display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:10px;
-  margin-bottom:12px;
+/* green signal (if value 2 exists) */
+.arr-cell.v2{
+  background: rgba(0,255,170,0.60);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 14px rgba(0,255,170,0.22);
 }
-.cr-box{
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:12px;
-  padding:10px;
-  background:rgba(0,0,0,.15);
-}
-.cr-box .k{
-  font-size:9px;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.4);
-  margin-bottom:6px;
-}
-.cr-box .v{ font-size:11px; color:rgba(255,255,255,.85); }
-.cr-wide{ grid-column: 1 / -1; }
 
-.cr-arrays{ display:grid; gap:10px; }
-.arr-row{ display:grid; grid-template-columns: 90px 1fr 60px; gap:10px; align-items:center; }
-.arr-name{ font-size:10px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(255,255,255,.55); }
-.arr-strip{ display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; }
-.arr-cell{
-  height:10px;
-  border-radius:6px;
-  background:rgba(255,255,255,.10);
-  border:1px solid rgba(255,255,255,.08);
+/* MSA special cases */
+.arr-cell.msa1{
+  background: rgba(255,0,80,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 14px rgba(255,0,80,0.25);
 }
-.arr-cell.v0{ background:rgba(255,255,255,.08); }
-.arr-cell.v1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
-.arr-cell.v2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
-.arr-cell.msa1{ background:rgba(255,0,80,.45); box-shadow:0 0 12px rgba(255,0,80,.18); }
-.arr-cell.msa2{ background:rgba(80,255,120,.55); box-shadow:0 0 12px rgba(80,255,120,.18); }
 
-.arr-last{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,.45); text-align:right; }
+.arr-cell.msa2{
+  background: rgba(0,255,170,0.60);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 14px rgba(0,255,170,0.22);
+}
+
+.arr-last{
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.45);
+  text-align: right;
+}
 
 
   
