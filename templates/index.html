@@ -926,6 +926,28 @@ body.war-room .scada-card{
   transition: transform 0.3s ease;
   z-index: 10000;
 }
+/* subtle SCADA tint without losing the glass */
+#commission-rail{
+  background: linear-gradient(180deg, rgba(0,255,170,0.06), rgba(12,15,20,0.86));
+  box-shadow:
+    0 0 0 1px rgba(0,255,170,0.06) inset,
+    0 0 40px rgba(0,0,0,0.6);
+}
+
+/* panel title */
+.cr-panel-title{
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.70);
+  margin: 6px 0 4px 0;
+}
+.cr-panel{ margin-bottom: 10px; }
+/* make the "off" cells slightly green-tinted glass */
+.arr-cell.v0{
+  background: rgba(0,255,170,0.06);
+  border: 1px solid rgba(0,255,170,0.10);
+}
 
 /* open/close */
 #commission-rail.open{ transform: translateX(0); }
@@ -1216,43 +1238,51 @@ setTerminalStatus('OFFLINE');
     document.querySelectorAll('.city-item').forEach(i => i.classList.add('comms-flash'));
     setTimeout(() => document.querySelectorAll('.city-item').forEach(i => i.classList.remove('comms-flash')), 400);
   }
- function parseArrDump(dump){
-  const out = { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] };
+function parseArrDump(dump){
+  const blank = () => ({ IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] });
+  const out = { D: blank(), H4: blank() };
+
   if (!dump) return out;
 
-  const s = String(dump);
-
-  // arrays split by |   values split by ;
-  const parts = s.split("|").map(x => x.trim()).filter(Boolean);
+  const parts = String(dump).split("|").map(x => x.trim()).filter(Boolean);
 
   for (const p of parts){
     const toks = p.split(";").map(x => x.trim());
+    let lane = String(toks.shift() || "");            // e.g. "Indicator_X_D"
+    let laneU = lane.toUpperCase();
 
-    let key = String(toks.shift() || "").toUpperCase();
+    // -----------------------------
+    // timeframe bucket from suffix
+    // -----------------------------
+    let tf = null;
+    if (laneU.endsWith("_4H")) tf = "H4";
+    else if (laneU.endsWith("_D")) tf = "D";
+    else continue;
 
-    // -------------------------------------------------
-    // ✅ NORMALISE YOUR SCADA LANE NAMES
-    // -------------------------------------------------
-    if (key.startsWith("INDICATOR_X")) key = "IND_X";
-    else if (key.startsWith("INDICATOR_Y")) key = "IND_Y";
-    else if (key.startsWith("INDICATOR_DIV")) key = "INDX_DIV";
-    else if (key.startsWith("MSA")) key = "MSA";
-    else if (key.startsWith("JR")) key = "JR";
+    // -----------------------------
+    // normalise lane -> key
+    // -----------------------------
+    let key = null;
 
+    if (laneU.startsWith("INDICATOR_X")) key = "IND_X";
+    else if (laneU.startsWith("INDICATOR_Y")) key = "IND_Y";
+    else if (laneU.startsWith("INDICATOR_DIV")) key = "INDX_DIV";
+    else if (laneU.startsWith("MSA")) key = "MSA";
+    else if (laneU.startsWith("JR")) key = "JR";
+    else continue;
+
+    // -----------------------------
+    // parse values, force 8
+    // -----------------------------
     const vals = toks.map(v => {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     });
 
-    // enforce exactly 8 values
     while (vals.length < 8) vals.push(0);
     if (vals.length > 8) vals.length = 8;
 
-    if (key === "IND_X") out.IND_X = vals;
-    else if (key === "IND_Y") out.IND_Y = vals;
-    else if (key === "INDX_DIV") out.INDX_DIV = vals;
-    else if (key === "MSA") out.MSA = vals;
-    else if (key === "JR") out.JR = vals;
+    out[tf][key] = vals;
   }
 
   return out;
@@ -1263,7 +1293,9 @@ function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
   if (!root) return;
 
-  const data = parseArrDump(arrDump);
+  const parsed = parseArrDump(arrDump) || {};
+  const dataD  = parsed.D  || {};
+  const dataH4 = parsed.H4 || {};
 
   const lanes = [
     { key:"IND_X",    label:"IND_X" },
@@ -1273,13 +1305,14 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
-  root.innerHTML = lanes.map(l => {
-    const arr = data[l.key] || [];
-    const last = (arr.length ? arr[arr.length - 1] : 0);
+  const mkCells = (laneKey, arr, tfLabel) => {
+    const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
+    while (vals.length < 8) vals.push(0);
 
-    const cells = arr.map((v, i) => {
+    return vals.map((v, i) => {
       let cls = "v0";
-      if (l.key === "MSA"){
+
+      if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
         else cls = "v0";
@@ -1289,18 +1322,36 @@ function renderArraysToRail(arrDump){
         else cls = "v0";
       }
 
-      // tooltip: show index + value
-      return `<div class="arr-cell ${cls}" title="${l.key}[${i}] = ${v}"></div>`;
+      return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
+    }).join("");
+  };
+
+  const mkPanel = (tfLabel, data) => {
+    const rows = lanes.map(l => {
+      const arr  = data[l.key] || [];
+      const vals = Array.isArray(arr) ? arr : [];
+      const last = vals.length ? vals[Math.min(vals.length - 1, 7)] : 0; // last within 8
+
+      const cells = mkCells(l.key, vals, tfLabel);
+
+      return `
+        <div class="arr-row">
+          <div class="arr-name">${l.label}</div>
+          <div class="arr-strip">${cells}</div>
+          <div class="arr-last">last:${last}</div>
+        </div>
+      `;
     }).join("");
 
     return `
-      <div class="arr-row">
-        <div class="arr-name">${l.label}</div>
-        <div class="arr-strip">${cells}</div>
-        <div class="arr-last">last:${last}</div>
+      <div class="cr-panel">
+        <div class="cr-panel-title">${tfLabel}</div>
+        ${rows}
       </div>
     `;
-  }).join("");
+  };
+
+  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 }
 
 function openRailForSlot(slot){
@@ -1339,7 +1390,7 @@ function openRailForSlot(slot){
   set("cr-engine", (sc?.setup_engine_D || sc?.setup_engine_4H) ?? "—");
   set("cr-dump",   sc?.arr_dump ?? "—");
 
-  renderArraysToRail(sc?.arr_dump);
+  renderArraysToRail((sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "");
 
   rail.classList.remove("hidden");
   rail.classList.add("open");
