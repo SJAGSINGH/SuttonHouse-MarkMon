@@ -1008,31 +1008,12 @@ body.war-room .scada-card{
 }
 
 /* rows */
-/* ROW: remove right-side last column */
 .arr-row{
   display: grid;
-  grid-template-columns: 90px 1fr; /* label + strip only */
-  gap: 10px;
+  grid-template-columns: 72px 1fr 54px;
+  gap: 8px;
   align-items: center;
-}
-
-/* not used anymore */
-.arr-last{
-  display: none !important;
-}
-
-/* small aggregate badge next to label */
-.arr-agg{
-  display: inline-block;
-  margin-left: 8px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(0,255,170,0.70);
-  border: 1px solid rgba(0,255,170,0.18);
-  background: rgba(0,255,170,0.06);
+  margin: 6px 0;
 }
 
 .arr-name{
@@ -1177,9 +1158,7 @@ body.war-room .scada-card{
   overflow: auto;
 }
 .hidden{ display:none; }
-
-}
- 
+  
 </style>
 
 </head>
@@ -1406,13 +1385,7 @@ setTerminalStatus('OFFLINE');
   tick();
   setInterval(tick, 1000);
 
- function summariseDumpWithAgg(dump, d1, h41){
-  const s = String(dump || "");
-  if (!s) return "—";
-  const lanes = s.split("|").map(x => x.trim()).filter(Boolean).length;
-  return `OK • ${s.length} chars • ${lanes} lanes • D 1s:${d1} • 4H 1s:${h41}`;
-}
-
+ 
  
   
 function parseArrDump(dump){
@@ -1468,7 +1441,7 @@ function parseArrDump(dump){
 
 function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
-  if (!root) return { d1:0, h41:0 };
+  if (!root) return;
 
   const parsed = parseArrDump(arrDump) || {};
   const dataD  = parsed.D  || {};
@@ -1482,17 +1455,20 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
-  // Builds 8 cells, returns html + aggregate counts
+  // Builds 8 cells, returns html + counts
   const mkCells = (laneKey, arr, tfLabel) => {
     const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
     while (vals.length < 8) vals.push(0);
 
     let c1 = 0;
+    let c2 = 0;
 
     const html = vals.map((v, i) => {
       if (v === 1) c1++;
+      if (v === 2) c2++;
 
       let cls = "v0";
+
       if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
@@ -1504,42 +1480,39 @@ function renderArraysToRail(arrDump){
       return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
     }).join("");
 
-    return { html, c1 };
+    const last = vals[7]; // always 8
+    return { html, last, c1, c2 };
   };
 
   const mkPanel = (tfLabel, data) => {
     let panelC1 = 0;
+    let panelC2 = 0;
 
     const rows = lanes.map(l => {
       const arr = data[l.key] || [];
-      const { html, c1 } = mkCells(l.key, arr, tfLabel);
-      panelC1 += c1;
+      const { html, last, c1, c2 } = mkCells(l.key, arr, tfLabel);
 
-      // ✅ NO per-indicator badge next to IND_X etc
+      panelC1 += c1;
+      panelC2 += c2;
+
       return `
         <div class="arr-row">
           <div class="arr-name">${l.label}</div>
           <div class="arr-strip">${html}</div>
+          <div class="arr-last">1s:${c1} • last:${last}</div>
         </div>
       `;
     }).join("");
 
-    // ✅ keep panels clean too (no totals here if you only want totals in dump summary)
-    return { html: `
+    return `
       <div class="cr-panel">
-        <div class="cr-panel-title">${tfLabel}</div>
+        <div class="cr-panel-title">${tfLabel} • total 1s:${panelC1}</div>
         ${rows}
       </div>
-    `, panelC1 };
+    `;
   };
 
-  const pD  = mkPanel("D",  dataD);
-  const pH4 = mkPanel("4H", dataH4);
-
-  root.innerHTML = pD.html + pH4.html;
-
-  // return totals so caller can inject into dump summary
-  return { d1: pD.panelC1, h41: pH4.panelC1 };
+  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 }
 
 function openRailForSlot(slot){
@@ -1557,13 +1530,6 @@ function openRailForSlot(slot){
 
   // ✅ DEFINE DUMP EARLY (before any use)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
-
-  // render pills and capture totals
-  const totals = renderArraysToRail(dump) || { d1: 0, h41: 0 };
-
-  // keep dump summary, but add aggregates here
-  set("cr-dump", dump ? summariseDumpWithAgg(dump, totals.d1, totals.h41) : "—");
-
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
@@ -1590,7 +1556,8 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-
+  // ✅ show summary instead of full dump
+  set("cr-dump", dump ? summariseDump(dump) : "—");
 
   // ✅ render pills from dump
   renderArraysToRail(dump);
