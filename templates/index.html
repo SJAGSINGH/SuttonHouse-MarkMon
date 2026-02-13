@@ -1157,9 +1157,15 @@ body.war-room .scada-card{
   max-height: 120px;
   overflow: auto;
 }
-.hidden{ display:none; }
- /* Remove DUMP wide box from commission rail */
-#commission-rail .cr-box.cr-wide{
+/* Keep the DUMP wide box + label, hide the dump VALUE line */
+#commission-rail .cr-box.cr-wide #cr-dump{
+  display: none !important;
+}
+
+/* If you also have an expanded/raw dump panel, hide it too */
+#commission-rail .cr-box.cr-wide #cr-dump-full,
+#commission-rail .cr-box.cr-wide .cr-dump-full,
+#commission-rail .cr-box.cr-wide pre{
   display: none !important;
 }
 
