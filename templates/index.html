@@ -1154,15 +1154,15 @@ body.war-room .scada-card{
   overflow: auto;
 }
 /* Keep the DUMP wide box + label, hide the dump VALUE line */
-#commission-rail .cr-box.cr-wide #cr-dump{
-  display: none !important;
-}
+/* #commission-rail .cr-box.cr-wide #cr-dump{
+ /*  display: none !important;
+/* }
 
 /* If you also have an expanded/raw dump panel, hide it too */
 #commission-rail .cr-box.cr-wide #cr-dump-full,
 #commission-rail .cr-box.cr-wide .cr-dump-full,
 #commission-rail .cr-box.cr-wide pre{
-  display: none !important;
+  /* display: none !important;
 }
 
 /* Remove LAST / 1S text column */
@@ -1576,11 +1576,22 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ show summary instead of full dump
-  set("cr-dump", dump ? summariseDump(dump) : "—");
+  const dump = sc?.arr_dump || wa?.arr_dump || "";
+  set("cr-dump", dump ? dumpSummary(dump) : "—");
 
-  // ✅ render pills from dump
-  renderArraysToRail(dump);
+  const pre = document.getElementById("cr-dump-full");
+  if (pre){
+    if (dump){
+      pre.textContent = dump;            // raw
+      pre.classList.remove("hidden");
+    } else {
+      pre.textContent = "";
+      pre.classList.add("hidden");
+    }
+  }
+
+renderArraysToRail(dump);
+
 
   // ✅ open animation (no jump)
   rail.classList.remove("hidden");
@@ -1922,6 +1933,13 @@ function applyWatch(msg){
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
+    
+function dumpSummary(dump){
+  const s = String(dump || "");
+  if (!s) return "—";
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean).length;
+  return `OK • ${s.length} chars • ${lanes} lanes`;
+}
 
 function setDebugVisible(v){
   debugOn = !!v;
