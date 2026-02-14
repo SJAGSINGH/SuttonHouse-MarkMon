@@ -1631,27 +1631,22 @@ function closeRail(){
 }
 
 document.addEventListener("click", (e) => {
-  // ✅ ignore clicks inside the rail itself (prevents accidental re-open / recursion)
+  // ✅ ignore clicks inside the rail itself
   if (e.target.closest("#commission-rail")) return;
 
-  // node circle OR label OR wrapper
-  const el =
-    e.target.closest("[data-slot]") ||
-    e.target.closest(".stock-item") ||
-    e.target.closest(".stock-node") ||
-    e.target.closest(".stock-label") ||
-    e.target.closest(".msa-label");
-
-  if (!el) return;
-
-  // allow commissioning even if secretMode is false
+  // ✅ allow commissioning even if secretMode is false
   if (!(window.COMMISSIONING || window.secretMode)) return;
 
-  const slot = el.getAttribute("data-slot") || el.dataset.slot;
-  if (!slot) return;
+  // ✅ always resolve the owning stock-item (canonical)
+  const item = e.target.closest(".stock-item[data-slot]");
+  if (!item) return;
 
-  openRailForSlot(slot);
+  const refId = item.getAttribute("data-slot"); // ✅ ref_id
+  if (!refId) return;
+
+  openRailForSlot(refId);
 });
+
 
 // close button + Escape
 window.addEventListener("DOMContentLoaded", () => {
