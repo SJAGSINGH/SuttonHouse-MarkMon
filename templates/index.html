@@ -1677,17 +1677,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
-
   const n = Number(ref_id);
-  if (!Number.isFinite(n)) return null;
+  if (!Number.isFinite(n) || n <= 0) return null;
 
-  // ✅ HARD MAP: ref_id 1..GRID_MAX -> slot 0..GRID_MAX-1
-  if (n >= 1 && n <= GRID_MAX) {
-    const idx = n - 1;
-    gridSlots[idx] = n;
-    refToSlot[n] = idx;
-    return idx;
-  }
+  // ✅ ref_id is the slot (canonical)
+  return n;
+}
+
 
   // fallback (should not happen)
   if (refToSlot[n] !== undefined) return refToSlot[n];
@@ -1705,18 +1701,18 @@ function wireNodeClickDebug(){
     const node = e.target.closest(".stock-node");
     if (!node) return;
 
-    // Only in secret mode
     if (!window.secretMode) return;
 
     const item = node.closest(".stock-item");
     if (!item) return;
 
-    const refId = item.dataset.refId;
+    const refId = item.getAttribute("data-slot"); // ✅ canonical
     if (!refId) return;
 
     window.open(`/node/${refId}`, "_blank", "noopener");
   });
 }
+
     
 function openSetupPanel(data){
   const panel = document.getElementById("setup-panel");
@@ -1754,34 +1750,25 @@ window.COMMISSIONING = true;
   });
 })();
 
-function setNode(slot, glow, ticker, msaText, rawSrc){
-  const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
+function setNode(refId, glow, ticker, msaText, rawSrc){
+  const item = document.querySelector(`.stock-item[data-slot="${refId}"]`);
   if (!item) return;
-
-  // persist ref_id for this slot (so click knows what to open)
-  item.dataset.refId = String(gridSlots[slot] ?? "");
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // ----------------------------
-  // NODE COLOUR (halo only)
-  // ----------------------------
+  // NODE HALO CLASS (doesn't change image logic; you control visuals in CSS)
   if (node){
     node.classList.remove("grey","orange","green","red");
     node.classList.add(glow || "grey");
   }
 
-  // ----------------------------
-  // TICKER (always visible)
-  // ----------------------------
+  // TICKER
   const tkr = ticker ? String(ticker).toUpperCase() : "—";
   if (label) label.textContent = tkr;
 
-  // ----------------------------
-  // MSA (always visible)
-  // ----------------------------
+  // MSA DISPLAY
   const norm = String(msaText || "").toUpperCase();
   const display = norm || "NO STATE";
 
@@ -1791,12 +1778,8 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
   if (msa){
     msa.textContent = display;
 
-    // commissioning: keep raw source in tooltip
-    if (window.COMMISSIONING && rawUpper){
-      msa.title = `msa_src: ${rawUpper}`;
-    } else {
-      msa.title = "";
-    }
+    if (window.COMMISSIONING && rawUpper) msa.title = `msa_src: ${rawUpper}`;
+    else msa.title = "";
 
     msa.classList.remove("msa-auto","msa-man","msa-na");
     if (display === "AUTO") msa.classList.add("msa-auto");
@@ -1804,22 +1787,20 @@ function setNode(slot, glow, ticker, msaText, rawSrc){
     else msa.classList.add("msa-na");
   }
 
-  // ----------------------------
-  // TOOLTIP on node + label (commissioning only)
-  // ----------------------------
- const reasonMap = (window.__NODE_REASON__ || {});
-const reason = reasonMap[String(slot)] || "";
+  // TOOLTIP (commissioning only)
+  const reasonMap = (window.__NODE_REASON__ || {});
+  const reason = reasonMap[String(refId)] || "";
 
-const tip = (window.COMMISSIONING)
-  ? `SLOT:${slot} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
-    + (rawUpper ? ` | msa_src:${rawUpper}` : "")
-    + (reason ? ` | ${reason}` : "")
-  : "";
-
+  const tip = (window.COMMISSIONING)
+    ? `REF:${refId} | TICKER:${tkr} | GLOW:${(glow || "grey")} | MSA:${display}`
+      + (rawUpper ? ` | msa_src:${rawUpper}` : "")
+      + (reason ? ` | ${reason}` : "")
+    : "";
 
   if (node)  node.title  = tip;
   if (label) label.title = tip;
 }
+
 
 
 function applyScadaStatus(msg){
