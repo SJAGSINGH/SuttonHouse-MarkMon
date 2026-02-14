@@ -1423,41 +1423,34 @@ setTerminalStatus('OFFLINE');
  
   
 function parseArrDump(dump){
-  const blank = () => ({ IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] });
-  const out = { D: blank(), H4: blank() };
-
+  const out = {
+    D:  { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] },
+    H4: { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] }
+  };
   if (!dump) return out;
 
   const parts = String(dump).split("|").map(x => x.trim()).filter(Boolean);
 
   for (const p of parts){
     const toks = p.split(";").map(x => x.trim());
-    let lane = String(toks.shift() || "");            // e.g. "Indicator_X_D"
-    let laneU = lane.toUpperCase();
+    let keyRaw = String(toks.shift() || "");
 
-    // -----------------------------
-    // timeframe bucket from suffix
-    // -----------------------------
-    let tf = null;
-    if (laneU.endsWith("_4H")) tf = "H4";
-    else if (laneU.endsWith("_D")) tf = "D";
+    // detect TF bucket from suffix
+    const up = keyRaw.toUpperCase();
+    const isH4 = up.endsWith("_4H") || up.endsWith("_240");
+    const bucket = isH4 ? out.H4 : out.D;
+
+    // strip TF suffix for lane normalisation
+    let base = up.replace(/_(D|4H|240)$/i, "");
+
+    // normalise lane names
+    if (base.startsWith("INDICATOR_X")) base = "IND_X";
+    else if (base.startsWith("INDICATOR_Y")) base = "IND_Y";
+    else if (base.startsWith("INDICATOR_DIV")) base = "INDX_DIV";
+    else if (base.startsWith("MSA")) base = "MSA";
+    else if (base.startsWith("JR")) base = "JR";
     else continue;
 
-    // -----------------------------
-    // normalise lane -> key
-    // -----------------------------
-    let key = null;
-
-    if (laneU.startsWith("INDICATOR_X")) key = "IND_X";
-    else if (laneU.startsWith("INDICATOR_Y")) key = "IND_Y";
-    else if (laneU.startsWith("INDICATOR_DIV")) key = "INDX_DIV";
-    else if (laneU.startsWith("MSA")) key = "MSA";
-    else if (laneU.startsWith("JR")) key = "JR";
-    else continue;
-
-    // -----------------------------
-    // parse values, force 8
-    // -----------------------------
     const vals = toks.map(v => {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
@@ -1466,7 +1459,7 @@ function parseArrDump(dump){
     while (vals.length < 8) vals.push(0);
     if (vals.length > 8) vals.length = 8;
 
-    out[tf][key] = vals;
+    bucket[base] = vals;
   }
 
   return out;
@@ -1550,24 +1543,30 @@ function renderArraysToRail(arrDump){
 }
 
 function openRailForSlot(slot){
-  const slotIdx = Number(slot);
-  if (!Number.isFinite(slotIdx)) return;
+  const n = Number(slot);
+  if (!Number.isFinite(n)) return;
 
-  // ✅ slot -> ref_id (1..GRID_MAX)
-  const refId = (window.gridSlots && window.gridSlots[slotIdx] != null)
-    ? window.gridSlots[slotIdx]
-    : (slotIdx + 1);
+  // ✅ Accept BOTH:
+  // - slot as ref_id (1..GRID_MAX)
+  // - slot as 0-based index (legacy)
+  const GRID_MAX = window.GRID_MAX || 64;
 
+  let refId;
+  if (n >= 1 && n <= GRID_MAX) {
+    refId = n; // treat as ref_id
+  } else {
+    const idx = n; // treat as 0-based index
+    refId = (window.gridSlots && window.gridSlots[idx] != null) ? window.gridSlots[idx] : (idx + 1);
+  }
   const ref = String(refId);
 
-  // ✅ STORES (must be declared BEFORE any use)
   const sc = (window.__SCADA_STORE__ || {})[ref] || null;
   const wa = (window.__WATCH_STORE__ || {})[ref] || null;
   const se = (window.__SETUP_STORE__ || {})[ref] || null;
 
   const msg = sc || wa || se;
 
-  // ✅ RAW DUMP (single source of truth)
+  // ✅ dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
   const rail = document.getElementById("commission-rail");
@@ -1590,26 +1589,25 @@ function openRailForSlot(slot){
 
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
-  set("cr-msa",    (sc?.msa_src ?? wa?.msa_src) ?? "—");
+  set("cr-msa",    (msg?.msa_src ?? "—"));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ RAW DUMP INTO BOX (no summary)
-  set("cr-dump", dump || "—");
+  // ✅ show summary (as you requested)
+  set("cr-dump", dump ? summariseDump(dump) : "—");
 
-  // ✅ render pills from dump
+  // ✅ pills
   renderArraysToRail(dump);
 
   // ✅ open animation (no jump)
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
-  // optional: store ref for live updates
+  // store ref + original input for live updates/debug
   rail.setAttribute("data-ref", ref);
-  rail.setAttribute("data-slot", String(slotIdx));
+  rail.setAttribute("data-slot", String(slot));
 }
-
 
 function summariseDump(dump){
   const s = String(dump || "");
@@ -1622,10 +1620,8 @@ function closeRail(){
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
-  // start slide-down
   rail.classList.remove("open");
 
-  // hide after the transform transition ends (no hardcoded timing)
   const onEnd = (e) => {
     if (e.propertyName !== "transform") return;
     rail.classList.add("hidden");
