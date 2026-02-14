@@ -1552,24 +1552,22 @@ function renderArraysToRail(arrDump){
 function openRailForSlot(slot){
   const slotIdx = Number(slot);
   if (!Number.isFinite(slotIdx)) return;
-  // --- RAW DUMP ---
-  const rawDump = sc?.arr_dump || wa?.arr_dump || "";
 
-  const dumpEl = document.getElementById("cr-dump");
-  if (dumpEl){
-    dumpEl.textContent = rawDump || "—";
-  }
+  // ✅ slot -> ref_id (1..GRID_MAX)
+  const refId = (window.gridSlots && window.gridSlots[slotIdx] != null)
+    ? window.gridSlots[slotIdx]
+    : (slotIdx + 1);
 
-  const refId = (window.gridSlots && window.gridSlots[slotIdx] != null) ? window.gridSlots[slotIdx] : (slotIdx + 1);
   const ref = String(refId);
 
+  // ✅ STORES (must be declared BEFORE any use)
   const sc = (window.__SCADA_STORE__ || {})[ref] || null;
   const wa = (window.__WATCH_STORE__ || {})[ref] || null;
   const se = (window.__SETUP_STORE__ || {})[ref] || null;
 
-  const msg  = sc || wa || se;
+  const msg = sc || wa || se;
 
-  // ✅ DEFINE DUMP EARLY (before any use)
+  // ✅ RAW DUMP (single source of truth)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
   const rail = document.getElementById("commission-rail");
@@ -1584,7 +1582,7 @@ function openRailForSlot(slot){
   if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
   if (meta)  meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
 
-  // boxes
+  // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
@@ -1597,8 +1595,8 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ show summary instead of full dump
-  set("cr-dump", dump ? summariseDump(dump) : "—");
+  // ✅ RAW DUMP INTO BOX (no summary)
+  set("cr-dump", dump || "—");
 
   // ✅ render pills from dump
   renderArraysToRail(dump);
@@ -1611,6 +1609,7 @@ function openRailForSlot(slot){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slotIdx));
 }
+
 
 function summariseDump(dump){
   const s = String(dump || "");
