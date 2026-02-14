@@ -27,17 +27,18 @@
     </div>
   </div>
 
-  <div class="stock-grid" id="stock-grid">
-    {% for i in range(20) %}
-      <div class="stock-item" data-slot="{{ i }}">
-        <div class="stock-row">
-          <div class="msa-label mono">—</div>
-          <div class="stock-node grey"></div>
-        </div>
-        <div class="stock-label mono">—</div>
+<div class="stock-grid" id="stock-grid">
+  {% for ref_id in range(1, 21) %}
+    <div class="stock-item" data-slot="{{ ref_id }}">
+      <div class="stock-row">
+        <div class="msa-label mono">—</div>
+        <div class="stock-node grey"></div>
       </div>
-    {% endfor %}
-  </div>
+      <div class="stock-label mono">—</div>
+    </div>
+  {% endfor %}
+</div>
+
 
 </div>
 
