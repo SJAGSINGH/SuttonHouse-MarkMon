@@ -1576,21 +1576,21 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  const dump = sc?.arr_dump || wa?.arr_dump || "";
-  set("cr-dump", dump ? dumpSummary(dump) : "—");
+  const arrDump = sc?.arr_dump || wa?.arr_dump || "";
+  set("cr-dump", arrDump ? dumpSummary(arrDump) : "—");
 
-  const pre = document.getElementById("cr-dump-full");
-  if (pre){
-    if (dump){
-      pre.textContent = dump;            // raw
-      pre.classList.remove("hidden");
-    } else {
-      pre.textContent = "";
-      pre.classList.add("hidden");
-    }
+const pre = document.getElementById("cr-dump-full");
+if (pre){
+  if (arrDump){
+    pre.textContent = arrDump;
+    pre.classList.remove("hidden");
+  } else {
+    pre.textContent = "";
+    pre.classList.add("hidden");
   }
+}
 
-renderArraysToRail(dump);
+renderArraysToRail(arrDump);
 
 
   // ✅ open animation (no jump)
