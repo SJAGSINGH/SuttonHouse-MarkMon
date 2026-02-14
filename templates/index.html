@@ -1157,6 +1157,16 @@ body.war-room .scada-card{
   max-height: 120px;
   overflow: auto;
 }
+
+ #cr-dump{
+  font-family: monospace;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.85;
+}
+ 
 /* Keep the DUMP wide box + label, hide the dump VALUE line */
 #commission-rail .cr-box.cr-wide #cr-dump{
   display: none !important;
@@ -1542,6 +1552,13 @@ function renderArraysToRail(arrDump){
 function openRailForSlot(slot){
   const slotIdx = Number(slot);
   if (!Number.isFinite(slotIdx)) return;
+  // --- RAW DUMP ---
+  const rawDump = sc?.arr_dump || wa?.arr_dump || "";
+
+  const dumpEl = document.getElementById("cr-dump");
+  if (dumpEl){
+    dumpEl.textContent = rawDump || "—";
+  }
 
   const refId = (window.gridSlots && window.gridSlots[slotIdx] != null) ? window.gridSlots[slotIdx] : (slotIdx + 1);
   const ref = String(refId);
