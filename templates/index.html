@@ -1174,16 +1174,17 @@ body.war-room .scada-card{
   display: none !important;
 }
   
-/* REMOVE the debug Dump row under MACRO (outside commission rail) */
-#dump-row,
-.dump-row,
-#debug-dump-row,
-.debug-dump-row,
-#dump,
-.dump,
-#scada-dump-row{
+/* Commission rail: remove DUMP label + value + raw pre (keep the wide box itself) */
+#commission-rail .cr-box.cr-wide .k{
   display: none !important;
 }
+#commission-rail .cr-box.cr-wide #cr-dump{
+  display: none !important;
+}
+#commission-rail .cr-box.cr-wide #cr-dump-full{
+  display: none !important;
+}
+
  
 </style>
 
