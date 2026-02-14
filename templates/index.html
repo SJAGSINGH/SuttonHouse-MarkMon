@@ -1184,6 +1184,12 @@ body.war-room .scada-card{
 #commission-rail .cr-box.cr-wide #cr-dump-full{
   display: none !important;
 }
+/* REMOVE stray dump row under macro */
+main.grid > .k,
+main.grid > #cr-dump,
+main.grid > #cr-dump-full{
+  display: none !important;
+}
 
  
 </style>
