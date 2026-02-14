@@ -468,26 +468,22 @@ body.war-room .scada-card{
     margin-bottom:20px; outline:none; font-family:monospace; letter-spacing:4px;
   }
 
-  #vault-exit{
-    display:none;
-    margin-top:18px;
-    padding:10px 14px;
-    background:rgba(0,0,0,.25);
-    border:1px solid rgba(31,166,122,.55);
-    color:var(--secret);
-    font-size:10px;
-    letter-spacing:2px;
-    text-transform:uppercase;
-    cursor:pointer;
-    border-radius:6px;
-    width:fit-content;
-    align-self:flex-start;
-    transition:all .25s ease;
-  }
-  #vault-exit:hover{
-    background:rgba(31,166,122,.08);
-    box-shadow:0 0 18px rgba(31,166,122,.18);
-  }
+ #vault-exit{
+  background: transparent;
+  border: 1px solid rgba(0,255,170,0.35);
+  color: rgba(0,255,170,0.85);
+  padding: 6px 14px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#vault-exit:hover{
+  background: rgba(0,255,170,0.08);
+  box-shadow: 0 0 12px rgba(0,255,170,0.15);
 
   /* Gauges */
   .gauge{
