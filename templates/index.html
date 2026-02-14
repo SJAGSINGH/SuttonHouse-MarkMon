@@ -1672,24 +1672,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
+
   const n = Number(ref_id);
   if (!Number.isFinite(n) || n <= 0) return null;
 
-  // ✅ ref_id is the slot (canonical)
+  // ✅ CANONICAL: ref_id maps directly to your DOM (data-slot="1..20")
   return n;
 }
 
 
-  // fallback (should not happen)
-  if (refToSlot[n] !== undefined) return refToSlot[n];
 
-  const idx = gridSlots.findIndex(v => v === null);
-  if (idx === -1) return null;
 
-  gridSlots[idx] = n;
-  refToSlot[n] = idx;
-  return idx;
-}
+  
 
 function wireNodeClickDebug(){
   document.addEventListener("click", (e) => {
