@@ -1630,7 +1630,7 @@ function closeRail(){
   rail.addEventListener("transitionend", onEnd);
 }
 
-  document.addEventListener("click", (e) => {
+document.addEventListener("click", function (e) {
   // ✅ ignore clicks inside the rail itself
   if (e.target.closest("#commission-rail")) return;
 
