@@ -1426,18 +1426,7 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
-function msaDisplay(msa_src, msa_ok){
-  const src = String(msa_src || "").trim().toUpperCase();
-  const ok  = (msa_ok === true);
 
-  // Any bad/unknown state => Needs attention
-  if (!ok || !src || src === "NA" || src === "NO STATE") return "Needs attention";
-
-  if (src === "SCADA" || src === "AUTO") return "Automatic";
-  if (src === "MAN" || src === "MANUAL") return "Manual";
-
-  return "Needs attention";
-}
  
  
   
@@ -1506,17 +1495,20 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
-  // Builds 8 cells, returns html + count of 1s (aggregate)
+  // Builds 8 cells, returns html + counts
   const mkCells = (laneKey, arr, tfLabel) => {
     const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
     while (vals.length < 8) vals.push(0);
 
     let c1 = 0;
+    let c2 = 0;
 
     const html = vals.map((v, i) => {
       if (v === 1) c1++;
+      if (v === 2) c2++;
 
       let cls = "v0";
+
       if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
@@ -1528,36 +1520,40 @@ function renderArraysToRail(arrDump){
       return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
     }).join("");
 
-    return { html, c1 };
+    const last = vals[7]; // always 8
+    return { html, last, c1, c2 };
   };
 
-  const mkPanel = (panelTitle, tfLabel, data) => {
+  const mkPanel = (tfLabel, data) => {
+    let panelC1 = 0;
+    let panelC2 = 0;
+
     const rows = lanes.map(l => {
       const arr = data[l.key] || [];
-      const { html, c1 } = mkCells(l.key, arr, tfLabel);
+      const { html, last, c1, c2 } = mkCells(l.key, arr, tfLabel);
+
+      panelC1 += c1;
+      panelC2 += c2;
 
       return `
         <div class="arr-row">
           <div class="arr-name">${l.label}</div>
           <div class="arr-strip">${html}</div>
-          <div class="arr-last">${c1}</div>
+          <div class="arr-last">1s:${c1} • last:${last}</div>
         </div>
       `;
     }).join("");
 
     return `
       <div class="cr-panel">
-        <div class="cr-panel-title">${panelTitle}</div>
+        <div class="cr-panel-title">${tfLabel} • total 1s:${panelC1}</div>
         ${rows}
       </div>
     `;
   };
 
-  root.innerHTML =
-    mkPanel("Daily",  "D",  dataD) +
-    mkPanel("4 Hour", "4H", dataH4);
+  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 }
-
 
 function openRailForSlot(slot){
   const n = Number(slot);
@@ -1604,7 +1600,7 @@ function openRailForSlot(slot){
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
 
-  set("cr-msa", msaDisplay(msg?.msa_src, msg?.msa_ok));
+  set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    (msg?.msa_src ?? "—"));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
@@ -1925,7 +1921,6 @@ function applyWatch(msg){
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
-
 
 function setDebugVisible(v){
   debugOn = !!v;
