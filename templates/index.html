@@ -1506,20 +1506,17 @@ function renderArraysToRail(arrDump){
     { key:"JR",       label:"JR" },
   ];
 
-  // Builds 8 cells, returns html + counts
+  // Builds 8 cells, returns html + count of 1s (aggregate)
   const mkCells = (laneKey, arr, tfLabel) => {
     const vals = Array.isArray(arr) ? arr.slice(0, 8) : [];
     while (vals.length < 8) vals.push(0);
 
     let c1 = 0;
-    let c2 = 0;
 
     const html = vals.map((v, i) => {
       if (v === 1) c1++;
-      if (v === 2) c2++;
 
       let cls = "v0";
-
       if (laneKey === "MSA"){
         if (v === 1) cls = "msa1";
         else if (v === 2) cls = "msa2";
@@ -1531,40 +1528,36 @@ function renderArraysToRail(arrDump){
       return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
     }).join("");
 
-    const last = vals[7]; // always 8
-    return { html, last, c1, c2 };
+    return { html, c1 };
   };
 
-  const mkPanel = (tfLabel, data) => {
-    let panelC1 = 0;
-    let panelC2 = 0;
-
+  const mkPanel = (panelTitle, tfLabel, data) => {
     const rows = lanes.map(l => {
       const arr = data[l.key] || [];
-      const { html, last, c1, c2 } = mkCells(l.key, arr, tfLabel);
-
-      panelC1 += c1;
-      panelC2 += c2;
+      const { html, c1 } = mkCells(l.key, arr, tfLabel);
 
       return `
         <div class="arr-row">
           <div class="arr-name">${l.label}</div>
           <div class="arr-strip">${html}</div>
-          <div class="arr-last">1s:${c1} • last:${last}</div>
+          <div class="arr-last">${c1}</div>
         </div>
       `;
     }).join("");
 
     return `
       <div class="cr-panel">
-        <div class="cr-panel-title">${tfLabel} • total 1s:${panelC1}</div>
+        <div class="cr-panel-title">${panelTitle}</div>
         ${rows}
       </div>
     `;
   };
 
-  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
+  root.innerHTML =
+    mkPanel("Daily",  "D",  dataD) +
+    mkPanel("4 Hour", "4H", dataH4);
 }
+
 
 function openRailForSlot(slot){
   const n = Number(slot);
