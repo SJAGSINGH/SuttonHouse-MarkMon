@@ -1426,7 +1426,18 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
+function msaDisplay(msa_src, msa_ok){
+  const src = String(msa_src || "").trim().toUpperCase();
+  const ok  = (msa_ok === true);
 
+  // Any bad/unknown state => Needs attention
+  if (!ok || !src || src === "NA" || src === "NO STATE") return "Needs attention";
+
+  if (src === "SCADA" || src === "AUTO") return "Automatic";
+  if (src === "MAN" || src === "MANUAL") return "Manual";
+
+  return "Needs attention";
+}
  
  
   
@@ -1600,7 +1611,7 @@ function openRailForSlot(slot){
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
 
-  set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
+  set("cr-msa", msaDisplay(msg?.msa_src, msg?.msa_ok));
   set("cr-tf",     tf);
   set("cr-msa",    (msg?.msa_src ?? "—"));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
@@ -1921,6 +1932,7 @@ function applyWatch(msg){
 // ----------------------------
 let debugOn = false;
 let debugSource = "—";
+
 
 function setDebugVisible(v){
   debugOn = !!v;
