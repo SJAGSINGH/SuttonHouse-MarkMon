@@ -1167,10 +1167,18 @@ body.war-room .scada-card{
   opacity: 0.85;
 }
  
-/* Keep the DUMP wide box + label, hide the dump VALUE line */
+/* DUMP: show the value line inside the wide box */
 #commission-rail .cr-box.cr-wide #cr-dump{
+  display: block !important;
+}
+
+/* keep any optional full/raw pre hidden */
+#commission-rail #cr-dump-full,
+#commission-rail .cr-dump-full,
+#commission-rail pre#cr-dump-full{
   display: none !important;
 }
+
 
 /* If you also have an expanded/raw dump panel, hide it too */
 #commission-rail .cr-box.cr-wide #cr-dump-full,
