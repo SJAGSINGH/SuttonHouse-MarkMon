@@ -1432,23 +1432,27 @@ setTerminalStatus('OFFLINE');
   
 function parseArrDump(dump){
   const out = {
-    D:  { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] },
-    H4: { IND_X:[], IND_Y:[], INDX_DIV:[], MSA:[], JR:[] }
+    D:  { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], INDX_DIV:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] },
+    H4: { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], INDX_DIV:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] }
   };
   if (!dump) return out;
 
-  const parts = String(dump).split("|").map(x => x.trim()).filter(Boolean);
+  const parts = String(dump)
+    .split("|")
+    .map(x => x.trim())
+    .filter(Boolean);
 
   for (const p of parts){
     const toks = p.split(";").map(x => x.trim());
-    let keyRaw = String(toks.shift() || "");
+    const keyRaw = String(toks.shift() || "").trim();
+    if (!keyRaw) continue;
 
-    // detect TF bucket from suffix
-    const up = keyRaw.toUpperCase();
+    const up = keyRaw.toUpperCase().replace(/\s+/g, "");
+
     const isH4 = up.endsWith("_4H") || up.endsWith("_240");
     const bucket = isH4 ? out.H4 : out.D;
 
-    // strip TF suffix for lane normalisation
+    // remove TF suffix
     let base = up.replace(/_(D|4H|240)$/i, "");
 
     // normalise lane names
@@ -1472,6 +1476,7 @@ function parseArrDump(dump){
 
   return out;
 }
+
 
 
 function renderArraysToRail(arrDump){
