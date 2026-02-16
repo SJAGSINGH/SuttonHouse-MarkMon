@@ -1187,6 +1187,9 @@ body.war-room .scada-card{
   color: rgba(255,255,255,0.80);
   opacity: 0.75;
 }
+  
+#cr-setup2, #cr-trigger2{ font-weight: 800; }
+#cr-setup2:not(:empty), #cr-trigger2:not(:empty){ letter-spacing: 2px; }
 
 /* If you also have an expanded/raw dump panel, hide it too */
 #commission-rail .cr-box.cr-wide #cr-dump-full,
@@ -1363,6 +1366,8 @@ main.grid > #cr-dump-full{
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
     <div class="cr-box"><div class="k">SMA10X D</div><div id="cr-sma10x-d" class="v">—</div></div>
     <div class="cr-box"><div class="k">SMA10X 4H</div><div id="cr-sma10x-h4" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup2" class="v">—</div></div>
+    <div class="cr-box"><div class="k">TRIGGER</div><div id="cr-trigger2" class="v">—</div></div>
   </div>
 
   <div class="cr-arrays" id="cr-arrays"></div>
@@ -1436,6 +1441,11 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
+
+    
+function tick(v){
+  return v ? "✓" : "—";
+}
 
  
 function readSingleLane(dump, laneName){
@@ -1688,6 +1698,9 @@ function openRailForSlot(slot){
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+  // ✅ NEW setup/trigger ticks (from SCADA booleans)
+  set("cr-setup2",   tick(!!msg?.setup_any));
+  set("cr-trigger2", tick(!!(msg?.trigger_armed ?? msg?.trigger_any)));
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
