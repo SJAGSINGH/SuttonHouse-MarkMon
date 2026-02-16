@@ -1179,6 +1179,14 @@ body.war-room .scada-card{
   display: none !important;
 }
 
+#cr-sma10x-d.yes, #cr-sma10x-h4.yes{
+  color: rgba(0,255,170,0.95);
+  text-shadow: 0 0 12px rgba(0,255,170,0.18);
+}
+#cr-sma10x-d.no, #cr-sma10x-h4.no{
+  color: rgba(255,255,255,0.80);
+  opacity: 0.75;
+}
 
 /* If you also have an expanded/raw dump panel, hide it too */
 #commission-rail .cr-box.cr-wide #cr-dump-full,
@@ -1353,6 +1361,8 @@ main.grid > #cr-dump-full{
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
     <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
+    <div class="cr-box"><div class="k">SMA10X D</div><div id="cr-sma10x-d" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SMA10X 4H</div><div id="cr-sma10x-h4" class="v">—</div></div>
   </div>
 
   <div class="cr-arrays" id="cr-arrays"></div>
@@ -1428,6 +1438,24 @@ setTerminalStatus('OFFLINE');
   setInterval(tick, 1000);
 
  
+function readSingleLane(dump, laneName){
+  // expects "LANE;0" or "LANE;1" somewhere in dump separated by |
+  const s = String(dump || "");
+  if (!s) return null;
+
+  const parts = s.split("|");
+  for (const p of parts){
+    const toks = p.split(";").map(x => x.trim());
+    if (!toks.length) continue;
+
+    const key = String(toks[0] || "").toUpperCase();
+    if (key === String(laneName).toUpperCase()){
+      const v = Number(toks[1]);
+      return Number.isFinite(v) ? v : 0;
+    }
+  }
+  return null;
+}
  
   
 function parseArrDump(dump){
@@ -1618,7 +1646,24 @@ function openRailForSlot(slot){
 
   // dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+  // ✅ SMA10X snapshot lanes
+  const smaD  = readSingleLane(dump, "SMA10X_D");
+  const smaH4 = readSingleLane(dump, "SMA10X_4H");
 
+  // ✅ Render YES / NO with glow class
+  const setSnap = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const yes = (v === 1);
+
+    el.textContent = (v == null ? "—" : (yes ? "YES" : "NO"));
+    el.classList.toggle("yes", yes);
+    el.classList.toggle("no", v === 0);
+  };
+
+  setSnap("cr-sma10x-d", smaD);
+  setSnap("cr-sma10x-h4", smaH4);
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
