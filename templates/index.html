@@ -1663,20 +1663,39 @@ function summariseDump(dump){
 // - Prefers tile.dataset.refId (stable)
 // - Accepts slot as: DOM slot index OR ref_id
 // ===============================
+// Reads a single-value lane like "SMA10X_D;1" from the dump string
+function readSingleLane(dump, laneName){
+  if (!dump) return null;
+  const s = String(dump);
+
+  // match: start or | then NAME; then 0/1/2
+  const re = new RegExp(`(?:^|\\|)${laneName};([0-9])(?:\\||$)`);
+  const m = s.match(re);
+  if (!m) return null;
+
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function openRailForSlot(slot){
   const n = Number(slot);
   if (!Number.isFinite(n)) return;
 
   const GRID_MAX = window.GRID_MAX || 64;
+  const GRID_SLOTS = window.GRID_SLOTS || 20; // your DOM grid is 0..19
 
-  // ✅ if click came from DOM (data-slot), use that tile's stored ref_id first
+  // ✅ prefer ref_id stored on the clicked tile (ONLY if n is a real slot index)
   let refId = null;
-  const tile = document.querySelector(`.stock-item[data-slot="${n}"]`);
-  if (tile && tile.dataset && tile.dataset.refId) {
-    refId = Number(tile.dataset.refId);
+  if (n >= 0 && n < GRID_SLOTS){
+    const tile = document.querySelector(`.stock-item[data-slot="${n}"]`);
+    const rid = tile?.dataset?.refId;
+    if (rid != null && rid !== ""){
+      const parsed = Number(rid);
+      if (Number.isFinite(parsed)) refId = parsed;
+    }
   }
 
-  // ✅ if not available, accept either ref_id (1..GRID_MAX) or legacy 0-based index
+  // ✅ fallback: accept ref_id (1..GRID_MAX) or legacy 0-based index
   if (!Number.isFinite(refId)) {
     if (n >= 1 && n <= GRID_MAX) {
       refId = n; // treat as ref_id
@@ -1696,24 +1715,35 @@ function openRailForSlot(slot){
 
   // dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
-  // ✅ SMA10X snapshot lanes
-  const smaD  = readSingleLane(dump, "SMA10X_D");
-  const smaH4 = readSingleLane(dump, "SMA10X_4H");
 
-  // ✅ Render YES / NO with glow class
+  // ✅ YES/NO renderer (also clears old classes)
   const setSnap = (id, v) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    const yes = (v === 1);
+    el.classList.remove("yes","no");
 
-    el.textContent = (v == null ? "—" : (yes ? "YES" : "NO"));
-    el.classList.toggle("yes", yes);
-    el.classList.toggle("no", v === 0);
+    if (v == null){
+      el.textContent = "—";
+      return;
+    }
+
+    const yes = (v === 1 || v === true);
+    el.textContent = yes ? "YES" : "NO";
+    el.classList.add(yes ? "yes" : "no");
   };
 
+  // ✅ SMA10X snapshot lanes (from dump)
+  const smaD  = readSingleLane(dump, "SMA10X_D");
+  const smaH4 = readSingleLane(dump, "SMA10X_4H");
   setSnap("cr-sma10x-d", smaD);
   setSnap("cr-sma10x-h4", smaH4);
+
+  // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
+  // These must exist in your SCADA_STATUS payload as booleans.
+  setSnap("cr-setup2",   msg?.setup_any);      // true/false
+  setSnap("cr-trigger2", msg?.trigger_armed);  // true/false (or use trigger_any if you prefer)
+
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
