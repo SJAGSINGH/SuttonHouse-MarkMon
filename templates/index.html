@@ -1187,7 +1187,55 @@ body.war-room .scada-card{
   color: rgba(255,255,255,0.80);
   opacity: 0.75;
 }
+/* setup / trigger visual states */
+#commission-rail .v{
+  font-weight:600;
+  letter-spacing:1px;
+}
 
+/* YES state */
+#commission-rail .v.yes{
+  color: var(--lime);
+  text-shadow: 0 0 10px rgba(0,255,170,.25);
+}
+
+/* NO state */
+#commission-rail .v.no{
+  color: rgba(255,255,255,.45);
+}
+
+/* neutral dash */
+#commission-rail .v:empty::after{
+  content:"—";
+  opacity:.5;
+}
+
+/* SMA / SETUP / TRIGGER alignment */
+#commission-rail .cr-box{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+/* make SETUP + TRIGGER slightly stronger */
+#cr-setup2,
+#cr-trigger2{
+  font-size:13px;
+  letter-spacing:1.5px;
+}
+
+/* highlight armed trigger subtly */
+#cr-trigger2.yes{
+  box-shadow: 0 0 18px rgba(0,255,170,.18);
+  border-radius:8px;
+}
+
+/* dump mono formatting */
+#cr-dump{
+  font-family: monospace;
+  font-size:10px;
+  opacity:.85;
+}
 /* If you also have an expanded/raw dump panel, hide it too */
 #commission-rail .cr-box.cr-wide #cr-dump-full,
 #commission-rail .cr-box.cr-wide .cr-dump-full,
