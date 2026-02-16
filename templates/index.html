@@ -1699,8 +1699,8 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
   // ✅ NEW setup/trigger ticks (from SCADA booleans)
-  set("cr-setup2",   tick(!!msg?.setup_any));
-  set("cr-trigger2", tick(!!(msg?.trigger_armed ?? msg?.trigger_any)));
+  //set("cr-setup2",   tick(!!msg?.setup_any));
+  //set("cr-trigger2", tick(!!(msg?.trigger_armed ?? msg?.trigger_any)));
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
