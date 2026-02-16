@@ -1554,6 +1554,24 @@ function renderArraysToRail(arrDump){
 
   root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 }
+    
+function formatMSA(msa_src, msa_ok){
+  const src = String(msa_src || "").trim().toUpperCase();
+
+  if (!msa_ok || !src || src === "NA" || src === "NO STATE"){
+    return "Needs attention";
+  }
+
+  if (src === "SCADA" || src === "AUTO"){
+    return "Automatic";
+  }
+
+  if (src === "MAN" || src === "MANUAL"){
+    return "Manual";
+  }
+
+  return "Needs attention";
+}
 
 function openRailForSlot(slot){
   const n = Number(slot);
@@ -1602,7 +1620,7 @@ function openRailForSlot(slot){
 
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
-  set("cr-msa",    (msg?.msa_src ?? "—"));
+  set("cr-msa", formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
