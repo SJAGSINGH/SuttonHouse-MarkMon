@@ -1555,40 +1555,59 @@ function renderArraysToRail(arrDump){
   root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 }
     
+// ===============================
+// MSA TEXT (panel-specific)
+// SCADA/AUTO -> Automatic
+// MAN -> Manual
+// NA/false/anything else -> Attention Required
+// ===============================
 function formatMSA(msa_src, msa_ok){
-  const src = String(msa_src || "").trim().toUpperCase();
+  const s = String(msa_src || "").trim().toUpperCase();
 
-  if (!msa_ok || !src || src === "NA" || src === "NO STATE"){
-    return "Needs attention";
-  }
+  if (s === "SCADA" || s === "AUTO") return "Automatic";
+  if (s === "MAN" || s === "MANUAL") return "Manual";
 
-  if (src === "SCADA" || src === "AUTO"){
-    return "Automatic";
-  }
+  // if msa_ok is explicitly false, treat as attention required
+  if (msa_ok === false) return "Attention Required";
 
-  if (src === "MAN" || src === "MANUAL"){
-    return "Manual";
-  }
-
-  return "Needs attention";
+  return "Attention Required";
 }
 
+function summariseDump(dump){
+  const s = String(dump || "");
+  if (!s) return "—";
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
+  return `OK • ${s.length} chars • ${lanes.length} lanes`;
+}
+
+// ===============================
+// COMMISSION RAIL OPEN
+// - Prefers tile.dataset.refId (stable)
+// - Accepts slot as: DOM slot index OR ref_id
+// ===============================
 function openRailForSlot(slot){
   const n = Number(slot);
   if (!Number.isFinite(n)) return;
 
-  // ✅ Accept BOTH:
-  // - slot as ref_id (1..GRID_MAX)
-  // - slot as 0-based index (legacy)
   const GRID_MAX = window.GRID_MAX || 64;
 
-  let refId;
-  if (n >= 1 && n <= GRID_MAX) {
-    refId = n; // treat as ref_id
-  } else {
-    const idx = n; // treat as 0-based index
-    refId = (window.gridSlots && window.gridSlots[idx] != null) ? window.gridSlots[idx] : (idx + 1);
+  // ✅ if click came from DOM (data-slot), use that tile's stored ref_id first
+  let refId = null;
+  const tile = document.querySelector(`.stock-item[data-slot="${n}"]`);
+  if (tile && tile.dataset && tile.dataset.refId) {
+    refId = Number(tile.dataset.refId);
   }
+
+  // ✅ if not available, accept either ref_id (1..GRID_MAX) or legacy 0-based index
+  if (!Number.isFinite(refId)) {
+    if (n >= 1 && n <= GRID_MAX) {
+      refId = n; // treat as ref_id
+    } else {
+      const idx = n; // treat as 0-based index
+      refId = (window.gridSlots && window.gridSlots[idx] != null) ? window.gridSlots[idx] : (idx + 1);
+    }
+  }
+
   const ref = String(refId);
 
   const sc = (window.__SCADA_STORE__ || {})[ref] || null;
@@ -1597,7 +1616,7 @@ function openRailForSlot(slot){
 
   const msg = sc || wa || se;
 
-  // ✅ dump (safe even if msg null)
+  // dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
   const rail = document.getElementById("commission-rail");
@@ -1620,18 +1639,18 @@ function openRailForSlot(slot){
 
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
-  set("cr-msa", formatMSA(msg?.msa_src, msg?.msa_ok));
+  set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ show summary (as you requested)
+  // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
 
-  // ✅ pills
+  // pills
   renderArraysToRail(dump);
 
-  // ✅ open animation (no jump)
+  // open animation (no jump)
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
@@ -1639,6 +1658,7 @@ function openRailForSlot(slot){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
+
 
 function summariseDump(dump){
   const s = String(dump || "");
@@ -1770,15 +1790,29 @@ window.COMMISSIONING = true;
   });
 })();
 
+// ===============================
+// NODE PAINT (HALO) + STABLE ref_id
+// - Works whether your DOM is data-slot="0..19" OR "1..20"
+// - Persists ref_id onto the tile so rail can always find the right store entry
+// ===============================
 function setNode(refId, glow, ticker, msaText, rawSrc){
-  const item = document.querySelector(`.stock-item[data-slot="${refId}"]`);
+  // try exact match first (if you ever switch DOM to 1..20)
+  let item = document.querySelector(`.stock-item[data-slot="${refId}"]`);
+
+  // fallback: current DOM is 0..19, while ref_id is 1..20
+  if (!item && Number.isFinite(Number(refId))) {
+    item = document.querySelector(`.stock-item[data-slot="${Number(refId) - 1}"]`);
+  }
   if (!item) return;
+
+  // ✅ persist ref_id directly on the tile (click/rail will use this)
+  item.dataset.refId = String(refId);
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // NODE HALO CLASS (doesn't change image logic; you control visuals in CSS)
+  // NODE HALO CLASS
   if (node){
     node.classList.remove("grey","orange","green","red");
     node.classList.add(glow || "grey");
@@ -1822,7 +1856,6 @@ function setNode(refId, glow, ticker, msaText, rawSrc){
 }
 
 
-
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -1862,7 +1895,8 @@ function applyScadaStatus(msg){
 
 
   // pass RAW SOURCE so commissioning can show it in tooltip
-  setNode(slot, glow, msg.ticker, msa, msg.msa_src);
+  setNode(slot, glow, msg.ticker, msa, msg.msa_src, msg.ref_id);
+
 }
 
 
