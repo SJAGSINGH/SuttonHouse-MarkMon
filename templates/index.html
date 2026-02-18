@@ -1657,43 +1657,80 @@ function toggleStrategyRail(ref){
 }
     
 function openStrategyRailForRef(ref){
+  const key = String(ref);
 
-  const sc = (window.__SCADA_STORE__ || {})[String(ref)] || null;
-  const wa = (window.__WATCH_STORE__ || {})[String(ref)] || null;
+  const sc = (window.__SCADA_STORE__ || {})[key] || null;
+  const wa = (window.__WATCH_STORE__ || {})[key] || null;
 
   const msg = sc || wa;
   if (!msg) return;
 
-  const rail = document.getElementById("strategy-rail");
+  const rail  = document.getElementById("strategy-rail");
   if (!rail) return;
 
   const title = document.getElementById("sr-title");
   const meta  = document.getElementById("sr-meta");
   const grid  = document.getElementById("sr-grid");
+  if (!grid) return;
 
   const strat = resolveStrategyCode(msg);
   const tkr   = msg?.ticker || "—";
+  const tf    = msg?.tf || "—";
 
-  if (title) title.textContent = `STRATEGY — SLOT ${ref} • ${tkr} • ${strat}`;
-  if (meta)  meta.textContent  = "SCADA GOVERNANCE VIEW";
+  // --- Header (single line + consistent)
+  if (title) title.textContent = `STRATEGY — SLOT ${key} • ${String(tkr).toUpperCase()} • ${strat}`;
+  if (meta)  meta.textContent  = (sc ? `SCADA_STATUS • TF ${tf}` : `WATCH • TF ${tf}`);
 
   let html = "";
 
+  // ----------------------------
+  // S2 — governance (SCADA truth)
+  // ----------------------------
   if (strat === "S2.0" || strat === "S2.1"){
-    html += srBox("WEEKLY_UP", msg.weekly_up);
-    html += srBox("ALLOW_D", msg.allow_D);
-    html += srBox("ALLOW_4H", msg.allow_4H);
-    html += srBox("AOI_IN", msg.aoi_in);
-    html += srBox("BLOCK_REASON", msg.block_reason);
+    html += srBox("WEEKLY_UP",      msg?.weekly_up);
+    html += srBox("AOI_LEVEL",      msg?.aoi_level);
+    html += srBox("AOI_IN",         msg?.aoi_in);
+    html += srBox("ALLOW_D",        msg?.allow_D);
+    html += srBox("ALLOW_4H",       msg?.allow_4H);
+    html += srBox("MODE",           msg?.mode);
+    html += srBox("BLOCK_REASON",   msg?.block_reason);
+
+    // optional (only if present in SCADA_STATUS)
+    html += srBox("SETUP_ANY",      msg?.setup_any);
+    html += srBox("TRIGGER_ARMED",  msg?.trigger_armed);
   }
+
+  // ----------------------------
+  // S3 — recession gate (your v1.0.1 path)
+  // If you’ve moved recession to MACRO only, these may be undefined here.
+  // ----------------------------
   else if (strat === "S3"){
-    html += srBox("SAHM_RECESSION", msg.sahm_recession);
-    html += srBox("SPX_DD35", msg.spx_dd35);
-    html += srBox("SPX_DD_PCT", msg.spx_dd_pct);
+    html += srBox("S3_WATCH",       msg?.s3_watch);
+    html += srBox("S3_ARMED",       msg?.s3_armed);
+    html += srBox("S3_ALLOWED",     msg?.s3_allowed);
+
+    // legacy fields (only if still present)
+    html += srBox("SAHM_RECESSION", msg?.sahm_recession);
+    html += srBox("SPX_DD35",       msg?.spx_dd35);
+    html += srBox("SPX_DD_PCT",     msg?.spx_dd_pct);
   }
+
+  // ----------------------------
+  // S1 — cycle gate
+  // ----------------------------
   else if (strat === "S1"){
-    html += srBox("CYCLE", msg.cycle);
-    html += srBox("S1_ALLOWED", msg.s1_allowed);
+    html += srBox("CYCLE_RAW",      msg?.cycle);
+    html += srBox("CYCLE_120",      msg?.cycle_120);
+    html += srBox("S1_ALLOWED",     msg?.s1_allowed);
+  }
+
+  // ----------------------------
+  // Unknown / idle
+  // ----------------------------
+  else {
+    html += srBox("S1_ALLOWED", msg?.s1_allowed);
+    html += srBox("S2_ALLOWED", msg?.s2_allowed);
+    html += srBox("S3_ALLOWED", msg?.s3_allowed);
   }
 
   grid.innerHTML = html;
@@ -1701,8 +1738,9 @@ function openStrategyRailForRef(ref){
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
-  rail.setAttribute("data-ref", String(ref));
+  rail.setAttribute("data-ref", key);
 }
+
 
 function closeStrategyRail(){
   const rail = document.getElementById("strategy-rail");
