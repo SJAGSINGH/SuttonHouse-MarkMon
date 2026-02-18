@@ -1783,6 +1783,9 @@ function openRailForSlot(slot){
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+  set("cr-s1", msg?.s1_allowed);
+  set("cr-s2", msg?.s2_allowed);
+  set("cr-s3", msg?.s3_allowed);
 
   // OPTIONAL: if you keep BUILD + BUILD DATE boxes for now, populate them
   // (safe even if elements don’t exist)
