@@ -1229,7 +1229,7 @@ body.war-room .scada-card{
   box-shadow: 0 0 18px rgba(0,255,170,.18);
   border-radius:8px;
 }
-
+#cr-meta{ white-space: pre-line; }
 /* dump mono formatting */
 #cr-dump{
   font-family: monospace;
@@ -1763,9 +1763,12 @@ function openRailForSlot(slot){
   // ✅ meta now includes build when available
   if (meta){
     const base = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
-    const btxt = (buildVer !== "—" || buildDate !== "—") ? ` • BUILD ${buildVer} • ${buildDate}` : "";
+    const btxt = (buildVer || buildDate)
+    ? `\nBUILD ${buildVer || "—"} • ${buildDate || "—"}`
+    : "";
     meta.textContent = base + btxt;
   }
+
 
   // boxes helper
   const set = (id, v) => {
@@ -1780,9 +1783,6 @@ function openRailForSlot(slot){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  // ✅ NEW: build boxes in the grid
-  set("cr-build-ver",  buildVer);
-  set("cr-build-date", buildDate);
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
