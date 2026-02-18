@@ -1089,16 +1089,11 @@ body.war-room .scada-card{
   margin-bottom:14px;
 }
 
-.cr-title,
-.cr-meta{
-  white-space: nowrap;         /* ✅ single line */
-  overflow: hidden;
-  text-overflow: ellipsis;     /* ✅ clean cut if too long */
-}
-  
-cr-title{
-  flex: 0 1 auto;
-  min-width: 0;
+.cr-title{
+  font-size:13px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.90);   /* stronger */
 }
 
 .cr-meta{
@@ -1108,9 +1103,6 @@ cr-title{
   color: rgba(0,255,170,0.55);
   flex:1;
   text-align:left;
-  flex: 1 1 auto;              /* ✅ meta takes remaining space */
-  text-align: left;
-  min-width: 0;
 }
 
 /* Top data grid */
@@ -1412,15 +1404,12 @@ main.grid > #cr-dump-full{
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
+    <div class="cr-box"><div class="k">BUILD</div><div id="cr-build-ver" class="v">—</div></div>
+    <div class="cr-box"><div class="k">BUILD DATE</div><div id="cr-build-date" class="v">—</div></div>
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
-    <div class="cr-box"><div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div> </div>
-    
     <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
     <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
-    <div class="cr-box"><div class="k">S1</div><div id="cr-s1" class="v">—</div></div>
-    <div class="cr-box"><div class="k">S2</div><div id="cr-s2" class="v">—</div></div>
-    <div class="cr-box"><div class="k">S3</div><div id="cr-s3" class="v">—</div></div>
 
     <!-- keep ONLY this dump (inside the rail) -->
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
@@ -1651,7 +1640,7 @@ function renderArraysToRail(arrDump){
 // SCADA/AUTO -> Automatic
 // MAN -> Manual
 // NA/false/anything else -> Attention Required
-const set = (id// ===============================
+// ===============================
 function formatMSA(msa_src, msa_ok){
   const s = String(msa_src || "").trim().toUpperCase();
 
@@ -1669,44 +1658,6 @@ function summariseDump(dump){
   if (!s) return "—";
   const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
   return `OK • ${s.length} chars • ${lanes.length} lanes`;
-}
-function resolveStrategyLabel(msg){
-  if (!msg) return { label: "IDLE", code: 0 };
-
-  const s1 = !!msg.s1_allowed;
-  const s2 = !!msg.s2_allowed;
-  const s3 = !!msg.s3_allowed;
-
-  const weeklyUp = !!msg.weekly_up;
-  const aoiIn    = !!msg.aoi_in;
-
-  // ----------------------------
-  // Priority order (governance law)
-  // S3 > S2 > S1
-  // ----------------------------
-
-  // S3 — recession armed
-  if (s3){
-    return { label: "S3", code: 3 };
-  }
-
-  // S2 family
-  if (s2){
-    if (weeklyUp){
-      return { label: "S2.0", code: 20 };   // trend mode
-    }
-    if (!weeklyUp && aoiIn){
-      return { label: "S2.1", code: 21 };   // restricted mode
-    }
-    return { label: "S2", code: 2 };        // fallback
-  }
-
-  // S1 — early clock transition
-  if (s1){
-    return { label: "S1", code: 1 };
-  }
-
-  return { label: "IDLE", code: 0 };
 }
 
 // ===============================
@@ -1797,50 +1748,47 @@ function openRailForSlot(slot){
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
+  // header
+const tkr = msg?.ticker || "—";
+const tf  = msg?.tf || "—";
+
+const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
+const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
+
+const title = document.getElementById("cr-title");
+const meta  = document.getElementById("cr-meta");
+
+if (title){
+  let buildTxt = "";
+  if (buildVer || buildDate){
+    buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
+  }
+
+  title.textContent =
+    `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}${buildTxt}`;
+}
+
+if (meta){
+  meta.textContent = sc
+    ? `SCADA_STATUS`
+    : (wa ? `WATCH` : `NO STATE`);
+}
+
+
+
   // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
-  const strat = resolveStrategyLabel(msg);
-  set("cr-strategy", strat.label);
-  // header (single line, build included)
-  const tkr = msg?.ticker || "—";
-  const tf  = msg?.tf || "—";
 
-  // accept either casing (future-proof)
-  const buildVer  = (sc?.Build_Version ?? sc?.build_ver ?? msg?.Build_Version ?? msg?.build_ver) || null;
-  const buildDate = (sc?.Build_Date    ?? sc?.build_date ?? msg?.Build_Date    ?? msg?.build_date) || null;
-
-  const title = document.getElementById("cr-title");
-  const meta  = document.getElementById("cr-meta");
-
-  // meta is now only status text so title stays one clean line
-  if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}`;
-  if (meta){
-    const stateTxt = sc ? "SCADA_STATUS" : (wa ? "WATCH" : "NO STATE");
-    const buildTxt =
-      (buildVer || buildDate)
-        ? `BUILD ${buildVer || "—"}${buildDate ? " • " + buildDate : ""}`
-        : "BUILD —";
-    meta.textContent = `${stateTxt} • ${buildTxt}`;
-  }
-
-  // boxes
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
-  setSnap("cr-s1", msg?.s1_allowed);
-  setSnap("cr-s2", msg?.s2_allowed);
-  setSnap("cr-s3", msg?.s3_allowed);
 
-  // OPTIONAL: if you keep BUILD + BUILD DATE boxes for now, populate them
-  // (safe even if elements don’t exist)
-  set("cr-build", buildVer);
-  set("cr-build-date", buildDate);
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
@@ -1856,7 +1804,6 @@ function openRailForSlot(slot){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
-
 
 
 function summariseDump(dump){
@@ -3468,4 +3415,3 @@ function setMsgStep(stepNum, transitionText){
 </script>
 </body>
 </html>
-
