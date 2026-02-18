@@ -2070,7 +2070,9 @@ if (stratBtn){
   set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
-  set("cr-signal", String(!!msg?.signal));
+  const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
+  const signalActive = setupActive ? !!msg?.signal : null;
+  set("cr-signal", signalActive);
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
 
