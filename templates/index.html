@@ -1404,6 +1404,8 @@ main.grid > #cr-dump-full{
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
+    <div class="cr-box"><div class="k">BUILD</div><div id="cr-build-ver" class="v">—</div></div>
+    <div class="cr-box"><div class="k">BUILD DATE</div><div id="cr-build-date" class="v">—</div></div>
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
     <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
@@ -1740,7 +1742,6 @@ function openRailForSlot(slot){
   setSnap("cr-sma10x-h4", smaH4);
 
   // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
-  // These must exist in your SCADA_STATUS payload as booleans.
   setSnap("cr-setup2",   msg?.setup_any);      // true/false
   setSnap("cr-trigger2", msg?.trigger_armed);  // true/false (or use trigger_any if you prefer)
 
@@ -1751,10 +1752,20 @@ function openRailForSlot(slot){
   const tkr = msg?.ticker || "—";
   const tf  = msg?.tf || "—";
 
+  // ✅ Build (prefer SCADA_STATUS; WATCH/SETUP may not carry it)
+  const buildVer  = sc?.Build_Version ?? sc?.build_ver ?? msg?.Build_Version ?? msg?.build_ver ?? "—";
+  const buildDate = sc?.Build_Date    ?? sc?.build_date ?? msg?.Build_Date    ?? msg?.build_date ?? "—";
+
   const title = document.getElementById("cr-title");
   const meta  = document.getElementById("cr-meta");
   if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
-  if (meta)  meta.textContent  = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
+
+  // ✅ meta now includes build when available
+  if (meta){
+    const base = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
+    const btxt = (buildVer !== "—" || buildDate !== "—") ? ` • BUILD ${buildVer} • ${buildDate}` : "";
+    meta.textContent = base + btxt;
+  }
 
   // boxes helper
   const set = (id, v) => {
@@ -1768,6 +1779,10 @@ function openRailForSlot(slot){
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+
+  // ✅ NEW: build boxes in the grid
+  set("cr-build-ver",  buildVer);
+  set("cr-build-date", buildDate);
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
