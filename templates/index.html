@@ -1670,6 +1670,44 @@ function summariseDump(dump){
   const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
   return `OK • ${s.length} chars • ${lanes.length} lanes`;
 }
+function resolveStrategyLabel(msg){
+  if (!msg) return { label: "IDLE", code: 0 };
+
+  const s1 = !!msg.s1_allowed;
+  const s2 = !!msg.s2_allowed;
+  const s3 = !!msg.s3_allowed;
+
+  const weeklyUp = !!msg.weekly_up;
+  const aoiIn    = !!msg.aoi_in;
+
+  // ----------------------------
+  // Priority order (governance law)
+  // S3 > S2 > S1
+  // ----------------------------
+
+  // S3 — recession armed
+  if (s3){
+    return { label: "S3", code: 3 };
+  }
+
+  // S2 family
+  if (s2){
+    if (weeklyUp){
+      return { label: "S2.0", code: 20 };   // trend mode
+    }
+    if (!weeklyUp && aoiIn){
+      return { label: "S2.1", code: 21 };   // restricted mode
+    }
+    return { label: "S2", code: 2 };        // fallback
+  }
+
+  // S1 — early clock transition
+  if (s1){
+    return { label: "S1", code: 1 };
+  }
+
+  return { label: "IDLE", code: 0 };
+}
 
 // ===============================
 // COMMISSION RAIL OPEN
