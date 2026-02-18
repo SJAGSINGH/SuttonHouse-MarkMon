@@ -1749,25 +1749,31 @@ function openRailForSlot(slot){
   if (!rail) return;
 
   // header
-  const tkr = msg?.ticker || "—";
-  const tf  = msg?.tf || "—";
+const tkr = msg?.ticker || "—";
+const tf  = msg?.tf || "—";
 
-  // ✅ Build (prefer SCADA_STATUS; WATCH/SETUP may not carry it)
-  const buildVer  = sc?.Build_Version ?? sc?.build_ver ?? msg?.Build_Version ?? msg?.build_ver ?? "—";
-  const buildDate = sc?.Build_Date    ?? sc?.build_date ?? msg?.Build_Date    ?? msg?.build_date ?? "—";
+const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
+const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
 
-  const title = document.getElementById("cr-title");
-  const meta  = document.getElementById("cr-meta");
-  if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()}`;
+const title = document.getElementById("cr-title");
+const meta  = document.getElementById("cr-meta");
 
-  // ✅ meta now includes build when available
-  if (meta){
-    const base = sc ? `SCADA_STATUS • ${tf}` : (wa ? `WATCH • ${tf}` : `NO STATE`);
-    const btxt = (buildVer || buildDate)
-    ? `\nBUILD ${buildVer || "—"} • ${buildDate || "—"}`
-    : "";
-    meta.textContent = base + btxt;
+if (title){
+  let buildTxt = "";
+  if (buildVer || buildDate){
+    buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
   }
+
+  title.textContent =
+    `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}${buildTxt}`;
+}
+
+if (meta){
+  meta.textContent = sc
+    ? `SCADA_STATUS`
+    : (wa ? `WATCH` : `NO STATE`);
+}
+
 
 
   // boxes helper
