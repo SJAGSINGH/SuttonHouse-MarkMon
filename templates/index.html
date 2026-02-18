@@ -1255,6 +1255,104 @@ main.grid > #cr-dump,
 main.grid > #cr-dump-full{
   display: none !important;
 }
+/* =========================================
+   STRATEGY RAIL (SLIDE FROM RIGHT)
+========================================= */
+#strategy-rail{
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 520px;
+  max-width: 95vw;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(0,255,170,0.18), rgba(8,12,16,0.94));
+  border: 1px solid rgba(0,255,170,0.22);
+  border-radius: 16px;
+
+  box-shadow:
+    0 0 0 1px rgba(0,255,170,0.08) inset,
+    0 0 30px rgba(0,255,170,0.10),
+    0 25px 80px rgba(0,0,0,0.75);
+
+  transform: translateX(110%);
+  opacity: 0;
+  transition: transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.6s ease;
+  z-index: 20001; /* above common rail */
+}
+
+#strategy-rail.open{
+  transform: translateX(0);
+  opacity: 1;
+}
+
+#strategy-rail.hidden{
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sr-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin: 12px 12px 14px 12px;
+}
+
+.sr-title{
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.90);
+}
+
+.sr-meta{
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.55);
+  flex: 1;
+}
+
+.sr-close{
+  border: 1px solid rgba(0,255,170,0.25);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sr-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 12px 12px 12px;
+}
+
+.sr-box{
+  border:1px solid rgba(0,255,170,0.14);
+  border-radius:12px;
+  padding:10px;
+  background: rgba(0,0,0,0.15);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+
+.sr-box .k{
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.55);
+  margin-bottom:6px;
+}
+
+.sr-box .v{
+  font-size:12px;
+  color: rgba(255,255,255,0.92);
+  font-weight: 600;
+}
 
  
 </style>
@@ -1417,6 +1515,19 @@ main.grid > #cr-dump-full{
   <div class="cr-arrays" id="cr-arrays"></div>
   <pre id="cr-dump-full" class="cr-dump-full hidden"></pre>
 </div>
+    
+<!-- Strategy Detail Rail (SLIDE FROM RIGHT) -->
+<div id="strategy-rail" class="hidden">
+  <div class="sr-head">
+    <div id="sr-title" class="sr-title">STRATEGY —</div>
+    <div id="sr-meta"  class="sr-meta"></div>
+    <button id="sr-close" class="sr-close" type="button">CLOSE</button>
+  </div>
+
+  <div class="sr-grid" id="sr-grid">
+    <!-- rows injected by JS -->
+  </div>
+</div>
 
  </main>
 
@@ -1482,7 +1593,113 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
+    
+function srBox(k, v){
+  const val = (v == null || v === "" ? "—" : String(v));
+  return `
+    <div class="sr-box">
+      <div class="k">${k}</div>
+      <div class="v">${val}</div>
+    </div>
+  `;
+}
+function openStrategyRailForRef(ref){
+  const sc = (window.__SCADA_STORE__ || {})[String(ref)] || null;
+  const wa = (window.__WATCH_STORE__ || {})[String(ref)] || null;
+  const msg = sc || wa || null;
 
+  const rail = document.getElementById("strategy-rail");
+  if (!rail) return;
+
+  const title = document.getElementById("sr-title");
+  const meta  = document.getElementById("sr-meta");
+  const grid  = document.getElementById("sr-grid");
+
+  const tkr = msg?.ticker || "—";
+  const strat = resolveStrategyCode(msg);
+
+  if (title) title.textContent = `STRATEGY — SLOT ${ref} • ${String(tkr).toUpperCase()} • ${strat}`;
+  if (meta)  meta.textContent  = `DATA: ${sc ? "SCADA_STATUS" : (wa ? "WATCH" : "NONE")}`;
+
+  // Build per-strategy boxes
+  let html = "";
+
+  if (strat === "S2.0" || strat === "S2.1" || strat === "S2"){
+    html += srBox("WEEKLY_UP", msg?.weekly_up);
+    html += srBox("ALLOW_D", msg?.allow_D);
+    html += srBox("ALLOW_4H", msg?.allow_4H);
+    html += srBox("AOI_IN", msg?.aoi_in);
+    html += srBox("AOI_LEVEL", msg?.aoi_level);
+    html += srBox("MODE", msg?.mode);
+    html += srBox("BLOCK_REASON", msg?.block_reason);
+
+    // Optional (only show if you actually send them)
+    html += srBox("PIVOT_LOW", msg?.pivot_low);
+    html += srBox("PRICE_OK", msg?.price_ok);
+    html += srBox("SIG_TF", msg?.sig_tf);
+  }
+  else if (strat === "S1"){
+    html += srBox("IN_WINDOW", msg?.s1_in_window);
+    html += srBox("STRIKE_GATE", msg?.s1_strike_gate);
+    html += srBox("SAMPLES", msg?.s1_samples);
+    html += srBox("TARGET", msg?.s1_samples_target);
+    html += srBox("FROZEN", msg?.s1_frozen);
+    html += srBox("AOI", msg?.s1_aoi);
+    html += srBox("LAST_SIG_LOW_D", msg?.s1_last_sig_low_d);
+  }
+  else if (strat === "S3"){
+    html += srBox("SAHM_RECESSION", msg?.sahm_recession ?? msg?.macro_recession);
+    html += srBox("SPX_DD_PCT", msg?.spx_dd_pct);
+    html += srBox("SPX_DD35", msg?.spx_dd35);
+    html += srBox("SPX_HIGH_FROZEN", msg?.spx_high_frozen);
+    html += srBox("SPX_CYCLE_HIGH", msg?.spx_cycle_high);
+    html += srBox("SPX_HIGH_TIME", msg?.spx_cycle_high_time);
+  }
+  else {
+    // RESTRICTED / NA
+    html += srBox("S1_ALLOWED", msg?.s1_allowed);
+    html += srBox("S2_ALLOWED", msg?.s2_allowed);
+    html += srBox("S3_ALLOWED", msg?.s3_allowed);
+    html += srBox("WEEKLY_UP", msg?.weekly_up);
+    html += srBox("MODE", msg?.mode);
+    html += srBox("BLOCK_REASON", msg?.block_reason);
+  }
+
+  if (grid) grid.innerHTML = html;
+
+  // open
+  rail.classList.remove("hidden");
+  requestAnimationFrame(() => rail.classList.add("open"));
+
+  rail.setAttribute("data-ref", String(ref));
+}
+
+function closeStrategyRail(){
+  const rail = document.getElementById("strategy-rail");
+  if (!rail) return;
+  rail.classList.remove("open");
+  // allow transition to finish
+  setTimeout(() => rail.classList.add("hidden"), 250);
+}
+
+function resolveStrategyCode(msg){
+  // Preferred (future): pine sends msg.strategy
+  const s = (msg?.strategy || "").toString().toUpperCase();
+  if (s) return s;
+
+  // Fallback: derive from allowed booleans (works now)
+  if (msg?.s3_allowed) return "S3";
+  if (msg?.s1_allowed) return "S1";
+
+  // S2 split: weekly_up decides 2.0 vs 2.1 if s2_allowed is true
+  if (msg?.s2_allowed){
+    if (msg?.weekly_up === true) return "S2.0";
+    if (msg?.weekly_up === false) return "S2.1";
+    return "S2";
+  }
+
+  return "RESTRICTED";
+}
  
 function readSingleLane(dump, laneName){
   // expects "LANE;0" or "LANE;1" somewhere in dump separated by |
