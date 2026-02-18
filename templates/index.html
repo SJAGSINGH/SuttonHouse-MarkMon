@@ -1089,11 +1089,16 @@ body.war-room .scada-card{
   margin-bottom:14px;
 }
 
-.cr-title{
-  font-size:13px;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color: rgba(0,255,170,0.90);   /* stronger */
+.cr-title,
+.cr-meta{
+  white-space: nowrap;         /* ✅ single line */
+  overflow: hidden;
+  text-overflow: ellipsis;     /* ✅ clean cut if too long */
+}
+  
+cr-title{
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .cr-meta{
@@ -1103,6 +1108,9 @@ body.war-room .scada-card{
   color: rgba(0,255,170,0.55);
   flex:1;
   text-align:left;
+  flex: 1 1 auto;              /* ✅ meta takes remaining space */
+  text-align: left;
+  min-width: 0;
 }
 
 /* Top data grid */
@@ -1404,11 +1412,15 @@ main.grid > #cr-dump-full{
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
-    <div class="cr-box"><div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div> </div>
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
+    <div class="cr-box"><div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div> </div>
+    
     <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
     <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
+    <div class="cr-box"><div class="k">S1</div><div id="cr-s1" class="v">—</div></div>
+    <div class="cr-box"><div class="k">S2</div><div id="cr-s2" class="v">—</div></div>
+    <div class="cr-box"><div class="k">S3</div><div id="cr-s3" class="v">—</div></div>
 
     <!-- keep ONLY this dump (inside the rail) -->
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
