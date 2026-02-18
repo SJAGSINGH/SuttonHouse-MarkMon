@@ -1604,9 +1604,12 @@ function srBox(k, v){
   `;
 }
 function openStrategyRailForRef(ref){
+
   const sc = (window.__SCADA_STORE__ || {})[String(ref)] || null;
   const wa = (window.__WATCH_STORE__ || {})[String(ref)] || null;
-  const msg = sc || wa || null;
+
+  const msg = sc || wa;
+  if (!msg) return;
 
   const rail = document.getElementById("strategy-rail");
   if (!rail) return;
@@ -1615,59 +1618,33 @@ function openStrategyRailForRef(ref){
   const meta  = document.getElementById("sr-meta");
   const grid  = document.getElementById("sr-grid");
 
-  const tkr = msg?.ticker || "—";
   const strat = resolveStrategyCode(msg);
+  const tkr   = msg?.ticker || "—";
 
-  if (title) title.textContent = `STRATEGY — SLOT ${ref} • ${String(tkr).toUpperCase()} • ${strat}`;
-  if (meta)  meta.textContent  = `DATA: ${sc ? "SCADA_STATUS" : (wa ? "WATCH" : "NONE")}`;
+  if (title) title.textContent = `STRATEGY — SLOT ${ref} • ${tkr} • ${strat}`;
+  if (meta)  meta.textContent  = "SCADA GOVERNANCE VIEW";
 
-  // Build per-strategy boxes
   let html = "";
 
-  if (strat === "S2.0" || strat === "S2.1" || strat === "S2"){
-    html += srBox("WEEKLY_UP", msg?.weekly_up);
-    html += srBox("ALLOW_D", msg?.allow_D);
-    html += srBox("ALLOW_4H", msg?.allow_4H);
-    html += srBox("AOI_IN", msg?.aoi_in);
-    html += srBox("AOI_LEVEL", msg?.aoi_level);
-    html += srBox("MODE", msg?.mode);
-    html += srBox("BLOCK_REASON", msg?.block_reason);
-
-    // Optional (only show if you actually send them)
-    html += srBox("PIVOT_LOW", msg?.pivot_low);
-    html += srBox("PRICE_OK", msg?.price_ok);
-    html += srBox("SIG_TF", msg?.sig_tf);
-  }
-  else if (strat === "S1"){
-    html += srBox("IN_WINDOW", msg?.s1_in_window);
-    html += srBox("STRIKE_GATE", msg?.s1_strike_gate);
-    html += srBox("SAMPLES", msg?.s1_samples);
-    html += srBox("TARGET", msg?.s1_samples_target);
-    html += srBox("FROZEN", msg?.s1_frozen);
-    html += srBox("AOI", msg?.s1_aoi);
-    html += srBox("LAST_SIG_LOW_D", msg?.s1_last_sig_low_d);
+  if (strat === "S2.0" || strat === "S2.1"){
+    html += srBox("WEEKLY_UP", msg.weekly_up);
+    html += srBox("ALLOW_D", msg.allow_D);
+    html += srBox("ALLOW_4H", msg.allow_4H);
+    html += srBox("AOI_IN", msg.aoi_in);
+    html += srBox("BLOCK_REASON", msg.block_reason);
   }
   else if (strat === "S3"){
-    html += srBox("SAHM_RECESSION", msg?.sahm_recession ?? msg?.macro_recession);
-    html += srBox("SPX_DD_PCT", msg?.spx_dd_pct);
-    html += srBox("SPX_DD35", msg?.spx_dd35);
-    html += srBox("SPX_HIGH_FROZEN", msg?.spx_high_frozen);
-    html += srBox("SPX_CYCLE_HIGH", msg?.spx_cycle_high);
-    html += srBox("SPX_HIGH_TIME", msg?.spx_cycle_high_time);
+    html += srBox("SAHM_RECESSION", msg.sahm_recession);
+    html += srBox("SPX_DD35", msg.spx_dd35);
+    html += srBox("SPX_DD_PCT", msg.spx_dd_pct);
   }
-  else {
-    // RESTRICTED / NA
-    html += srBox("S1_ALLOWED", msg?.s1_allowed);
-    html += srBox("S2_ALLOWED", msg?.s2_allowed);
-    html += srBox("S3_ALLOWED", msg?.s3_allowed);
-    html += srBox("WEEKLY_UP", msg?.weekly_up);
-    html += srBox("MODE", msg?.mode);
-    html += srBox("BLOCK_REASON", msg?.block_reason);
+  else if (strat === "S1"){
+    html += srBox("CYCLE", msg.cycle);
+    html += srBox("S1_ALLOWED", msg.s1_allowed);
   }
 
-  if (grid) grid.innerHTML = html;
+  grid.innerHTML = html;
 
-  // open
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
@@ -2077,6 +2054,21 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!rail || !rail.classList.contains("open")) return;
     closeRail();
   });
+});
+    
+document.addEventListener("click", (e) => {
+
+  // Only react if STRATEGY value was clicked
+  const strategyValue = e.target?.closest?.("#cr-strategy");
+  if (!strategyValue) return;
+
+  const commonRail = document.getElementById("commission-rail");
+  if (!commonRail) return;
+
+  const ref = commonRail.getAttribute("data-ref");
+  if (!ref) return;
+
+  openStrategyRailForRef(ref);
 });
 
   function getSlotForRef(ref_id){
