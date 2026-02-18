@@ -1404,8 +1404,8 @@ main.grid > #cr-dump-full{
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
-    
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
+    <div class="cr-box"> <div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div></div>
     <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
     <div class="cr-box"><div class="k">ENGINE</div><div id="cr-engine" class="v">—</div></div>
@@ -1784,6 +1784,7 @@ if (meta){
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
+  set("cr-strategy", msg?.strategy);
   set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
