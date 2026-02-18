@@ -1635,6 +1635,27 @@ function srBox(k, v){
     </div>
   `;
 }
+
+function toggleStrategyRail(ref){
+  const rail = document.getElementById("strategy-rail");
+  if (!rail) return;
+
+  const currentRef = rail.getAttribute("data-ref");
+
+  // If already open on same ref → close
+  if (rail.classList.contains("open") && currentRef === String(ref)){
+    rail.classList.remove("open");
+    rail.classList.add("hidden");
+    rail.removeAttribute("data-ref");
+    return;
+  }
+
+  // Otherwise open
+  rail.setAttribute("data-ref", String(ref));
+  rail.classList.remove("hidden");
+  requestAnimationFrame(() => rail.classList.add("open"));
+}
+    
 function openStrategyRailForRef(ref){
 
   const sc = (window.__SCADA_STORE__ || {})[String(ref)] || null;
@@ -1995,6 +2016,10 @@ if (meta){
 }
 
 
+const stratBtn = document.getElementById("cr-strategy");
+if (stratBtn){
+  stratBtn.onclick = () => toggleStrategyRail(ref);
+}
 
   // boxes helper
   const set = (id, v) => {
@@ -3717,6 +3742,12 @@ function setupCommissionTooltips(){
 
   document.addEventListener("mouseleave", hide, true);
 }
+document.getElementById("sr-close")?.addEventListener("click", () => {
+  const rail = document.getElementById("strategy-rail");
+  rail.classList.remove("open");
+  rail.classList.add("hidden");
+  rail.removeAttribute("data-ref");
+});
 
 // call once after DOM is ready
 setupCommissionTooltips();
