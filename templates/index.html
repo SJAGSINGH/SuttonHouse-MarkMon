@@ -1354,6 +1354,37 @@ main.grid > #cr-dump-full{
   font-weight: 600;
 }
 
+.sh-tip{
+  position: fixed;
+  z-index: 50000;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,255,170,0.18);
+  background: rgba(6,10,14,0.92);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.92);
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 20px 60px rgba(0,0,0,0.65);
+  pointer-events: none;
+}
+
+.sh-tip.hidden{ display:none; }
+
+.sh-tip .k{
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(0,255,170,0.65);
+  margin-bottom: 6px;
+}
+.sh-tip .v{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(255,255,255,0.88);
+}
  
 </style>
 
@@ -1504,8 +1535,8 @@ main.grid > #cr-dump-full{
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
     <div class="cr-box"> <div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div></div>
-    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
-    <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
+    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
+    <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
     <!-- keep ONLY this dump (inside the rail) -->
     <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
 
@@ -1528,7 +1559,8 @@ main.grid > #cr-dump-full{
     <!-- rows injected by JS -->
   </div>
 </div>
-
+    
+<div id="sh-tooltip" class="sh-tip hidden"></div>
  </main>
 
 {% include "sentinel.html" %}
@@ -3614,6 +3646,80 @@ function setMsgStep(stepNum, transitionText){
 // Step 3: setup ON but no signal
 // Step 4: signal present
 // Step 5: (optional) when your monitor lane marks setup closed
+function setupCommissionTooltips(){
+  const tip = document.getElementById("sh-tooltip");
+  if (!tip) return;
+
+  const show = (x, y, title, body) => {
+    tip.innerHTML = `<div class="k">${title}</div><div class="v">${body}</div>`;
+    tip.classList.remove("hidden");
+
+    const pad = 14;
+    const w = tip.offsetWidth || 320;
+    const h = tip.offsetHeight || 80;
+
+    let left = x + pad;
+    let top  = y + pad;
+
+    if (left + w > window.innerWidth - 8) left = x - w - pad;
+    if (top + h > window.innerHeight - 8) top  = y - h - pad;
+
+    tip.style.left = `${Math.max(8,left)}px`;
+    tip.style.top  = `${Math.max(8,top)}px`;
+  };
+
+  const hide = () => tip.classList.add("hidden");
+
+  const getActiveMsg = () => {
+    const rail = document.getElementById("commission-rail");
+    const ref  = rail?.getAttribute("data-ref");
+    if (!ref) return null;
+    return (window.__SCADA_STORE__ || {})[ref] || (window.__WATCH_STORE__ || {})[ref] || null;
+  };
+
+  const setupText = (msg) => {
+    if (!msg) return "—";
+    const parts = [];
+    if (msg.pill_setup_D != null)  parts.push(`pill_setup_D: ${msg.pill_setup_D ? "YES":"NO"}`);
+    if (msg.pill_setup_4H != null) parts.push(`pill_setup_4H: ${msg.pill_setup_4H ? "YES":"NO"}`);
+    if (msg.setup_any != null)     parts.push(`setup_any: ${msg.setup_any ? "YES":"NO"}`);
+    if (msg.setup_engine_D)        parts.push(`engine_D: ${msg.setup_engine_D}`);
+    if (msg.setup_engine_4H)       parts.push(`engine_4H: ${msg.setup_engine_4H}`);
+    return parts.length ? parts.join("\n") : "—";
+  };
+
+  const signalText = (msg) => {
+    if (!msg) return "—";
+    const parts = [];
+    if (msg.trigger_sma10x_D != null)  parts.push(`SMA10X_D: ${msg.trigger_sma10x_D ? "YES":"NO"}`);
+    if (msg.trigger_sma10x_4H != null) parts.push(`SMA10X_4H: ${msg.trigger_sma10x_4H ? "YES":"NO"}`);
+    if (msg.trigger_any != null)       parts.push(`trigger_any: ${msg.trigger_any ? "YES":"NO"}`);
+    if (msg.trigger_armed != null)     parts.push(`trigger_armed: ${msg.trigger_armed ? "YES":"NO"}`);
+    if (msg.signal != null)            parts.push(`signal: ${msg.signal ? "YES":"NO"}`);
+    return parts.length ? parts.join("\n") : "—";
+  };
+
+  document.addEventListener("mousemove", (e) => {
+    const target = e.target?.closest?.("[data-tip]");
+    if (!target) return hide();
+
+    const kind = target.getAttribute("data-tip");
+    const msg  = getActiveMsg();
+
+    if (kind === "setup"){
+      show(e.clientX, e.clientY, "SETUP TRUTH", setupText(msg));
+    } else if (kind === "signal"){
+      show(e.clientX, e.clientY, "SIGNAL TRUTH", signalText(msg));
+    } else {
+      hide();
+    }
+  });
+
+  document.addEventListener("mouseleave", hide, true);
+}
+
+// call once after DOM is ready
+setupCommissionTooltips();
 
    
 </script>
