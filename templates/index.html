@@ -1404,8 +1404,7 @@ main.grid > #cr-dump-full{
   <div class="cr-grid">
     <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
     <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
-    <div class="cr-box"><div class="k">BUILD</div><div id="cr-build-ver" class="v">—</div></div>
-    <div class="cr-box"><div class="k">BUILD DATE</div><div id="cr-build-date" class="v">—</div></div>
+    <div class="cr-box"><div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div> </div>
     <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
     <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v">—</div></div>
     <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v">—</div></div>
@@ -1640,7 +1639,7 @@ function renderArraysToRail(arrDump){
 // SCADA/AUTO -> Automatic
 // MAN -> Manual
 // NA/false/anything else -> Attention Required
-// ===============================
+const set = (id// ===============================
 function formatMSA(msa_src, msa_ok){
   const s = String(msa_src || "").trim().toUpperCase();
 
@@ -1748,40 +1747,36 @@ function openRailForSlot(slot){
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
-  // header
-const tkr = msg?.ticker || "—";
-const tf  = msg?.tf || "—";
-
-const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
-const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
-
-const title = document.getElementById("cr-title");
-const meta  = document.getElementById("cr-meta");
-
-if (title){
-  let buildTxt = "";
-  if (buildVer || buildDate){
-    buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
-  }
-
-  title.textContent =
-    `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}${buildTxt}`;
-}
-
-if (meta){
-  meta.textContent = sc
-    ? `SCADA_STATUS`
-    : (wa ? `WATCH` : `NO STATE`);
-}
-
-
-
   // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
+  const strat = resolveStrategyLabel(msg);
+  set("cr-strategy", strat.label);
+  // header (single line, build included)
+  const tkr = msg?.ticker || "—";
+  const tf  = msg?.tf || "—";
 
+  // accept either casing (future-proof)
+  const buildVer  = (sc?.Build_Version ?? sc?.build_ver ?? msg?.Build_Version ?? msg?.build_ver) || null;
+  const buildDate = (sc?.Build_Date    ?? sc?.build_date ?? msg?.Build_Date    ?? msg?.build_date) || null;
+
+  const title = document.getElementById("cr-title");
+  const meta  = document.getElementById("cr-meta");
+
+  // meta is now only status text so title stays one clean line
+  if (title) title.textContent = `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}`;
+  if (meta){
+    const stateTxt = sc ? "SCADA_STATUS" : (wa ? "WATCH" : "NO STATE");
+    const buildTxt =
+      (buildVer || buildDate)
+        ? `BUILD ${buildVer || "—"}${buildDate ? " • " + buildDate : ""}`
+        : "BUILD —";
+    meta.textContent = `${stateTxt} • ${buildTxt}`;
+  }
+
+  // boxes
   set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",     tf);
   set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
@@ -1789,6 +1784,10 @@ if (meta){
   set("cr-signal", String(!!msg?.signal));
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
+  // OPTIONAL: if you keep BUILD + BUILD DATE boxes for now, populate them
+  // (safe even if elements don’t exist)
+  set("cr-build", buildVer);
+  set("cr-build-date", buildDate);
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
@@ -1804,6 +1803,7 @@ if (meta){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
+
 
 
 function summariseDump(dump){
