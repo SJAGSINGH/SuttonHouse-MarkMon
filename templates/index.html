@@ -1987,11 +1987,20 @@ function openMacroRail(){
 }
 
 function yesNo(v){
-  if (v === true || v === 1) return "YES";
-  if (v === false || v === 0) return "NO";
+  // tolerate bool, 0/1, and "true"/"false"
+  if (v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true")  return "YES";
+  if (v === false || v === 0 || v === "0" || String(v).toLowerCase() === "false") return "NO";
   return "—";
 }
 
+function fmtPct(x){
+  if (x == null) return "—";
+  let n = (typeof x === "string") ? Number(x) : x;
+  if (!Number.isFinite(n)) return "—";
+  // allow 0.12 or 12
+  if (Math.abs(n) <= 1) n *= 100;
+  return `${n.toFixed(1)}%`;
+}
 
 function sahmBucket(s){
   const n = Number(s);
@@ -2001,14 +2010,6 @@ function sahmBucket(s){
   return "CONTRACTION";
 }
 
-function fmtPct(v){
-  if (v == null) return "—";
-  let n = (typeof v === "string") ? Number(v) : v;
-  if (!Number.isFinite(n)) return "—";
-  n = Math.abs(n);
-  if (n <= 1) n *= 100;
-  return `${n.toFixed(1)}%`;
-}
 
 function setTxt(id, v){
   const el = document.getElementById(id);
@@ -2052,24 +2053,20 @@ function paintMacroRail(p){
 
     // S3 / recession truth (from MACRO payload)
   // payload v1.0.x uses: macro_recession, s3_watch, s3_armed, s3_allowed
-  const s3Watch   = (p?.s3_watch   ?? p?.macro_recession ?? null);
-  const s3Armed   = (p?.s3_armed   ?? null);
-  const s3Allowed = (p?.s3_allowed ?? s3Armed ?? null);
+    // --- S3 (explicit + unambiguous)
+  const s3Watch   = p?.s3_watch;    // from MACRO payload
+  const s3Armed   = p?.s3_armed;
+  const s3Allowed = p?.s3_allowed;
 
   setTxt("mr-s3watch", `WATCH ${yesNo(s3Watch)} • ARMED ${yesNo(s3Armed)} • ALLOWED ${yesNo(s3Allowed)}`);
 
-
-  // drawdown
-  const dd = p?.spx_dd_pct ?? p?.spx_dd ?? p?.spxDrawdown ?? null;
+  // --- SPX DD
+  const dd   = p?.spx_dd_pct ?? p?.spx_dd ?? p?.spxDrawdown ?? null;
   const dd35 = p?.spx_dd35 ?? null;
   setTxt("mr-dd", `${fmtPct(dd)} • DD35 ${yesNo(dd35)}`);
 
-  // strategy permissions (you said you now compute these)
-  const s1 = p?.s1_allowed;
-  const s2 = p?.s2_allowed;
-  const s3 = p?.s3_allowed;
-
-  setTxt("mr-strats", `S1 ${yesNo(s1)} • S2 ${yesNo(s2)} • S3 ${yesNo(s3)}`);
+  // --- Strategy permissions (macro-governed)
+  setTxt("mr-strats", `S1 ${yesNo(p?.s1_allowed)} • S2 ${yesNo(p?.s2_allowed)} • S3 ${yesNo(p?.s3_allowed)}`);
 }
 
 
