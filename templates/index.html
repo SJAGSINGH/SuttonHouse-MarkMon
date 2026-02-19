@@ -1966,6 +1966,25 @@ function parseArrDump(dump){
 
   return out;
 }
+    
+function pickMacroPayload(x){
+  if (!x || typeof x !== "object") return null;
+
+  // already MACRO
+  if (x.type === "MACRO") return x;
+
+  // wrapped shapes (common)
+  if (x.payload && typeof x.payload === "object" && x.payload.type === "MACRO") return x.payload;
+  if (x.data    && typeof x.data === "object" && x.data.type === "MACRO") return x.data;
+  if (x.state   && typeof x.state === "object" && x.state.type === "MACRO") return x.state;
+
+  // /health state shape (if macro stored under state.macro)
+  if (x.state && x.state.macro && typeof x.state.macro === "object") return x.state.macro;
+  if (x.macro && typeof x.macro === "object") return x.macro;
+
+  return null;
+}
+    
 
 function closeMacroRail(){
   const rail = document.getElementById("macro-rail");
@@ -1979,12 +1998,13 @@ function openMacroRail(){
   const rail = document.getElementById("macro-rail");
   if (!rail) return;
 
-  const p = window.__MACRO_LAST__ || window.__RSC_LAST || null;
+  const p = window.__MACRO_LAST__ || pickMacroPayload(window.__RSC_LAST) || window.__RSC_LAST || null;
   paintMacroRail(p);
 
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 }
+
 
 
 
@@ -2005,12 +2025,13 @@ function fmtPct(x){
 }
 
 function sahmBucket(s){
-  const n = Number(s);
+  const n = (typeof s === "string") ? Number(s) : Number(s);
   if (!Number.isFinite(n)) return "—";
   if (n < 0.35) return "EXPANSION";
   if (n < 0.50) return "STALLING";
   return "CONTRACTION";
 }
+
 
 
 function setTxt(id, v){
@@ -2041,56 +2062,42 @@ function pickMacro(p){
 }
 
 function paintMacroRail(p){
-  const m = pickMacro(p);
-  if (!m) return;
+  const m = pickMacroPayload(p) || p;
+  if (!m || typeof m !== "object") return;
 
   const regime = m.regime ?? "—";
   const vol    = m.vol ?? "—";
 
-  const cycle  = (m.cycle_count ?? m.cycle ?? "—");
-  const cap    = (m.cycle_cap ?? 120);
-  const sahm   = (m.sahm ?? "—");
+  const cycle      = (m.cycle ?? "—");
+  const cycle120   = (m.cycle_120 ?? "—");
+  const sahm       = (m.sahm ?? "—");
 
-  // header
-  const title = document.getElementById("mr-title");
-  const meta  = document.getElementById("mr-meta");
-  if (title) title.textContent = `MACRO — ${String(regime).toUpperCase()} • ${String(vol).toUpperCase()}`;
-  if (meta)  meta.textContent  = `CYCLE ${cycle}/${cap} • SAHM ${sahm}`;
-
-  // boxes
   setTxt("mr-regime", regime);
   setTxt("mr-vol", vol);
-  setTxt("mr-cycle", `${cycle}/${cap}`);
+  setTxt("mr-cycle", `${cycle}/120`);
+  setTxt("mr-maturity", (cycle120 !== "—") ? `${cycle120}/120` : "—");
 
-  // Card2
-  const c2 = m.card2;
-  setTxt("mr-card2", `${c2?.state ?? "—"} • ${c2?.text ?? "—"}`);
+  // card2
+  const c2 = m.card2 || {};
+  setTxt("mr-card2", `${c2.state ?? "—"} • ${c2.text ?? "—"}`);
 
   setTxt("mr-sahm", sahm);
   setTxt("mr-econ", sahmBucket(sahm));
 
   // S3 line (explicit)
-  setTxt(
-    "mr-s3watch",
+  setTxt("mr-s3watch",
     `WATCH ${yesNo(m.s3_watch)} • ARMED ${yesNo(m.s3_armed)} • ALLOWED ${yesNo(m.s3_allowed)}`
   );
 
-  // Strategy permissions (this is what was showing as — — —)
-  setTxt(
-    "mr-strats",
-    `S1 ${yesNo(m.s1_allowed)} • S2 ${yesNo(m.s2_allowed)} • S3 ${yesNo(m.s3_allowed)}`
-  );
+  // SPX high + DD
+  const highTxt = (Number.isFinite(Number(m.spx_cycle_high))) ? Number(m.spx_cycle_high).toFixed(2) : "—";
+  const ddTxt   = fmtPct(m.spx_dd_pct);
+  setTxt("mr-dd", `HIGH ${highTxt} • DD ${ddTxt} • DD35 ${yesNo(m.spx_dd35)}`);
 
-  // SPX high + dd (using your existing fields)
-  const high = m.spx_cycle_high;
-  const dd   = m.spx_dd_pct;
-  const dd35 = m.spx_dd35;
-
-  const highTxt = (typeof high === "number" && Number.isFinite(high)) ? high.toFixed(2) : "—";
-  const ddTxt   = (typeof dd === "number" && Number.isFinite(dd)) ? fmtPct(dd) : "—";
-
-  setTxt("mr-dd", `HIGH ${highTxt} • DD ${ddTxt} • DD35 ${yesNo(dd35)}`);
+  // Strategy permissions
+  setTxt("mr-strats", `S1 ${yesNo(m.s1_allowed)} • S2 ${yesNo(m.s2_allowed)} • S3 ${yesNo(m.s3_allowed)}`);
 }
+
 
 function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
@@ -3824,10 +3831,17 @@ window.addEventListener("DOMContentLoaded", () => {
 // ============================================================
 // HANDLE MACRO UPDATE — unified + resilient
 // ============================================================
+// ============================================================
+// HANDLE MACRO UPDATE — unified + resilient  ✅ UPDATED
+// - Keeps __RSC_LAST as normalized STATE/MACRO (for cards 1–4)
+// - Updates __MACRO_LAST__ ONLY when a real MACRO object is present
+// ============================================================
 window.handleMacroUpdate = function(payload){
-  // ---- normalize common server shapes ----
-  let p = payload;
+  // ---- keep ORIGINAL for macro extraction ----
+  const original = payload;
 
+  // ---- normalize common server shapes (STATE-like) ----
+  let p = payload;
   if (p && typeof p === "object") {
     if (p.state && typeof p.state === "object") p = p.state;
     else if (p.payload && typeof p.payload === "object") p = p.payload;
@@ -3848,19 +3862,29 @@ window.handleMacroUpdate = function(payload){
   window.__RSC_LAST = p;
 
   // ✅ MACRO COMM RAIL truth:
-  // Only update __MACRO_LAST__ when we actually have a macro object.
+  // Only update __MACRO_LAST__ when we actually have a MACRO object.
   let m = null;
 
-  // Case 1: payload itself is MACRO
+  // Case 1: normalized p is MACRO
   if (p && typeof p === "object" && p.type === "MACRO") {
     m = p;
   }
-  // Case 2: payload is STATE and contains macro nested
+  // Case 2: normalized p is STATE with nested macro
   else if (p && typeof p === "object" && p.macro && typeof p.macro === "object") {
     m = p.macro;
   }
+  // Case 3: original wrapper carried MACRO in payload/data/state (common socket shapes)
+  else if (original && typeof original === "object") {
+    const c1 = original.payload;
+    const c2 = original.data;
+    const c3 = original.state;
+    if (c1 && typeof c1 === "object" && c1.type === "MACRO") m = c1;
+    else if (c2 && typeof c2 === "object" && c2.type === "MACRO") m = c2;
+    else if (c3 && typeof c3 === "object" && c3.type === "MACRO") m = c3;
+    else if (c3 && typeof c3 === "object" && c3.macro && typeof c3.macro === "object") m = c3.macro;
+  }
 
-  // Only overwrite if we found a real macro object
+  // only overwrite if we found real macro
   if (m) window.__MACRO_LAST__ = m;
 
   console.log("[RSC HANDLE OK]", p);
@@ -3873,6 +3897,7 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
   }
 };
+
 
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
