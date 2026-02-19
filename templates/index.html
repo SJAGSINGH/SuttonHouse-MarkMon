@@ -1987,6 +1987,7 @@ function openMacroRail(){
 }
 
 
+
 function yesNo(v){
   // tolerate bool, 0/1, and "true"/"false"
   if (v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true")  return "YES";
@@ -2017,59 +2018,79 @@ function setTxt(id, v){
   if (!el) return;
   el.textContent = (v == null || v === "" ? "—" : String(v));
 }
+function pickMacro(p){
+  if (!p || typeof p !== "object") return null;
+
+  // already a macro payload
+  if (p.type === "MACRO") return p;
+
+  // common server shapes
+  if (p.macro && typeof p.macro === "object") return p.macro;
+  if (p.MACRO && typeof p.MACRO === "object") return p.MACRO;
+
+  // if your /health returns state with macro inside
+  if (p.state && typeof p.state === "object"){
+    if (p.state.type === "MACRO") return p.state;
+    if (p.state.macro && typeof p.state.macro === "object") return p.state.macro;
+  }
+
+  // last-resort: if macro fields are top-level but no type
+  if (p.regime != null && p.vol != null && (p.cycle != null || p.sahm != null)) return p;
+
+  return null;
+}
 
 function paintMacroRail(p){
-  // header bits
-  const regime = p?.regime ?? "—";
-  const vol    = p?.vol ?? "—";
+  const m = pickMacro(p);
+  if (!m) return;
 
-  const cycle  = (p?.cycle_count ?? p?.cycle ?? "—");
-  const cap    = (p?.cycle_cap ?? 120);
-  const sahm   = (p?.sahm ?? "—");
+  const regime = m.regime ?? "—";
+  const vol    = m.vol ?? "—";
 
-  const buildVer  = p?.Build_Version ?? p?.build_ver ?? "—";
-  const buildDate = p?.Build_Date    ?? p?.build_date ?? "—";
+  const cycle  = (m.cycle_count ?? m.cycle ?? "—");
+  const cap    = (m.cycle_cap ?? 120);
+  const sahm   = (m.sahm ?? "—");
 
+  // header
   const title = document.getElementById("mr-title");
   const meta  = document.getElementById("mr-meta");
-
   if (title) title.textContent = `MACRO — ${String(regime).toUpperCase()} • ${String(vol).toUpperCase()}`;
-  if (meta)  meta.textContent  = `CYCLE ${cycle}/${cap} • SAHM ${sahm} • BUILD ${buildVer} • ${buildDate}`;
+  if (meta)  meta.textContent  = `CYCLE ${cycle}/${cap} • SAHM ${sahm}`;
 
   // boxes
   setTxt("mr-regime", regime);
   setTxt("mr-vol", vol);
-
   setTxt("mr-cycle", `${cycle}/${cap}`);
-  setTxt("mr-maturity", p?.cycle_pct != null ? `${Number(p.cycle_pct).toFixed(0)}%` : (p?.maturity ?? "—"));
 
-  // Card2 nested truth
-  const c2 = p?.card2;
-  const c2State = (c2?.state ?? "—");
-  const c2Text  = (c2?.text  ?? "—");
-  setTxt("mr-card2", `${c2State} • ${c2Text}`);
+  // Card2
+  const c2 = m.card2;
+  setTxt("mr-card2", `${c2?.state ?? "—"} • ${c2?.text ?? "—"}`);
 
   setTxt("mr-sahm", sahm);
   setTxt("mr-econ", sahmBucket(sahm));
 
-    // S3 / recession truth (from MACRO payload)
-  // payload v1.0.x uses: macro_recession, s3_watch, s3_armed, s3_allowed
-    // --- S3 (explicit + unambiguous)
-  const s3Watch   = p?.s3_watch;    // from MACRO payload
-  const s3Armed   = p?.s3_armed;
-  const s3Allowed = p?.s3_allowed;
+  // S3 line (explicit)
+  setTxt(
+    "mr-s3watch",
+    `WATCH ${yesNo(m.s3_watch)} • ARMED ${yesNo(m.s3_armed)} • ALLOWED ${yesNo(m.s3_allowed)}`
+  );
 
-  setTxt("mr-s3watch", `WATCH ${yesNo(s3Watch)} • ARMED ${yesNo(s3Armed)} • ALLOWED ${yesNo(s3Allowed)}`);
+  // Strategy permissions (this is what was showing as — — —)
+  setTxt(
+    "mr-strats",
+    `S1 ${yesNo(m.s1_allowed)} • S2 ${yesNo(m.s2_allowed)} • S3 ${yesNo(m.s3_allowed)}`
+  );
 
-  // --- SPX DD
-  const dd   = p?.spx_dd_pct ?? p?.spx_dd ?? p?.spxDrawdown ?? null;
-  const dd35 = p?.spx_dd35 ?? null;
-  setTxt("mr-dd", `${fmtPct(dd)} • DD35 ${yesNo(dd35)}`);
+  // SPX high + dd (using your existing fields)
+  const high = m.spx_cycle_high;
+  const dd   = m.spx_dd_pct;
+  const dd35 = m.spx_dd35;
 
-  // --- Strategy permissions (macro-governed)
-  setTxt("mr-strats", `S1 ${yesNo(p?.s1_allowed)} • S2 ${yesNo(p?.s2_allowed)} • S3 ${yesNo(p?.s3_allowed)}`);
+  const highTxt = (typeof high === "number" && Number.isFinite(high)) ? high.toFixed(2) : "—";
+  const ddTxt   = (typeof dd === "number" && Number.isFinite(dd)) ? fmtPct(dd) : "—";
+
+  setTxt("mr-dd", `HIGH ${highTxt} • DD ${ddTxt} • DD35 ${yesNo(dd35)}`);
 }
-
 
 function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
