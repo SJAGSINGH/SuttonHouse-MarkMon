@@ -527,22 +527,20 @@ body.war-room .scada-card{
   }
   .gmeta strong{ color:#fff; letter-spacing:1.2px; }
 /* =========================================
-   MACRO COMMISSION RAIL (SLIDE UP)
+   MACRO RAIL (SLIDE DOWN FROM TOP)
 ========================================= */
 #macro-rail{
   position: fixed;
-  left: 20px;
-  bottom: 20px;
-  width: 720px;
-  max-width: 95vw;
-  max-height: 60vh;
+  top: 18px;
+  left: 50%;
+  transform: translate(-50%, -120%);
+  width: 920px;
+  max-width: 96vw;
+  max-height: 70vh;
   overflow-y: auto;
 
-  transform: translateY(110%);
-  transition: transform 1.1s cubic-bezier(.16,1,.3,1), opacity 0.75s ease;
-
   backdrop-filter: blur(10px);
-  background: linear-gradient(180deg, rgba(0,255,170,0.20), rgba(8,12,16,0.94));
+  background: linear-gradient(180deg, rgba(0,255,170,0.18), rgba(8,12,16,0.94));
   border: 1px solid rgba(0,255,170,0.22);
   border-radius: 16px;
 
@@ -551,53 +549,59 @@ body.war-room .scada-card{
     0 0 30px rgba(0,255,170,0.10),
     0 25px 80px rgba(0,0,0,0.75);
 
-  z-index: 20000;
+  z-index: 25000;
+  transition: transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.65s ease;
 }
 
-#macro-rail.open{ transform: translateY(0); }
 #macro-rail.hidden{
   visibility: hidden;
   pointer-events: none;
   opacity: 0;
 }
 
+#macro-rail.open{
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* header */
 .mr-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  margin-bottom:14px;
+  padding: 12px 14px 6px;
 }
 
 .mr-title{
-  font-size:13px;
-  letter-spacing:2px;
-  text-transform:uppercase;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   color: rgba(0,255,170,0.90);
 }
 
 .mr-meta{
+  flex:1;
+  text-align:left;
   font-size:10px;
   letter-spacing:1.2px;
   text-transform:uppercase;
   color: rgba(0,255,170,0.55);
-  flex:1;
-  text-align:left;
 }
 
 .mr-close{
-  border: 1px solid rgba(0,255,170,0.25);
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.9);
-  border-radius: 8px;
+  font-size: 12px;
   padding: 4px 10px;
-  cursor: pointer;
 }
 
+/* grid */
 .mr-grid{
   display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap:12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 10px 14px 14px;
 }
 
 .mr-box{
@@ -620,23 +624,10 @@ body.war-room .scada-card{
   font-size:12px;
   color: rgba(255,255,255,0.92);
   font-weight:600;
-  letter-spacing:1px;
+  letter-spacing:0.6px;
 }
 
 .mr-wide{ grid-column: 1 / -1; }
-
-.mr-raw{
-  margin-top: 10px;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(0,255,170,0.14);
-  background: rgba(0,0,0,0.20);
-  color: rgba(255,255,255,0.75);
-  font-size: 10px;
-  line-height: 1.35;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
 
   /* ============================
      MONITORING STATE CARD
@@ -1621,7 +1612,7 @@ main.grid > #cr-dump-full{
   <div class="secondary-text" id="sub-4" style="display:none;"></div>
 </div>
 
- <!-- Macro Commissioning Rail (SLIDE UP) -->
+<!-- Macro Commission Rail (SLIDE DOWN FROM TOP) -->
 <div id="macro-rail" class="hidden">
   <div class="mr-head">
     <div id="mr-title" class="mr-title">MACRO —</div>
@@ -1629,28 +1620,25 @@ main.grid > #cr-dump-full{
     <button id="mr-close" class="mr-close" type="button">CLOSE</button>
   </div>
 
-  <div class="mr-grid">
+  <div class="mr-grid" id="mr-grid">
     <div class="mr-box"><div class="k">REGIME</div><div id="mr-regime" class="v">—</div></div>
-    <div class="mr-box"><div class="k">MOM</div><div id="mr-mom" class="v">—</div></div>
-    <div class="mr-box"><div class="k">VOL</div><div id="mr-vol" class="v">—</div></div>
+    <div class="mr-box"><div class="k">VOLATILITY</div><div id="mr-vol" class="v">—</div></div>
 
-    <div class="mr-box"><div class="k">CYCLE</div><div id="mr-cycle" class="v">—</div></div>
-    <div class="mr-box"><div class="k">CYCLE_120</div><div id="mr-cycle120" class="v">—</div></div>
+    <div class="mr-box"><div class="k">CYCLE CLOCK</div><div id="mr-cycle" class="v">—</div></div>
+    <div class="mr-box"><div class="k">MATURITY</div><div id="mr-maturity" class="v">—</div></div>
+
+    <div class="mr-box mr-wide"><div class="k">CARD 2</div><div id="mr-card2" class="v">—</div></div>
+
     <div class="mr-box"><div class="k">SAHM</div><div id="mr-sahm" class="v">—</div></div>
+    <div class="mr-box"><div class="k">ECONOMY</div><div id="mr-econ" class="v">—</div></div>
 
-    <div class="mr-box"><div class="k">S1 ALLOWED</div><div id="mr-s1" class="v">—</div></div>
-    <div class="mr-box"><div class="k">S2 ALLOWED</div><div id="mr-s2" class="v">—</div></div>
-    <div class="mr-box"><div class="k">S3 ALLOWED</div><div id="mr-s3" class="v">—</div></div>
+    <div class="mr-box"><div class="k">S3 WATCH</div><div id="mr-s3watch" class="v">—</div></div>
+    <div class="mr-box"><div class="k">SPX DD</div><div id="mr-dd" class="v">—</div></div>
 
-    <div class="mr-box"><div class="k">RECESSION</div><div id="mr-rec" class="v">—</div></div>
-    <div class="mr-box"><div class="k">SPX DD%</div><div id="mr-dd" class="v">—</div></div>
-    <div class="mr-box"><div class="k">SPX DD35</div><div id="mr-dd35" class="v">—</div></div>
-
-    <div class="mr-box mr-wide"><div class="k">CARD2</div><div id="mr-card2" class="v">—</div></div>
+    <div class="mr-box mr-wide"><div class="k">STRATEGY PERMISSIONS</div><div id="mr-strats" class="v">—</div></div>
   </div>
-
-  <pre id="mr-raw" class="mr-raw hidden"></pre>
 </div>
+
    
     
  <div id="password-modal">
@@ -1979,6 +1967,105 @@ function parseArrDump(dump){
   return out;
 }
 
+function closeMacroRail(){
+  const rail = document.getElementById("macro-rail");
+  if (!rail) return;
+  rail.classList.remove("open");
+  // keep DOM alive, but hide after transition
+  setTimeout(() => rail.classList.add("hidden"), 250);
+}
+
+function openMacroRail(){
+  const rail = document.getElementById("macro-rail");
+  if (!rail) return;
+
+  const p = window.__RSC_LAST || null;
+  paintMacroRail(p);
+
+  rail.classList.remove("hidden");
+  requestAnimationFrame(() => rail.classList.add("open"));
+}
+
+function yesNo(v){
+  if (v == null) return "—";
+  return (v === true || v === 1) ? "YES" : "NO";
+}
+
+function sahmBucket(s){
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "—";
+  if (n < 0.35) return "EXPANSION";
+  if (n < 0.50) return "STALLING";
+  return "CONTRACTION";
+}
+
+function fmtPct(v){
+  if (v == null) return "—";
+  let n = (typeof v === "string") ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  n = Math.abs(n);
+  if (n <= 1) n *= 100;
+  return `${n.toFixed(1)}%`;
+}
+
+function setTxt(id, v){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = (v == null || v === "" ? "—" : String(v));
+}
+
+function paintMacroRail(p){
+  // header bits
+  const regime = p?.regime ?? "—";
+  const vol    = p?.vol ?? "—";
+
+  const cycle  = (p?.cycle_count ?? p?.cycle ?? "—");
+  const cap    = (p?.cycle_cap ?? 120);
+  const sahm   = (p?.sahm ?? "—");
+
+  const buildVer  = p?.Build_Version ?? p?.build_ver ?? "—";
+  const buildDate = p?.Build_Date    ?? p?.build_date ?? "—";
+
+  const title = document.getElementById("mr-title");
+  const meta  = document.getElementById("mr-meta");
+
+  if (title) title.textContent = `MACRO — ${String(regime).toUpperCase()} • ${String(vol).toUpperCase()}`;
+  if (meta)  meta.textContent  = `CYCLE ${cycle}/${cap} • SAHM ${sahm} • BUILD ${buildVer} • ${buildDate}`;
+
+  // boxes
+  setTxt("mr-regime", regime);
+  setTxt("mr-vol", vol);
+
+  setTxt("mr-cycle", `${cycle}/${cap}`);
+  setTxt("mr-maturity", p?.cycle_pct != null ? `${Number(p.cycle_pct).toFixed(0)}%` : (p?.maturity ?? "—"));
+
+  // Card2 nested truth
+  const c2 = p?.card2;
+  const c2State = (c2?.state ?? "—");
+  const c2Text  = (c2?.text  ?? "—");
+  setTxt("mr-card2", `${c2State} • ${c2Text}`);
+
+  setTxt("mr-sahm", sahm);
+  setTxt("mr-econ", sahmBucket(sahm));
+
+  // S3 / drawdown inputs (from macro payload)
+  const s3Watch = p?.s3_watch ?? p?.sahm_recession ?? null;
+  const s3Allowed = p?.s3_allowed ?? p?.s3_armed ?? null;
+
+  setTxt("mr-s3watch", `${yesNo(s3Watch)} (ALLOWED ${yesNo(s3Allowed)})`);
+
+  // drawdown
+  const dd = p?.spx_dd_pct ?? p?.spx_dd ?? p?.spxDrawdown ?? null;
+  const dd35 = p?.spx_dd35 ?? null;
+  setTxt("mr-dd", `${fmtPct(dd)} • DD35 ${yesNo(dd35)}`);
+
+  // strategy permissions (you said you now compute these)
+  const s1 = p?.s1_allowed;
+  const s2 = p?.s2_allowed;
+  const s3 = p?.s3_allowed;
+
+  setTxt("mr-strats", `S1 ${yesNo(s1)} • S2 ${yesNo(s2)} • S3 ${yesNo(s3)}`);
+}
 
 
 function renderArraysToRail(arrDump){
@@ -2333,6 +2420,31 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+});
+window.addEventListener("DOMContentLoaded", () => {
+  const mrClose = document.getElementById("mr-close");
+  if (mrClose){
+    mrClose.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeMacroRail();
+    });
+  }
+
+  // ESC closes macro rail
+  document.addEventListener("keydown", (e) => {
+    const rail = document.getElementById("macro-rail");
+    if (e.key !== "Escape") return;
+    if (!rail || !rail.classList.contains("open")) return;
+    closeMacroRail();
+  });
+
+  // click any macro card opens macro rail
+  ["card-1","card-2","card-3","card-4"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", () => openMacroRail());
+  });
 });
 
   function getSlotForRef(ref_id){
