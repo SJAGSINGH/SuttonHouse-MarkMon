@@ -872,6 +872,24 @@ def webhook():
             # Cards 1 & 3 MUST come from Pine MACRO payload
             # ------------------------------------------------
             pine_allow = {}
+            # --- MACRO passthrough (Commission Rail support) ---
+            for k in (
+                "macro_recession",
+                "s1_allowed",
+                "s2_allowed",
+                "s3_watch",
+                "s3_armed",
+                "s3_allowed",
+                "spx_cycle_high",
+                "spx_cycle_high_time",
+                "spx_high_frozen",
+                "spx_dd_pct",
+                "spx_dd35",
+                "cycle_120",
+                "mom",
+            ):
+                if k in data:
+                    pine_allow[k] = data.get(k)
 
             # ----- Card 1: Regime + Vol (Pine truth)
             if "regime" in data:
