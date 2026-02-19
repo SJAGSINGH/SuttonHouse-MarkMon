@@ -1979,12 +1979,13 @@ function openMacroRail(){
   const rail = document.getElementById("macro-rail");
   if (!rail) return;
 
-  const p = window.__RSC_LAST || null;
+  const p = window.__MACRO_LAST__ || window.__RSC_LAST || null;
   paintMacroRail(p);
 
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 }
+
 
 function yesNo(v){
   // tolerate bool, 0/1, and "true"/"false"
@@ -3822,10 +3823,25 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] validator error, proceeding", e);
   }
 
-  // store + paint
+  // store + paint (RSC can be STATE or MACRO)
   window.__RSC_LAST = p;
-  // ✅ MACRO COMM RAIL truth (store the normalized macro payload)
-  window.__MACRO_LAST__ = p;
+
+  // ✅ MACRO COMM RAIL truth:
+  // Only update __MACRO_LAST__ when we actually have a macro object.
+  let m = null;
+
+  // Case 1: payload itself is MACRO
+  if (p && typeof p === "object" && p.type === "MACRO") {
+    m = p;
+  }
+  // Case 2: payload is STATE and contains macro nested
+  else if (p && typeof p === "object" && p.macro && typeof p.macro === "object") {
+    m = p.macro;
+  }
+
+  // Only overwrite if we found a real macro object
+  if (m) window.__MACRO_LAST__ = m;
+
   console.log("[RSC HANDLE OK]", p);
 
   if (typeof window.applyAllFromState === "function") {
@@ -3836,6 +3852,7 @@ window.handleMacroUpdate = function(payload){
     console.warn("[RSC WARN] applyAllFromState missing — UI not painted yet");
   }
 };
+
   // ============================================================
   // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
   // ============================================================
