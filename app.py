@@ -145,35 +145,6 @@ STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 # Helpers
 # ----------------------------
 
-import math
-
-def _finite_or_none(x):
-    try:
-        v = float(x)
-        return v if math.isfinite(v) else None
-    except Exception:
-        return None
-
-def _int_if_finite(x):
-    try:
-        v = float(x)
-        return int(v) if math.isfinite(v) else None
-    except Exception:
-        return None
-
-def _json_sanitize(obj):
-    """Recursively replace NaN/Inf with None (JSON-safe)."""
-    if isinstance(obj, float):
-        return obj if math.isfinite(obj) else None
-    if isinstance(obj, dict):
-        return {k: _json_sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_json_sanitize(v) for v in obj]
-    return obj
-
-
-
-
 NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH"}
 
 def _store_node_payload(data: Dict[str, Any]) -> None:
@@ -377,12 +348,15 @@ def _save_state_to_disk() -> None:
         os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
         tmp = STATE_FILE + ".tmp"
 
-        with STATE_LOCK:
-            snap = _json_sanitize(copy.deepcopy(STATE))
+        def _safe(obj):
+            try:
+                json.dumps(obj)
+                return obj
+            except Exception:
+                return str(obj)
 
         with open(tmp, "w", encoding="utf-8") as f:
-            # ✅ disallow NaN/Inf on disk
-            json.dump(snap, f, ensure_ascii=False, allow_nan=False)
+            json.dump(_safe(STATE), f, ensure_ascii=False)
 
         os.replace(tmp, STATE_FILE)
 
@@ -681,17 +655,12 @@ def serve_static(filename):
 def health():
     with STATE_LOCK:
         snap = copy.deepcopy(STATE)
-
-    # ✅ prevent NaN/Inf breaking JSON (warmstart depends on /health)
-    snap = _json_sanitize(snap)
-
     return jsonify({
         "ok": True,
         "state": snap,
         "state_file": STATE_FILE,
         "state_file_exists": os.path.exists(STATE_FILE),
     }), 200
-
 
 @app.route("/state", methods=["GET"])
 def state():
@@ -839,10 +808,15 @@ def webhook():
 
             # ====================================================
             # STOCK LANES (FAST PATH)
+            # Accepts:
+            #  {"type":"SCADA_STATUS", ...}
+            #  {"type":"WATCH", ...}
+            # Emits: socketio.emit("stock_update", msg)
+            # Persists into STATE["stocks"] for warm start
             # ====================================================
             typ = str(data.get("type") or "").strip().upper()
 
-            # Ensure storage exists
+            # Ensure storage exists (safe if you didn't add to STATE earlier)
             if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
                 STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
             if "last_scada_by_ref" not in STATE["stocks"]:
@@ -851,6 +825,7 @@ def webhook():
                 STATE["stocks"]["last_watch_by_ref"] = {}
 
             if typ in ("SCADA_STATUS", "WATCH"):
+                # normalize minimal fields
                 try:
                     ref_id = data.get("ref_id")
                     ref_id = int(float(ref_id)) if ref_id is not None else None
@@ -867,16 +842,18 @@ def webhook():
                 if out.get("ticker") is not None:
                     out["ticker"] = str(out["ticker"]).upper()
 
+                # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
 
-                # ✅ sanitize stock payload too (future-proof)
-                out = _json_sanitize(out)
-
+                # persist warm-start lanes
                 if typ == "SCADA_STATUS":
                     STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
                 else:
                     STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
 
+                # ✅ ADD 3) store node payload for click-through debug page
+                # (requires _store_node_payload helper + STATE["nodes"] support)
+                # _store_node_payload(data)
                 try:
                     _store_node_payload(out)
                 except Exception:
@@ -885,89 +862,18 @@ def webhook():
                 _update_monitor_lane(_extract_meta(out))
                 _save_state_to_disk()
 
+                # emit stock-only update (do NOT spam macro_update)
                 socketio.emit("stock_update", out)
                 _log_debug("/webhook", out, ok=True)
                 return "SUCCESS", 200
 
             # ------------------------------------------------
             # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
+            # Cards 1 & 3 MUST come from Pine MACRO payload
             # ------------------------------------------------
             pine_allow = {}
-                        # ------------------------------------------------
-            # MACRO extras (needed for Macro Commission Rail)
-            # Pass-through from Pine MACRO payload into STATE so UI can render.
-            # ------------------------------------------------
-            passthrough_keys = [
-                # recession + gates
-                "macro_recession",
-                "s1_allowed", "s2_allowed",
-                "s3_watch", "s3_armed", "s3_allowed",
 
-                # SPX drawdown system
-                "spx_cycle_high",
-                "spx_cycle_high_time",
-                "spx_high_frozen",
-                "spx_dd_pct",
-                "spx_dd35",
-
-                # optional
-                "cycle_120",
-                "mom",
-            ]
-
-            for k in passthrough_keys:
-                if k in data:
-                    pine_allow[k] = data.get(k)
-
-            # ✅ Normalise + KILL NaN/Inf at source (critical)
-            if "spx_cycle_high" in pine_allow:
-                pine_allow["spx_cycle_high"] = _finite_or_none(pine_allow.get("spx_cycle_high"))
-
-            if "spx_dd_pct" in pine_allow:
-                pine_allow["spx_dd_pct"] = _finite_or_none(pine_allow.get("spx_dd_pct"))
-
-            if "spx_cycle_high_time" in pine_allow:
-                pine_allow["spx_cycle_high_time"] = _int_if_finite(pine_allow.get("spx_cycle_high_time"))
-
-            # ✅ If Pine sends dd_pct, also expose it as spx_dd (Card4 reads spx_dd)
-            if "spx_dd_pct" in data and "spx_dd" not in pine_allow:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("spx_dd_pct"))
-
-            # ✅ sanitize BEFORE merge (prevents NaN/Inf leaking into STATE)
-            if pine_allow:
-                STATE.update(_json_sanitize(pine_allow))
-
-            # ----- MACRO extras (needed for Macro Commission Rail)
-            passthrough_keys = [
-                "macro_recession",
-                "s1_allowed", "s2_allowed",
-                "s3_watch", "s3_armed", "s3_allowed",
-
-                "spx_cycle_high",
-                "spx_cycle_high_time",
-                "spx_high_frozen",
-                "spx_dd_pct",
-                "spx_dd35",
-
-                "cycle_120",
-                "mom",
-            ]
-
-            for k in passthrough_keys:
-                if k in data:
-                    pine_allow[k] = data.get(k)
-
-            # ✅ Normalise + KILL NaN/Inf at source (critical)
-            if "spx_cycle_high" in pine_allow:
-                pine_allow["spx_cycle_high"] = _finite_or_none(pine_allow.get("spx_cycle_high"))
-
-            if "spx_dd_pct" in pine_allow:
-                pine_allow["spx_dd_pct"] = _finite_or_none(pine_allow.get("spx_dd_pct"))
-
-            if "spx_cycle_high_time" in pine_allow:
-                pine_allow["spx_cycle_high_time"] = _int_if_finite(pine_allow.get("spx_cycle_high_time"))
-
-            # ----- Card 1: Regime + Vol
+            # ----- Card 1: Regime + Vol (Pine truth)
             if "regime" in data:
                 try:
                     pine_allow["regime"] = str(data["regime"]).upper()
@@ -1004,40 +910,34 @@ def webhook():
                 except Exception:
                     pass
 
-            # ----- Optional: flow / rotation direction
+            # ----- Optional: flow / rotation direction (server-side legacy)
             if "rot_dir" in data:
                 try:
                     pine_allow["flow"] = str(data["rot_dir"])
                 except Exception:
                     pass
 
-            # ----- Card 4: Recession pulse
+            # ----- Card 4: Recession pulse (Pine truth)
             if "sahm" in data:
                 try:
                     pine_allow["sahm"] = float(data["sahm"])
                 except Exception:
                     pass
 
-            # dd inputs (various)
             if "spx_dd" in data:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("spx_dd"))
+                pine_allow["spx_dd"] = data["spx_dd"]
             elif "spxDrawdown" in data:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("spxDrawdown"))
+                pine_allow["spx_dd"] = data["spxDrawdown"]
             elif "dd" in data:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("dd"))
+                pine_allow["spx_dd"] = data["dd"]
             elif "drawdown" in data:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("drawdown"))
-
-            # ✅ If Pine sends dd_pct, also expose it as spx_dd (Card4 reads spx_dd)
-            if "spx_dd_pct" in data and "spx_dd" not in pine_allow:
-                pine_allow["spx_dd"] = _finite_or_none(data.get("spx_dd_pct"))
+                pine_allow["spx_dd"] = data["drawdown"]
 
             if pine_allow:
-                # ✅ sanitize the dict BEFORE merging into STATE
-                STATE.update(_json_sanitize(pine_allow))
+                STATE.update(pine_allow)
 
             # ------------------------------------------------
-            # CARD 2 — CANONICAL (nested)
+            # CARD 2 — CANONICAL (nested) ✅
             # ------------------------------------------------
             try:
                 if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
@@ -1075,8 +975,6 @@ def webhook():
                 pass
 
             # ------------------------------------------------
-            # legacy typed parsing (kept)
-            # ------------------------------------------------
             if "type" in data:
                 try:
                     _parse_typed_payload(data)
@@ -1095,9 +993,7 @@ def webhook():
             _update_monitor_lane(meta)
 
             _save_state_to_disk()
-
-            # ✅ CRITICAL: sanitize payload before emitting (prevents JSON parse crash)
-            payload = _json_sanitize(copy.deepcopy(STATE))
+            payload = copy.deepcopy(STATE)
 
         socketio.emit("macro_update", payload)
         _log_debug("/webhook", data, ok=True)
@@ -1106,7 +1002,6 @@ def webhook():
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
-
 
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
