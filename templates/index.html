@@ -1987,9 +1987,11 @@ function openMacroRail(){
 }
 
 function yesNo(v){
-  if (v == null) return "—";
-  return (v === true || v === 1) ? "YES" : "NO";
+  if (v === true || v === 1) return "YES";
+  if (v === false || v === 0) return "NO";
+  return "—";
 }
+
 
 function sahmBucket(s){
   const n = Number(s);
@@ -2048,11 +2050,14 @@ function paintMacroRail(p){
   setTxt("mr-sahm", sahm);
   setTxt("mr-econ", sahmBucket(sahm));
 
-  // S3 / drawdown inputs (from macro payload)
-  const s3Watch = p?.s3_watch ?? p?.sahm_recession ?? null;
-  const s3Allowed = p?.s3_allowed ?? p?.s3_armed ?? null;
+    // S3 / recession truth (from MACRO payload)
+  // payload v1.0.x uses: macro_recession, s3_watch, s3_armed, s3_allowed
+  const s3Watch   = (p?.s3_watch   ?? p?.macro_recession ?? null);
+  const s3Armed   = (p?.s3_armed   ?? null);
+  const s3Allowed = (p?.s3_allowed ?? s3Armed ?? null);
 
-  setTxt("mr-s3watch", `${yesNo(s3Watch)} (ALLOWED ${yesNo(s3Allowed)})`);
+  setTxt("mr-s3watch", `WATCH ${yesNo(s3Watch)} • ARMED ${yesNo(s3Armed)} • ALLOWED ${yesNo(s3Allowed)}`);
+
 
   // drawdown
   const dd = p?.spx_dd_pct ?? p?.spx_dd ?? p?.spxDrawdown ?? null;
