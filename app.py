@@ -377,15 +377,12 @@ def _save_state_to_disk() -> None:
         os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
         tmp = STATE_FILE + ".tmp"
 
-        def _safe(obj):
-            try:
-                json.dumps(obj)
-                return obj
-            except Exception:
-                return str(obj)
+        with STATE_LOCK:
+            snap = _json_sanitize(copy.deepcopy(STATE))
 
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(_safe(STATE), f, ensure_ascii=False)
+            # ✅ disallow NaN/Inf on disk
+            json.dump(snap, f, ensure_ascii=False, allow_nan=False)
 
         os.replace(tmp, STATE_FILE)
 
@@ -896,6 +893,49 @@ def webhook():
             # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
             # ------------------------------------------------
             pine_allow = {}
+                        # ------------------------------------------------
+            # MACRO extras (needed for Macro Commission Rail)
+            # Pass-through from Pine MACRO payload into STATE so UI can render.
+            # ------------------------------------------------
+            passthrough_keys = [
+                # recession + gates
+                "macro_recession",
+                "s1_allowed", "s2_allowed",
+                "s3_watch", "s3_armed", "s3_allowed",
+
+                # SPX drawdown system
+                "spx_cycle_high",
+                "spx_cycle_high_time",
+                "spx_high_frozen",
+                "spx_dd_pct",
+                "spx_dd35",
+
+                # optional
+                "cycle_120",
+                "mom",
+            ]
+
+            for k in passthrough_keys:
+                if k in data:
+                    pine_allow[k] = data.get(k)
+
+            # ✅ Normalise + KILL NaN/Inf at source (critical)
+            if "spx_cycle_high" in pine_allow:
+                pine_allow["spx_cycle_high"] = _finite_or_none(pine_allow.get("spx_cycle_high"))
+
+            if "spx_dd_pct" in pine_allow:
+                pine_allow["spx_dd_pct"] = _finite_or_none(pine_allow.get("spx_dd_pct"))
+
+            if "spx_cycle_high_time" in pine_allow:
+                pine_allow["spx_cycle_high_time"] = _int_if_finite(pine_allow.get("spx_cycle_high_time"))
+
+            # ✅ If Pine sends dd_pct, also expose it as spx_dd (Card4 reads spx_dd)
+            if "spx_dd_pct" in data and "spx_dd" not in pine_allow:
+                pine_allow["spx_dd"] = _finite_or_none(data.get("spx_dd_pct"))
+
+            # ✅ sanitize BEFORE merge (prevents NaN/Inf leaking into STATE)
+            if pine_allow:
+                STATE.update(_json_sanitize(pine_allow))
 
             # ----- MACRO extras (needed for Macro Commission Rail)
             passthrough_keys = [
