@@ -2278,7 +2278,7 @@ document.addEventListener("click", function (e) {
 window.addEventListener("DOMContentLoaded", () => {
   const rail = document.getElementById("commission-rail");
   const btn  = document.getElementById("cr-close");
-
+  
   // ✅ close button
   if (btn){
     btn.addEventListener("click", (e) => {
@@ -2310,6 +2310,30 @@ document.addEventListener("click", (e) => {
 
   openStrategyRailForRef(ref);
 });
+// ============================================================
+// MACRO COMMISSION RAIL WIRING
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+
+  // Click any macro card to open macro rail
+  document.querySelectorAll("#card-1, #card-2, #card-3, #card-4")
+    .forEach(el => {
+      el.addEventListener("click", () => {
+        openMacroRail();
+      });
+    });
+
+  // Close button
+  const mrClose = document.getElementById("mr-close");
+  if (mrClose){
+    mrClose.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeMacroRail();
+    });
+  }
+
+});
 
   function getSlotForRef(ref_id){
   if (ref_id == null) return null;
@@ -2320,6 +2344,7 @@ document.addEventListener("click", (e) => {
   // ✅ CANONICAL: ref_id maps directly to your DOM (data-slot="1..20")
   return n;
 }
+
 
 
 
@@ -3936,18 +3961,7 @@ document.getElementById("sr-close")?.addEventListener("click", () => {
 
 // call once after DOM is ready
 setupCommissionTooltips();
-window.addEventListener("DOMContentLoaded", () => {
-  _updateDebugBtn();
 
-  // ✅ open macro rail on macro area click (adjust selector to your macro container)
-  document.addEventListener("click", (e) => {
-    const hit = e.target.closest?.("#macro-section, .macro-grid, .macro-card");
-    if (hit) openMacroRail();
-  });
-
-  // close button
-  document.getElementById("mr-close")?.addEventListener("click", closeMacroRail);
-});
 
    
 </script>
