@@ -872,6 +872,45 @@ def webhook():
             # Cards 1 & 3 MUST come from Pine MACRO payload
             # ------------------------------------------------
             pine_allow = {}
+                        # ----- MACRO extras (needed for Macro Commission Rail)
+            # Pass-through from Pine MACRO payload into STATE so UI can render.
+            passthrough_keys = [
+                # recession + gates
+                "macro_recession",
+                "s1_allowed", "s2_allowed",
+                "s3_watch", "s3_armed", "s3_allowed",
+
+                # SPX drawdown system
+                "spx_cycle_high",
+                "spx_cycle_high_time",
+                "spx_high_frozen",
+                "spx_dd_pct",
+                "spx_dd35",
+
+                # optional (if you start sending these later)
+                "cycle_120",
+                "mom",
+            ]
+
+            for k in passthrough_keys:
+                if k in data:
+                    pine_allow[k] = data.get(k)
+
+            # Optional: normalise some types (safe)
+            # - convert "0.3" -> 0.3 for sahm already handled below
+            # - keep booleans as booleans
+            # - avoid crashing if values are weird
+            try:
+                if "spx_cycle_high" in pine_allow and pine_allow["spx_cycle_high"] is not None:
+                    pine_allow["spx_cycle_high"] = float(pine_allow["spx_cycle_high"])
+            except Exception:
+                pass
+
+            try:
+                if "spx_dd_pct" in pine_allow and pine_allow["spx_dd_pct"] is not None:
+                    pine_allow["spx_dd_pct"] = float(pine_allow["spx_dd_pct"])
+            except Exception:
+                pass
 
             # ----- Card 1: Regime + Vol (Pine truth)
             if "regime" in data:
@@ -932,9 +971,12 @@ def webhook():
                 pine_allow["spx_dd"] = data["dd"]
             elif "drawdown" in data:
                 pine_allow["spx_dd"] = data["drawdown"]
-
+             # If Pine sends dd_pct, also expose it as spx_dd (Card4 reads spx_dd)
+            if "spx_dd_pct" in data and "spx_dd" not in pine_allow:
+                pine_allow["spx_dd"] = data.get("spx_dd_pct")
             if pine_allow:
                 STATE.update(pine_allow)
+           
 
             # ------------------------------------------------
             # CARD 2 — CANONICAL (nested) ✅
