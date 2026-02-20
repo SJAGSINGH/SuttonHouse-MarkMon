@@ -909,11 +909,11 @@ body.war-room .scada-card{
   border:1px solid rgba(255,255,255,0.12);
   position:relative;
   z-index:2;
-  isolation:isolate;     /* IMPORTANT: keeps ::before behind node, not behind page */
-  overflow:hidden;
+  overflow: visible;      /* ✅ allow halo to show */
+  isolation: isolate;     /* ✅ keep z-index sane */
   display:flex;
   align-items:center;
-  justify-content:center;
+  ustify-content:center;
 }
 
 /* logo */
