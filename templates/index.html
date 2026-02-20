@@ -906,61 +906,69 @@ body.war-room .scada-card{
   height:44px;
   border-radius:50%;
   background:#1e1e1e;
-  border:1px solid rgba(255,255,255,0.12);
+  border:1px solid rgba(255,255,255,0.10); /* slightly softer border */
   position:relative;
   z-index:2;
-  overflow: visible;
-  isolation: isolate;
+  overflow:visible;
+  isolation:isolate;
   display:flex;
   align-items:center;
-  justify-content:center; /* FIXED */
+  justify-content:center;
 }
 
 /* logo */
 .stock-node img{
   width:100%;
   height:100%;
-  object-fit: contain;
+  object-fit:contain;
   border-radius:50%;
   z-index:2;
   pointer-events:none;
 }
 
+/* HALO BASE PLATE */
 .stock-node::before{
   content:"";
   position:absolute;
-  inset:-6px;          /* tighter halo */
+  inset:-5px;                 /* tight halo */
   border-radius:999px;
   z-index:-1;
   opacity:0;
-  transform: scale(0.98);
-  transition: opacity .2s ease, transform .2s ease;
+  transform:scale(1);
+  transition:opacity .2s ease, transform .2s ease;
   pointer-events:none;
 }
 
-/* Setup (amber) */
+/* Setup (amber – steady, no pulse) */
 .stock-node.orange.halo-on::before{
   opacity:1;
   background: radial-gradient(
     circle,
-    rgba(255,165,0,.6) 0%,
-    rgba(255,165,0,.35) 55%,
-    rgba(255,165,0,0) 75%
+    rgba(255,165,0,.75) 0%,
+    rgba(255,165,0,.45) 50%,
+    rgba(255,165,0,.15) 70%,
+    rgba(255,165,0,0)   80%
   );
 }
-/* Signal (lime) */
-/* Signal (lime) — tight but visible */
+
+/* Signal (lime – pulse) */
 .stock-node.lime.halo-on::before{
   opacity:1;
   box-shadow:
-    0 0 0 2px rgba(92,255,157,.70),
-    0 0 18px rgba(92,255,157,.55),
-    0 0 30px rgba(92,255,157,.25);
+    0 0 0 2px rgba(92,255,157,.75),
+    0 0 20px rgba(92,255,157,.60),
+    0 0 34px rgba(92,255,157,.30);
 }
 
-@keyframes haloPulse{
-  0%,100% { transform: scale(1); }
-  50%     { transform: scale(1.04); }
+/* Pulse animation only when halo-signal present */
+.stock-node.lime.halo-signal::before{
+  animation: limePulse 1.25s ease-in-out infinite;
+}
+
+@keyframes limePulse{
+  0%   { transform:scale(1);   opacity:.75; }
+  45%  { transform:scale(1.06); opacity:1; }
+  100% { transform:scale(1);   opacity:.75; }
 }
 /* ============================
    TICKER LABEL (always visible)
