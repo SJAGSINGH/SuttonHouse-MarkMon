@@ -140,6 +140,25 @@ DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var
 STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
 STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 
+import math
+
+def _json_safe(x):
+    """Recursively convert NaN/Inf to None so payload is valid JSON."""
+    try:
+        if isinstance(x, float):
+            if math.isnan(x) or math.isinf(x):
+                return None
+    except Exception:
+        pass
+
+    if isinstance(x, dict):
+        return {k: _json_safe(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_json_safe(v) for v in x]
+    if isinstance(x, tuple):
+        return [_json_safe(v) for v in x]  # tuples -> lists for JSON
+
+    return x
 
 # ----------------------------
 # Helpers
@@ -654,13 +673,15 @@ def serve_static(filename):
 @app.route("/health", methods=["GET"])
 def health():
     with STATE_LOCK:
-        snap = copy.deepcopy(STATE)
-    return jsonify({
-        "ok": True,
-        "state": snap,
-        "state_file": STATE_FILE,
-        "state_file_exists": os.path.exists(STATE_FILE),
-    }), 200
+    snap = copy.deepcopy(STATE)
+snap = _json_safe(snap)
+
+return jsonify({
+    "ok": True,
+    "state": snap,
+    "state_file": STATE_FILE,
+    "state_file_exists": os.path.exists(STATE_FILE),
+}), 200
 
 @app.route("/state", methods=["GET"])
 def state():
@@ -1012,7 +1033,7 @@ def webhook():
 
             _save_state_to_disk()
             payload = copy.deepcopy(STATE)
-
+        payload = _json_safe(payload)
         socketio.emit("macro_update", payload)
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
