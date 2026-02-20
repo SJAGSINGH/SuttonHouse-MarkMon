@@ -2615,55 +2615,58 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   // try exact match first (if you ever switch DOM to 1..20)
   let item = document.querySelector(`.stock-item[data-slot="${refId}"]`);
 
-  // fallback: current DOM is 0..19, while ref_id is 1..20
+  // fallback: DOM 0..19 while ref_id 1..20
   if (!item && Number.isFinite(Number(refId))) {
     item = document.querySelector(`.stock-item[data-slot="${Number(refId) - 1}"]`);
   }
   if (!item) return;
 
-  // ✅ persist ref_id directly on the tile (click/rail will use this)
+  // ✅ persist true ref_id on the tile
   item.dataset.refId = String(refId);
 
   const node  = item.querySelector(".stock-node");
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // NODE HALO + COLOUR
+  // TICKER (compute once, reuse)
+  const tkr = ticker ? String(ticker).toUpperCase() : "—";
+  if (label) label.textContent = tkr;
+
+  // NODE HALO + COLOUR + LOGO
   if (node){
-    // keep stock-node base class, just manage state classes
+    // Ensure base class never gets lost
+    node.classList.add("stock-node");
+
+    // reset state classes only
     node.classList.remove("grey","orange","green","red","halo-on","halo-signal");
 
-    // base colour class (face)
+    // base face colour class
     node.classList.add(glow || "grey");
 
-    // halo should appear for setup OR signal
-    if (isSetup || isSignal) node.classList.add("halo-on");
+    // halo appears for setup OR signal
+    const haloOn = !!(isSetup || isSignal);
+    if (haloOn) node.classList.add("halo-on");
     if (isSignal) node.classList.add("halo-signal");
-  }
 
-  // LOGO inside node: appears when in SETUP (per your requirement)
-  if (node){
+    // LOGO inside node: show when setup OR signal (your change)
     const existingImg = node.querySelector("img");
-    const shouldShowLogo = !!(isSetup || isSignal); // if you want logo also during signal, change to (isSetup || isSignal)
+    const shouldShowLogo = haloOn;
 
     if (shouldShowLogo && logoUrl){
       if (!existingImg){
         const img = document.createElement("img");
-        img.alt = ticker ? String(ticker).toUpperCase() : "";
+        img.alt = tkr !== "—" ? tkr : "";
         img.src = logoUrl;
+        img.onerror = () => { try { img.remove(); } catch(e) {} }; // no broken icon if missing file
         node.appendChild(img);
       } else {
         // update if needed
-        if (existingImg.src !== logoUrl) existingImg.src = logoUrl;
+        if (existingImg.getAttribute("src") !== logoUrl) existingImg.setAttribute("src", logoUrl);
       }
     } else {
       if (existingImg) existingImg.remove();
     }
   }
-
-  // TICKER
-  const tkr = ticker ? String(ticker).toUpperCase() : "—";
-  if (label) label.textContent = tkr;
 
   // MSA DISPLAY
   const norm = String(msaText || "").toUpperCase();
@@ -2697,8 +2700,6 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   if (node)  node.title  = tip;
   if (label) label.title = tip;
 }
-
-
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
