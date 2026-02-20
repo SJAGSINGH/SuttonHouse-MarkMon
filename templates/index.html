@@ -958,7 +958,48 @@ body.war-room .scada-card{
 
 /* neutral */
 .stock-node.grey::after{ opacity:0; }
+/* Ensure node can layer pseudo-elements */
+.stock-node{
+  position: relative;
+  z-index: 2;          /* node face above halo */
+  overflow: hidden;    /* keeps logo clipped */
+}
 
+/* HALO BACKPLATE (behind node) */
+.stock-node::before{
+  content:"";
+  position:absolute;
+  inset:-10px;               /* halo thickness */
+  border-radius:999px;
+  z-index:-1;                /* behind the node */
+  opacity:0;
+  transform: scale(0.92);
+  transition: opacity .20s ease, transform .25s ease, box-shadow .25s ease;
+  pointer-events:none;
+}
+
+/* When halo active (setup OR signal) */
+.stock-node.halo-on::before{
+  opacity:1;
+  transform: scale(1);
+  box-shadow:
+    0 0 0 2px rgba(0,255,170,.35),
+    0 0 26px rgba(0,255,170,.22);
+}
+
+/* Stronger/pulse when SIGNAL is true (optional) */
+.stock-node.halo-signal::before{
+  opacity:1;
+  box-shadow:
+    0 0 0 2px rgba(0,255,170,.55),
+    0 0 34px rgba(0,255,170,.35);
+  animation: haloPulse 1.7s ease-in-out infinite;
+}
+
+@keyframes haloPulse{
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.04); }
+}
 /* ============================
    TICKER LABEL (always visible)
 ============================ */
