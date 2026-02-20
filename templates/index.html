@@ -948,15 +948,15 @@ body.war-room .scada-card{
     rgba(255,165,0,0) 75%
   );
 }
-
-/* Signal (green stronger) */
-.stock-node.green.halo-on::before{
+/* Signal (lime) */
+.stock-node.lime.halo-on::before{
   opacity:1;
   background: radial-gradient(
     circle,
-    rgba(80,255,120,.75) 0%,
-    rgba(80,255,120,.45) 55%,
-    rgba(80,255,120,0) 80%
+    rgba(92,255,157,.80) 0%,
+    rgba(92,255,157,.50) 50%,
+    rgba(92,255,157,.20) 70%,
+    rgba(92,255,157,0)    85%
   );
 }
 
@@ -2627,7 +2627,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     node.classList.add("stock-node");
 
     // reset state classes only
-    node.classList.remove("grey","orange","green","red","halo-on","halo-signal");
+    node.classList.remove("grey","orange","green","lime","red","halo-on","halo-signal");
 
     // base face colour class
     node.classList.add(glow || "grey");
@@ -2637,7 +2637,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     if (haloOn) node.classList.add("halo-on");
     if (isSignal) node.classList.add("halo-signal");
 
-    // LOGO inside node: show when setup OR signal (your change)
+    // LOGO inside node: show when setup OR signal
     const existingImg = node.querySelector("img");
     const shouldShowLogo = haloOn;
 
@@ -2689,6 +2689,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   if (node)  node.title  = tip;
   if (label) label.title = tip;
 }
+
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -2705,7 +2706,7 @@ function applyScadaStatus(msg){
     (msg.setup_4H === true);
 
   let glow = "grey";
-  if (sig) glow = "green";
+  if (sig) glow = "lime";        // UPDATED
   else if (setup) glow = "orange";
 
   // ----------------------------
@@ -2726,19 +2727,11 @@ function applyScadaStatus(msg){
     `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
     `signal:${msg.signal}`;
 
-  // logo url: depends on how you store it.
-  // Option A: msg.logo_url exists in SCADA JSON.
-  // Option B: build from ticker locally (you tell me your path).
+  // Slot-based logo url
   const slotNum = Number(slot);
   const logoIndex = (slotNum >= 1 && slotNum <= 20) ? slotNum : (slotNum + 1);
   const logoUrl = `/static/logos/${logoIndex}.png`;
 
-  // IMPORTANT:
-  // - Use msg.ref_id as the refId we persist on the tile
-  // - But we still need to target the correct DOM slot.
-  // Your setNode searches DOM by refId and falls back (refId-1).
-  // Since your DOM is 1..20 in template now, this will hit exact.
-  // If your DOM is still 0..19, the fallback handles it.
   setNode(
     msg.ref_id,
     glow,
@@ -2750,8 +2743,6 @@ function applyScadaStatus(msg){
     logoUrl
   );
 }
-
-
 function applyWatch(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
