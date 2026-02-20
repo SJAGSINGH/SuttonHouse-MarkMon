@@ -2611,7 +2611,7 @@ window.COMMISSIONING = true;
 // - Works whether your DOM is data-slot="0..19" OR "1..20"
 // - Persists ref_id onto the tile so rail can always find the right store entry
 // ===============================
-function setNode(refId, glow, ticker, msaText, rawSrc){
+function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUrl){
   // try exact match first (if you ever switch DOM to 1..20)
   let item = document.querySelector(`.stock-item[data-slot="${refId}"]`);
 
@@ -2628,10 +2628,37 @@ function setNode(refId, glow, ticker, msaText, rawSrc){
   const label = item.querySelector(".stock-label");
   const msa   = item.querySelector(".msa-label");
 
-  // NODE HALO CLASS
+  // NODE HALO + COLOUR
   if (node){
-    node.classList.remove("grey","orange","green","red");
+    // keep stock-node base class, just manage state classes
+    node.classList.remove("grey","orange","green","red","halo-on","halo-signal");
+
+    // base colour class (face)
     node.classList.add(glow || "grey");
+
+    // halo should appear for setup OR signal
+    if (isSetup || isSignal) node.classList.add("halo-on");
+    if (isSignal) node.classList.add("halo-signal");
+  }
+
+  // LOGO inside node: appears when in SETUP (per your requirement)
+  if (node){
+    const existingImg = node.querySelector("img");
+    const shouldShowLogo = !!(isSetup || isSignal); // if you want logo also during signal, change to (isSetup || isSignal)
+
+    if (shouldShowLogo && logoUrl){
+      if (!existingImg){
+        const img = document.createElement("img");
+        img.alt = ticker ? String(ticker).toUpperCase() : "";
+        img.src = logoUrl;
+        node.appendChild(img);
+      } else {
+        // update if needed
+        if (existingImg.src !== logoUrl) existingImg.src = logoUrl;
+      }
+    } else {
+      if (existingImg) existingImg.remove();
+    }
   }
 
   // TICKER
@@ -2701,18 +2728,35 @@ function applyScadaStatus(msg){
     (src === "MANUAL" || src === "MAN") ? "MAN" :
     "NO STATE";
 
-  // store reason for tooltip (per slot)
+  // store reason for tooltip (KEY IT BY REF_ID, not slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
-  window.__NODE_REASON__[String(slot)] =
-  `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
-  `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
-  `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
-  `signal:${msg.signal}`;
+  window.__NODE_REASON__[String(msg.ref_id)] =
+    `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
+    `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
+    `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
+    `signal:${msg.signal}`;
 
+  // logo url: depends on how you store it.
+  // Option A: msg.logo_url exists in SCADA JSON.
+  // Option B: build from ticker locally (you tell me your path).
+  const logoUrl = msg.logo_url || null;
 
-  // pass RAW SOURCE so commissioning can show it in tooltip
-  setNode(slot, glow, msg.ticker, msa, msg.msa_src, msg.ref_id);
-
+  // IMPORTANT:
+  // - Use msg.ref_id as the refId we persist on the tile
+  // - But we still need to target the correct DOM slot.
+  // Your setNode searches DOM by refId and falls back (refId-1).
+  // Since your DOM is 1..20 in template now, this will hit exact.
+  // If your DOM is still 0..19, the fallback handles it.
+  setNode(
+    msg.ref_id,
+    glow,
+    msg.ticker,
+    msa,
+    msg.msa_src,
+    setup,
+    sig,
+    logoUrl
+  );
 }
 
 
