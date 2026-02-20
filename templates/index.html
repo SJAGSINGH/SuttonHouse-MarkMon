@@ -909,11 +909,11 @@ body.war-room .scada-card{
   border:1px solid rgba(255,255,255,0.12);
   position:relative;
   z-index:2;
-  overflow: visible;      /* ✅ allow halo to show */
-  isolation: isolate;     /* ✅ keep z-index sane */
+  overflow: visible;
+  isolation: isolate;
   display:flex;
   align-items:center;
-  ustify-content:center;
+  justify-content:center; /* FIXED */
 }
 
 /* logo */
@@ -926,7 +926,7 @@ body.war-room .scada-card{
   pointer-events:none;
 }
 
-/* HALO BACKPLATE (behind node) */
+/* halo */
 .stock-node::before{
   content:"";
   position:absolute;
@@ -939,7 +939,7 @@ body.war-room .scada-card{
   pointer-events:none;
 }
 
-/* Halo ON (setup OR signal) */
+/* Setup halo (amber) */
 .stock-node.halo-on::before{
   opacity:1;
   transform: scale(1);
@@ -948,19 +948,12 @@ body.war-room .scada-card{
     0 0 28px rgba(255,165,0,.30);
 }
 
-/* Signal = greener + stronger */
+/* Signal halo (green + pulse) */
 .stock-node.halo-signal::before{
   opacity:1;
   box-shadow:
     0 0 0 2px rgba(80,255,120,.55),
     0 0 34px rgba(80,255,120,.40);
-  animation: haloPulse 1.7s ease-in-out infinite;
-}
-
-
-
-/* Optional pulse only for signal */
-.stock-node.halo-signal::before{
   animation: haloPulse 1.7s ease-in-out infinite;
 }
 
@@ -2733,7 +2726,9 @@ function applyScadaStatus(msg){
   // logo url: depends on how you store it.
   // Option A: msg.logo_url exists in SCADA JSON.
   // Option B: build from ticker locally (you tell me your path).
-  const logoUrl = msg.logo_url || null;
+  const slotNum = Number(slot);
+  const logoIndex = (slotNum >= 1 && slotNum <= 20) ? slotNum : (slotNum + 1);
+  const logoUrl = `/static/logos/${logoIndex}.png`;
 
   // IMPORTANT:
   // - Use msg.ref_id as the refId we persist on the tile
@@ -2761,14 +2756,11 @@ function applyWatch(msg){
   const item = document.querySelector(`.stock-item[data-slot="${slot}"]`);
   if (!item) return;
 
-  const node = item.querySelector(".stock-node");
+  const label = item.querySelector(".stock-label");
+  const msaEl = item.querySelector(".msa-label");
 
-  // preserve current halo (SCADA_STATUS owns halo)
-  const glow =
-    node?.classList.contains("green")  ? "green"  :
-    node?.classList.contains("orange") ? "orange" :
-    node?.classList.contains("red")    ? "red"    :
-    "grey";
+  const tkr = msg.ticker ? String(msg.ticker).toUpperCase() : "—";
+  if (label) label.textContent = tkr;
 
   const src = String(msg.msa_src || "").trim().toUpperCase();
   const msa =
@@ -2776,7 +2768,13 @@ function applyWatch(msg){
     (src === "MANUAL" || src === "MAN") ? "MAN"  :
     "NO STATE";
 
-  setNode(slot, glow, msg.ticker, msa, msg.msa_src);
+  if (msaEl) {
+    msaEl.textContent = msa;
+    msaEl.classList.remove("msa-auto","msa-man","msa-na");
+    if (msa === "AUTO") msaEl.classList.add("msa-auto");
+    else if (msa === "MAN") msaEl.classList.add("msa-man");
+    else msaEl.classList.add("msa-na");
+  }
 }
 
 
