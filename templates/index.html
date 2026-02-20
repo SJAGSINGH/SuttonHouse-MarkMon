@@ -1184,35 +1184,43 @@ body.war-room .scada-card{
 
 /* Header */
 .cr-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:14px;
+  display: grid;
+  grid-template-columns: 1fr auto;   /* title/meta left, close right */
+  align-items: start;
+  gap: 12px;
+
+  /* ✅ breathing room so CLOSE isn't cramped */
+  padding: 14px 16px 10px 16px;
+  margin-bottom: 12px;
 }
 
 .cr-title{
   font-size:13px;
   letter-spacing:2px;
   text-transform:uppercase;
-  color: rgba(0,255,170,0.90);   /* stronger */
+  color: rgba(0,255,170,0.90);
+  line-height: 1.2;
 }
 
+/* meta sits under title nicely and never fights the close button */
 .cr-meta{
   font-size:10px;
   letter-spacing:1.2px;
   text-transform:uppercase;
   color: rgba(0,255,170,0.55);
-  flex:1;
-  text-align:left;
+  margin-top: 4px;
+  white-space: pre-line;
 }
 
 /* Top data grid */
 .cr-grid{
   display:grid;
-  grid-template-columns: repeat(3, 1fr); /* better use of width */
+  grid-template-columns: repeat(3, 1fr);
   gap:12px;
-  margin-bottom:18px;
+
+  /* ✅ stops boxes kissing the rail edges */
+  padding: 10px 16px 14px 16px;
+  margin-bottom: 18px;
 }
 
 .cr-box{
