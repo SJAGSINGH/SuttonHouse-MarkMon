@@ -926,35 +926,38 @@ body.war-room .scada-card{
   pointer-events:none;
 }
 
-/* halo */
 .stock-node::before{
   content:"";
   position:absolute;
-  inset:-10px;
+  inset:-6px;          /* tighter halo */
   border-radius:999px;
   z-index:-1;
   opacity:0;
-  transform: scale(0.92);
-  transition: opacity .20s ease, transform .25s ease, box-shadow .25s ease;
+  transform: scale(0.98);
+  transition: opacity .2s ease, transform .2s ease;
   pointer-events:none;
 }
 
-/* Setup halo (amber) */
-.stock-node.halo-on::before{
+/* Setup (amber) */
+.stock-node.orange.halo-on::before{
   opacity:1;
-  transform: scale(1);
-  box-shadow:
-    0 0 0 2px rgba(255,165,0,.45),
-    0 0 28px rgba(255,165,0,.30);
+  background: radial-gradient(
+    circle,
+    rgba(255,165,0,.6) 0%,
+    rgba(255,165,0,.35) 55%,
+    rgba(255,165,0,0) 75%
+  );
 }
 
-/* Signal halo (green + pulse) */
-.stock-node.halo-signal::before{
+/* Signal (green stronger) */
+.stock-node.green.halo-on::before{
   opacity:1;
-  box-shadow:
-    0 0 0 2px rgba(80,255,120,.55),
-    0 0 34px rgba(80,255,120,.40);
-  animation: haloPulse 1.7s ease-in-out infinite;
+  background: radial-gradient(
+    circle,
+    rgba(80,255,120,.75) 0%,
+    rgba(80,255,120,.45) 55%,
+    rgba(80,255,120,0) 80%
+  );
 }
 
 @keyframes haloPulse{
