@@ -673,14 +673,14 @@ def serve_static(filename):
 @app.route("/health", methods=["GET"])
 def health():
     with STATE_LOCK:
-    snap = copy.deepcopy(STATE)
-snap = _json_safe(snap)
+        snap = copy.deepcopy(STATE)
+    snap = _json_safe(snap)
 
-return jsonify({
-    "ok": True,
-    "state": snap,
-    "state_file": STATE_FILE,
-    "state_file_exists": os.path.exists(STATE_FILE),
+    return jsonify({
+        "ok": True,
+        "state": snap,
+        "state_file": STATE_FILE,
+        "state_file_exists": os.path.exists(STATE_FILE),
 }), 200
 
 @app.route("/state", methods=["GET"])
