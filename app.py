@@ -864,7 +864,7 @@ def webhook():
             # ====================================================
             typ = str(data.get("type") or "").strip().upper()
 
-            # Ensure storage exists (safe if you didn't add to STATE earlier)
+            # Ensure storage exists
             if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
                 STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
             if "last_scada_by_ref" not in STATE["stocks"]:
@@ -892,12 +892,12 @@ def webhook():
 
                 # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
-                                # ----------------------------------------------------
+
+                # ----------------------------------------------------
                 # ENFORCE MASTER GOVERNANCE FIELDS IN SCADA_STATUS
                 # (UI reads these from node payload; keep UI unchanged)
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
-                    # snapshot current master values from STATE
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle     = STATE.get("cycle")
 
@@ -905,19 +905,29 @@ def webhook():
                     if master_cycle_120 is not None or master_cycle is not None:
                         out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
                         out["cycle"]     = master_cycle
-                        out["regime"]    = STATE.get("regime")
-                        out["vol"]       = STATE.get("vol")
 
-                        out["s1_allowed"] = STATE.get("s1_allowed")
-                        out["s2_allowed"] = STATE.get("s2_allowed")
-                        out["s3_watch"]   = STATE.get("s3_watch")
-                        out["s3_armed"]   = STATE.get("s3_armed")
-                        out["s3_allowed"] = STATE.get("s3_allowed")
+                        # Only stamp if present in STATE (avoid creating noisy keys)
+                        if STATE.get("regime") is not None:
+                            out["regime"] = STATE.get("regime")
+                        if STATE.get("vol") is not None:
+                            out["vol"] = STATE.get("vol")
+
+                        if STATE.get("s1_allowed") is not None:
+                            out["s1_allowed"] = STATE.get("s1_allowed")
+                        if STATE.get("s2_allowed") is not None:
+                            out["s2_allowed"] = STATE.get("s2_allowed")
+                        if STATE.get("s3_watch") is not None:
+                            out["s3_watch"] = STATE.get("s3_watch")
+                        if STATE.get("s3_armed") is not None:
+                            out["s3_armed"] = STATE.get("s3_armed")
+                        if STATE.get("s3_allowed") is not None:
+                            out["s3_allowed"] = STATE.get("s3_allowed")
                     else:
                         # master not ready yet — do NOT allow node to invent gates
                         for k in ("cycle_120", "cycle", "regime", "vol",
                                   "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"):
                             out.pop(k, None)
+
                 # persist warm-start lanes
                 if typ == "SCADA_STATUS":
                     STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
