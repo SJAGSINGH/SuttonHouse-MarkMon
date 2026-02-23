@@ -84,9 +84,7 @@ STATE: Dict[str, Any] = {
     "_server_ts": None,
 }
 
-STATE_LOCK = Lock()
-from collections import deque
-from datetime import datetime
+
 
 DEBUG_MAX = 250
 DEBUG_LOG = deque(maxlen=DEBUG_MAX)
@@ -894,7 +892,32 @@ def webhook():
 
                 # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
+                                # ----------------------------------------------------
+                # ENFORCE MASTER GOVERNANCE FIELDS IN SCADA_STATUS
+                # (UI reads these from node payload; keep UI unchanged)
+                # ----------------------------------------------------
+                if typ == "SCADA_STATUS":
+                    # snapshot current master values from STATE
+                    master_cycle_120 = STATE.get("cycle_120")
+                    master_cycle     = STATE.get("cycle")
 
+                    # If master exists, overwrite. If not, remove node-provided gates
+                    if master_cycle_120 is not None or master_cycle is not None:
+                        out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
+                        out["cycle"]     = master_cycle
+                        out["regime"]    = STATE.get("regime")
+                        out["vol"]       = STATE.get("vol")
+
+                        out["s1_allowed"] = STATE.get("s1_allowed")
+                        out["s2_allowed"] = STATE.get("s2_allowed")
+                        out["s3_watch"]   = STATE.get("s3_watch")
+                        out["s3_armed"]   = STATE.get("s3_armed")
+                        out["s3_allowed"] = STATE.get("s3_allowed")
+                    else:
+                        # master not ready yet — do NOT allow node to invent gates
+                        for k in ("cycle_120", "cycle", "regime", "vol",
+                                  "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"):
+                            out.pop(k, None)
                 # persist warm-start lanes
                 if typ == "SCADA_STATUS":
                     STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
@@ -1128,8 +1151,8 @@ def on_connect():
     with STATE_LOCK:
         if not isinstance(STATE.get("_server_ts"), (int, float)):
             STATE["_server_ts"] = int(time.time() * 1000)
-        emit("macro_update", copy.deepcopy(STATE))
-
+        snap = copy.deepcopy(STATE)
+    emit("macro_update", snap)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
