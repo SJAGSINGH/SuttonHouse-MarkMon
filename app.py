@@ -25,6 +25,32 @@ ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
 
 
+STATE_LOCK = Lock()
+from collections import deque
+from datetime import datetime
+
+
+STATE_LOCK = Lock()
+
+# -----------------------------------------
+# State save throttling (prevents disk spam)
+# -----------------------------------------
+SAVE_EVERY_MS = 2000  # save at most once every 2 seconds
+_last_save_ms = 0
+_last_save_lock = Lock()
+
+def save_state_throttled():
+    global _last_save_ms
+    now = int(time.time() * 1000)
+    with _last_save_lock:
+        if now - _last_save_ms < SAVE_EVERY_MS:
+            return
+        _last_save_ms = now
+    _save_state_to_disk()
+
+
+
+
 # Unified state expected by index.html (+ secret block)
 STATE: Dict[str, Any] = {
     "cycle": None,
@@ -823,6 +849,14 @@ def webhook():
         if not isinstance(data, dict):
             abort(400)
 
+        # We'll decide after lock whether to save + what to emit
+        do_save = False
+        emit_event = None
+        emit_payload = None
+
+        # ====================================================
+        # STATE MUTATION ONLY (LOCK IS TINY)
+        # ====================================================
         with STATE_LOCK:
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
@@ -872,134 +906,116 @@ def webhook():
                 else:
                     STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
 
-                # ✅ ADD 3) store node payload for click-through debug page
-                # (requires _store_node_payload helper + STATE["nodes"] support)
-                # _store_node_payload(data)
+                # store node payload for click-through debug page
                 try:
                     _store_node_payload(out)
                 except Exception:
                     pass
 
                 _update_monitor_lane(_extract_meta(out))
-                _save_state_to_disk()
 
-                # emit stock-only update (do NOT spam macro_update)
-                socketio.emit("stock_update", out)
-                _log_debug("/webhook", out, ok=True)
-                return "SUCCESS", 200
+                # decide what happens OUTSIDE lock
+                do_save = True
+                emit_event = "stock_update"
+                emit_payload = out
 
-            # ------------------------------------------------
-            # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
-            # Cards 1 & 3 MUST come from Pine MACRO payload
-            # ------------------------------------------------
-            pine_allow = {}
-            # --- MACRO passthrough (Commission Rail support) ---
-            for k in (
-                "macro_recession",
-                "s1_allowed",
-                "s2_allowed",
-                "s3_watch",
-                "s3_armed",
-                "s3_allowed",
-                "spx_cycle_high",
-                "spx_cycle_high_time",
-                "spx_high_frozen",
-                "spx_dd_pct",
-                "spx_dd35",
-                "cycle_120",
-                "mom",
-            ):
-                if k in data:
-                    pine_allow[k] = data.get(k)
+            else:
+                # ------------------------------------------------
+                # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
+                # Cards 1 & 3 MUST come from Pine MACRO payload
+                # ------------------------------------------------
+                pine_allow = {}
+                for k in (
+                    "macro_recession",
+                    "s1_allowed",
+                    "s2_allowed",
+                    "s3_watch",
+                    "s3_armed",
+                    "s3_allowed",
+                    "spx_cycle_high",
+                    "spx_cycle_high_time",
+                    "spx_high_frozen",
+                    "spx_dd_pct",
+                    "spx_dd35",
+                    "cycle_120",
+                    "mom",
+                ):
+                    if k in data:
+                        pine_allow[k] = data.get(k)
 
-            # ----- Card 1: Regime + Vol (Pine truth)
-            if "regime" in data:
+                # ----- Card 1: Regime + Vol (Pine truth)
+                if "regime" in data:
+                    try:
+                        pine_allow["regime"] = str(data["regime"]).upper()
+                    except Exception:
+                        pass
+
+                if "vol" in data:
+                    try:
+                        pine_allow["vol"] = str(data["vol"]).upper()
+                    except Exception:
+                        pass
+
+                if "card1" in data:
+                    try:
+                        pine_allow["card1"] = str(data["card1"])
+                    except Exception:
+                        pass
+
+                # ----- Card 3: Cycle clock (0–120 canonical)
+                if "cycle" in data:
+                    try:
+                        c = int(float(data["cycle"]))
+                        if c < 0:
+                            c = 0
+                        if c > 120:
+                            c = 120
+                        pine_allow["cycle"] = c
+                    except Exception:
+                        pass
+
+                if "card3" in data:
+                    try:
+                        pine_allow["card3"] = str(data["card3"])
+                    except Exception:
+                        pass
+
+                # ----- Optional: flow / rotation direction (server-side legacy)
+                if "rot_dir" in data:
+                    try:
+                        pine_allow["flow"] = str(data["rot_dir"])
+                    except Exception:
+                        pass
+
+                # ----- Card 4: Recession pulse (Pine truth)
+                if "sahm" in data:
+                    try:
+                        pine_allow["sahm"] = float(data["sahm"])
+                    except Exception:
+                        pass
+
+                if "spx_dd" in data:
+                    pine_allow["spx_dd"] = data["spx_dd"]
+                elif "spxDrawdown" in data:
+                    pine_allow["spx_dd"] = data["spxDrawdown"]
+                elif "dd" in data:
+                    pine_allow["spx_dd"] = data["dd"]
+                elif "drawdown" in data:
+                    pine_allow["spx_dd"] = data["drawdown"]
+
+                if pine_allow:
+                    STATE.update(pine_allow)
+
+                # ------------------------------------------------
+                # CARD 2 — CANONICAL (nested) ✅
+                # ------------------------------------------------
                 try:
-                    pine_allow["regime"] = str(data["regime"]).upper()
-                except Exception:
-                    pass
+                    if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
+                        STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
 
-            if "vol" in data:
-                try:
-                    pine_allow["vol"] = str(data["vol"]).upper()
-                except Exception:
-                    pass
-
-            if "card1" in data:
-                try:
-                    pine_allow["card1"] = str(data["card1"])
-                except Exception:
-                    pass
-
-            # ----- Card 3: Cycle clock (0–120 canonical)
-            if "cycle" in data:
-                try:
-                    c = int(float(data["cycle"]))
-                    if c < 0:
-                        c = 0
-                    if c > 120:
-                        c = 120
-                    pine_allow["cycle"] = c
-                except Exception:
-                    pass
-
-            if "card3" in data:
-                try:
-                    pine_allow["card3"] = str(data["card3"])
-                except Exception:
-                    pass
-
-            # ----- Optional: flow / rotation direction (server-side legacy)
-            if "rot_dir" in data:
-                try:
-                    pine_allow["flow"] = str(data["rot_dir"])
-                except Exception:
-                    pass
-
-            # ----- Card 4: Recession pulse (Pine truth)
-            if "sahm" in data:
-                try:
-                    pine_allow["sahm"] = float(data["sahm"])
-                except Exception:
-                    pass
-
-            if "spx_dd" in data:
-                pine_allow["spx_dd"] = data["spx_dd"]
-            elif "spxDrawdown" in data:
-                pine_allow["spx_dd"] = data["spxDrawdown"]
-            elif "dd" in data:
-                pine_allow["spx_dd"] = data["dd"]
-            elif "drawdown" in data:
-                pine_allow["spx_dd"] = data["drawdown"]
-
-            if pine_allow:
-                STATE.update(pine_allow)
-
-            # ------------------------------------------------
-            # CARD 2 — CANONICAL (nested) ✅
-            # ------------------------------------------------
-            try:
-                if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
-                    STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
-
-                if typ == "CARD2":
-                    st = data.get("state")
-                    tx = data.get("text")
-
-                    if st is not None:
-                        STATE["card2"]["state"] = str(st).strip().upper()
-                    if tx is not None:
-                        STATE["card2"]["text"] = str(tx).strip()
-
-                    for k in ("time", "tf", "ref_id"):
-                        if k in data and data.get(k) not in (None, "", "NA", "na"):
-                            STATE["card2"][k] = data.get(k)
-
-                else:
-                    c2 = data.get("card2")
-                    if isinstance(c2, dict):
-                        st = c2.get("state")
-                        tx = c2.get("text")
+                    if typ == "CARD2":
+                        st = data.get("state")
+                        tx = data.get("text")
 
                         if st is not None:
                             STATE["card2"]["state"] = str(st).strip().upper()
@@ -1007,41 +1023,71 @@ def webhook():
                             STATE["card2"]["text"] = str(tx).strip()
 
                         for k in ("time", "tf", "ref_id"):
-                            if k in c2 and c2.get(k) not in (None, "", "NA", "na"):
-                                STATE["card2"][k] = c2.get(k)
+                            if k in data and data.get(k) not in (None, "", "NA", "na"):
+                                STATE["card2"][k] = data.get(k)
 
-            except Exception:
-                pass
+                    else:
+                        c2 = data.get("card2")
+                        if isinstance(c2, dict):
+                            st = c2.get("state")
+                            tx = c2.get("text")
 
-            # ------------------------------------------------
-            if "type" in data:
-                try:
-                    _parse_typed_payload(data)
+                            if st is not None:
+                                STATE["card2"]["state"] = str(st).strip().upper()
+                            if tx is not None:
+                                STATE["card2"]["text"] = str(tx).strip()
+
+                            for k in ("time", "tf", "ref_id"):
+                                if k in c2 and c2.get(k) not in (None, "", "NA", "na"):
+                                    STATE["card2"][k] = c2.get(k)
+
                 except Exception:
                     pass
 
-            if "card" in data:
-                try:
-                    cn = _safe_int(data.get("card"))
-                    if cn is None or cn != 2:
-                        _parse_card_payload(data)
-                except Exception:
-                    pass
+                # ------------------------------------------------
+                if "type" in data:
+                    try:
+                        _parse_typed_payload(data)
+                    except Exception:
+                        pass
 
-            _recompute_war_from_secret()
-            _update_monitor_lane(meta)
+                if "card" in data:
+                    try:
+                        cn = _safe_int(data.get("card"))
+                        if cn is None or cn != 2:
+                            _parse_card_payload(data)
+                    except Exception:
+                        pass
 
-            _save_state_to_disk()
-            payload = copy.deepcopy(STATE)
-        payload = _json_safe(payload)
-        socketio.emit("macro_update", payload)
+                _recompute_war_from_secret()
+                _update_monitor_lane(meta)
+
+                # snapshot for client OUTSIDE lock
+                payload = copy.deepcopy(STATE)
+
+                # decide what happens OUTSIDE lock
+                do_save = True
+                emit_event = "macro_update"
+                emit_payload = payload
+
+        # ====================================================
+        # OUTSIDE LOCK: IO + EMITS (SAFE)
+        # ====================================================
+        if do_save:
+            save_state_throttled()
+
+        if emit_event == "macro_update":
+            emit_payload = _json_safe(emit_payload)
+
+        if emit_event and emit_payload is not None:
+            socketio.emit(emit_event, emit_payload)
+
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
     except Exception as e:
         _log_debug("/webhook", {"error": str(e)}, ok=False)
         return str(e), 400
-
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
