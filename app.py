@@ -26,11 +26,6 @@ ATTEMPT_MAX = 6
 
 
 STATE_LOCK = Lock()
-from collections import deque
-from datetime import datetime
-
-
-STATE_LOCK = Lock()
 
 # -----------------------------------------
 # State save throttling (prevents disk spam)
