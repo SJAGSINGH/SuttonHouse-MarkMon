@@ -11,23 +11,16 @@ from typing import Any, Dict, Optional
 from collections import deque
 from datetime import datetime
 
-# ✅ Eventlet must be imported + monkey patched BEFORE socketio is created (and ideally before other imports that use sockets)
-import eventlet
-eventlet.monkey_patch()
-
 app = Flask(__name__, static_folder="static")
 
-# ✅ Eventlet async mode (for Gunicorn: -k eventlet)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+# ✅ Threading mode (works with Gunicorn gthreads)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# Server-side vault password (set in Render env)
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
 
-# ---- Simple brute-force limiter (per IP) ----
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
-
 STATE_LOCK = Lock()
 
 # -----------------------------------------
