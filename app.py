@@ -1138,7 +1138,9 @@ def node_debug(ref_id: int):
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
-    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0]
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown")
+    ip = ip.split(",")[0].strip()
+
     now = time.time()
     ATTEMPTS[ip] = [t for t in ATTEMPTS.get(ip, []) if now - t < ATTEMPT_WINDOW_SECS]
 
@@ -1160,6 +1162,7 @@ def on_connect():
         snap = copy.deepcopy(STATE)
     emit("macro_update", snap)
 
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", "10000"))
     socketio.run(app, host="0.0.0.0", port=port)
