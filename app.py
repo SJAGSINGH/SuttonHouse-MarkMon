@@ -228,34 +228,54 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
         return
 
 def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Normalise + store a STOCK lane payload.
+    Accepts only {"type":"SCADA_STATUS", ...} or {"type":"WATCH", ...}
+    Stores into STATE["stocks"]["last_scada_by_ref"/"last_watch_by_ref"] keyed by ref_id (string).
+    Returns the normalised payload dict (a new dict), or None if not a valid stock payload.
+    """
+    if not isinstance(msg, dict):
+        return None
+
     typ = str(msg.get("type") or "").strip().upper()
     if typ not in ("SCADA_STATUS", "WATCH"):
         return None
 
-    ref_id = msg.get("ref_id")
-    if ref_id is None:
+    ref_raw = msg.get("ref_id")
+    if ref_raw is None:
         return None
 
-    # normalize a few fields
     try:
-        msg["ref_id"] = int(float(ref_id))
+        ref_id = int(float(ref_raw))
     except Exception:
         return None
 
-    if "ticker" in msg and msg["ticker"] is not None:
-        msg["ticker"] = str(msg["ticker"]).upper()
+    out = dict(msg)  # don't mutate caller's dict
+    out["type"] = typ
+    out["ref_id"] = ref_id
 
-    # timestamp passthrough
-    if "_server_ts" not in msg:
-        msg["_server_ts"] = int(time.time() * 1000)
+    if out.get("ticker") is not None:
+        out["ticker"] = str(out["ticker"]).strip().upper()
+
+    # server timestamp passthrough / stamp
+    out["_server_ts"] = int(out.get("_server_ts") or (time.time() * 1000))
+
+    # ensure storage exists (prevents KeyError)
+    if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
+        STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
+    if "last_scada_by_ref" not in STATE["stocks"] or not isinstance(STATE["stocks"].get("last_scada_by_ref"), dict):
+        STATE["stocks"]["last_scada_by_ref"] = {}
+    if "last_watch_by_ref" not in STATE["stocks"] or not isinstance(STATE["stocks"].get("last_watch_by_ref"), dict):
+        STATE["stocks"]["last_watch_by_ref"] = {}
 
     # store
+    key = str(ref_id)
     if typ == "SCADA_STATUS":
-        STATE["stocks"]["last_scada_by_ref"][str(msg["ref_id"])] = msg
+        STATE["stocks"]["last_scada_by_ref"][key] = out
     else:
-        STATE["stocks"]["last_watch_by_ref"][str(msg["ref_id"])] = msg
+        STATE["stocks"]["last_watch_by_ref"][key] = out
 
-    return msg
+    return out
 
 def _clamp_int(x: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, x))
@@ -382,21 +402,18 @@ def _save_state_to_disk() -> None:
         os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
         tmp = STATE_FILE + ".tmp"
 
-        def _safe(obj):
-            try:
-                json.dumps(obj)
-                return obj
-            except Exception:
-                return str(obj)
+        with STATE_LOCK:
+            snap = copy.deepcopy(STATE)
+
+        snap = _json_safe(snap)
 
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(_safe(STATE), f, ensure_ascii=False)
+            json.dump(snap, f, ensure_ascii=False)
 
         os.replace(tmp, STATE_FILE)
 
     except Exception as e:
         print("State save error:", repr(e))
-
 
 
 def _recompute_war_from_secret() -> None:
