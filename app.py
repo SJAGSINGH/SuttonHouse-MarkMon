@@ -685,10 +685,19 @@ def index():
 def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
-@app.route("/health", methods=["GET"])
+
+
+    
+@app.get("/health")
 def health():
+    # Must be constant-time and never block
+    return jsonify({"ok": True}), 200
+
+@app.get("/health/snapshot")
+def health_snapshot():
     with STATE_LOCK:
         snap = copy.deepcopy(STATE)
+
     snap = _json_safe(snap)
 
     return jsonify({
@@ -696,7 +705,7 @@ def health():
         "state": snap,
         "state_file": STATE_FILE,
         "state_file_exists": os.path.exists(STATE_FILE),
-}), 200
+    }), 200
 
 @app.route("/state", methods=["GET"])
 def state():
