@@ -345,8 +345,17 @@ def _get_payload_any() -> Dict[str, Any]:
         return d
 
     raw = (request.data or b"").decode("utf-8", errors="ignore").strip()
-    if raw.startswith("{") and raw.endswith("}"):
-        parsed = json.loads(raw)
+    
+
+    if raw:
+        # if it looks like JSON, try parse but never blow up without context
+        if raw[0] in "{[":
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                return parsed
+            except Exception as e:
+                raise ValueError(f"Bad JSON body: {repr(e)} :: {raw[:500]}")
         if isinstance(parsed, dict):
             return parsed
 
@@ -735,33 +744,96 @@ def debug_json():
         snap = copy.deepcopy(STATE)
     with DEBUG_LOCK:
         logs = list(DEBUG_LOG)
+
+    snap = _json_safe(snap)
+    logs = _json_safe(logs)
+
     return jsonify({
         "state": snap,
         "debug": logs[:50],
         "server_ts": int(time.time() * 1000)
     })
 
+from flask import Response
+
 @app.route("/debug")
 def debug_page():
-    return """
-    <html>
-    <head><title>Sutton House Debug</title></head>
-    <body style="font-family: monospace">
-    <h2>Sutton House – SCADA Debug</h2>
-    <pre id="out">loading…</pre>
-    <script>
-      async function tick(){
-        const r = await fetch('/debug.json');
-        const j = await r.json();
-        document.getElementById('out').textContent =
-          JSON.stringify(j, null, 2);
+    return Response("""
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sutton House Debug</title>
+  <style>
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; margin: 16px; }
+    .bar { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid #444; font-size: 12px; }
+    .ok { color: #0a0; border-color:#0a0; }
+    .bad { color: #c00; border-color:#c00; }
+    pre { white-space: pre-wrap; word-break: break-word; padding: 12px; border: 1px solid #333; border-radius: 8px; }
+    a { color:#6af; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div class="pill" id="status">loading</div>
+    <div class="pill" id="meta">—</div>
+    <a href="/debug.json" target="_blank">open /debug.json</a>
+  </div>
+
+  <pre id="out">loading…</pre>
+
+  <script>
+    function setStatus(ok, text) {
+      const el = document.getElementById('status');
+      el.textContent = text;
+      el.className = 'pill ' + (ok ? 'ok' : 'bad');
+    }
+
+    async function tick(){
+      const out = document.getElementById('out');
+      const meta = document.getElementById('meta');
+
+      try {
+        const r = await fetch('/debug.json', { cache: 'no-store' });
+        const ct = (r.headers.get('content-type') || '').toLowerCase();
+        const txt = await r.text();
+
+        meta.textContent = `HTTP ${r.status} • ${ct || 'no content-type'} • ${new Date().toLocaleTimeString()}`;
+
+        // Try JSON parse only if it looks like JSON
+        const trimmed = (txt || '').trim();
+        const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[');
+
+        if (r.ok && looksJson) {
+          try {
+            const j = JSON.parse(trimmed);
+            out.textContent = JSON.stringify(j, null, 2);
+            setStatus(true, 'OK');
+            return;
+          } catch (e) {
+            setStatus(false, 'BAD JSON (parse failed)');
+            out.textContent = `JSON.parse failed: ${e}\\n\\n--- raw ---\\n${txt}`;
+            return;
+          }
+        }
+
+        // Non-JSON or non-200: show raw response (often 502 HTML)
+        setStatus(false, r.ok ? 'NON-JSON RESPONSE' : 'HTTP ERROR');
+        out.textContent = `Non-JSON or error response\\n\\n--- raw ---\\n${txt}`;
+
+      } catch (e) {
+        setStatus(false, 'FETCH FAILED');
+        out.textContent = `Fetch failed: ${e}`;
       }
-      tick();
-      setInterval(tick, 3000);
-    </script>
-    </body>
-    </html>
-    """
+    }
+
+    tick();
+    setInterval(tick, 3000);
+  </script>
+</body>
+</html>
+""", mimetype="text/html")
 
 # ============================================================
 # INGEST MACRO (Python feeder endpoint)
@@ -1126,8 +1198,9 @@ def webhook():
         if do_save:
             save_state_throttled()
 
-        if emit_event == "macro_update":
+        if emit_event and emit_payload is not None:
             emit_payload = _json_safe(emit_payload)
+            socketio.emit(emit_event, emit_payload)
 
         if emit_event and emit_payload is not None:
             socketio.emit(emit_event, emit_payload)
@@ -1136,8 +1209,9 @@ def webhook():
         return "SUCCESS", 200
 
     except Exception as e:
-        _log_debug("/webhook", {"error": str(e)}, ok=False)
-        return str(e), 400
+        msg = str(e)
+        _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
+        return jsonify({"ok": False, "error": msg}), 400
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
