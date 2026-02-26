@@ -345,21 +345,18 @@ def _get_payload_any() -> Dict[str, Any]:
         return d
 
     raw = (request.data or b"").decode("utf-8", errors="ignore").strip()
-    
 
-    if raw:
-        # if it looks like JSON, try parse but never blow up without context
-        if raw[0] in "{[":
-            try:
-                parsed = json.loads(raw)
-                if isinstance(parsed, dict):
+if raw:
+    # If it looks like JSON, try parse but never blow up without context
+    if raw[0] in "{[":
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
                 return parsed
-            except Exception as e:
-                raise ValueError(f"Bad JSON body: {repr(e)} :: {raw[:500]}")
-        if isinstance(parsed, dict):
-            return parsed
+        except Exception as e:
+            raise ValueError(f"Bad JSON body: {repr(e)} :: {raw[:500]}")
 
-    raise ValueError("No valid payload found (expected JSON or form fields)")
+raise ValueError("No valid payload found (expected JSON or form fields)")
 
 
 def _normalise_server_ts(ts) -> Optional[int]:
