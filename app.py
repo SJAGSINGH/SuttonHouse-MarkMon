@@ -327,12 +327,17 @@ def _get_payload_any() -> Dict[str, Any]:
       • form-encoded payload
       • JSON string inside a single form field
     """
+
+    # 1️⃣ Direct JSON body
     data = request.get_json(silent=True)
     if isinstance(data, dict):
         return data
 
+    # 2️⃣ Form-encoded body
     if request.form:
         d = dict(request.form)
+
+        # If single form field that itself contains JSON
         if len(d) == 1:
             only_val = next(iter(d.values()))
             if isinstance(only_val, str) and only_val.strip().startswith("{"):
@@ -342,22 +347,22 @@ def _get_payload_any() -> Dict[str, Any]:
                         return parsed
                 except Exception:
                     pass
+
         return d
 
+    # 3️⃣ Raw body fallback
     raw = (request.data or b"").decode("utf-8", errors="ignore").strip()
 
-if raw:
-    # If it looks like JSON, try parse but never blow up without context
-    if raw[0] in "{[":
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, dict):
-                return parsed
-        except Exception as e:
-            raise ValueError(f"Bad JSON body: {repr(e)} :: {raw[:500]}")
+    if raw:
+        if raw[0] in "{[":
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception as e:
+                raise ValueError(f"Bad JSON body: {repr(e)} :: {raw[:500]}")
 
-raise ValueError("No valid payload found (expected JSON or form fields)")
-
+    raise ValueError("No valid payload found (expected JSON or form fields)")
 
 def _normalise_server_ts(ts) -> Optional[int]:
     """
