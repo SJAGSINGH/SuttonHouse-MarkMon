@@ -864,39 +864,34 @@ def ingest_macro():
             return jsonify({"ok": False, "error": "payload_not_object_after_unwrap"}), 400
 
         with STATE_LOCK:
-            STATE["_server_ts"] = int(time.time() * 1000)
+    STATE["_server_ts"] = int(time.time() * 1000)
 
-            # typed payloads first
-            if "type" in data:
-                try:
-                    _parse_typed_payload(data)
-                except Exception:
-                    pass
+    if "type" in data:
+        try:
+            _parse_typed_payload(data)
+        except Exception:
+            pass
 
-            # legacy card-number payloads
-            if "card" in data:
-                _parse_card_payload(data)
+    if "card" in data:
+        _parse_card_payload(data)
 
-            # field payloads
-         
+    if isinstance(data.get("secret"), dict):
+        for sk in STATE["secret"].keys():
+            if sk in data["secret"]:
+                STATE["secret"][sk] = data["secret"][sk]
 
-            # secret block
-            if isinstance(data.get("secret"), dict):
-                for sk in STATE["secret"].keys():
-                    if sk in data["secret"]:
-                        STATE["secret"][sk] = data["secret"][sk]
+    _recompute_war_from_secret()
 
-            _recompute_war_from_secret()
+    try:
+        _apply_sutton_house_normalisation()
+    except Exception:
+        pass
 
-            try:
-                _apply_sutton_house_normalisation()
-            except Exception:
-                pass
+    payload = copy.deepcopy(STATE)
 
-            _save_state_to_disk()
-            payload = copy.deepcopy(STATE)
-
-        socketio.emit("macro_update", payload)
+# OUTSIDE LOCK
+save_state_throttled()
+socketio.emit("macro_update", _json_safe(payload))
         _log_debug("/ingest_macro", data, ok=True)
         return jsonify({"ok": True}), 200
 
@@ -1201,8 +1196,7 @@ def webhook():
             save_state_throttled()
 
         if emit_event and emit_payload is not None:
-            emit_payload = _json_safe(emit_payload)
-            socketio.emit(emit_event, emit_payload)
+            socketio.emit(emit_event, _json_safe(emit_payload))
 
 
         _log_debug("/webhook", data, ok=True)
@@ -1260,8 +1254,7 @@ def on_connect():
         if not isinstance(STATE.get("_server_ts"), (int, float)):
             STATE["_server_ts"] = int(time.time() * 1000)
         snap = copy.deepcopy(STATE)
-    emit("macro_update", snap)
-
+    emit("macro_update", _json_safe(snap))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
