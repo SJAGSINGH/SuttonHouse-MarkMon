@@ -1204,8 +1204,6 @@ def webhook():
             emit_payload = _json_safe(emit_payload)
             socketio.emit(emit_event, emit_payload)
 
-        if emit_event and emit_payload is not None:
-            socketio.emit(emit_event, emit_payload)
 
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
