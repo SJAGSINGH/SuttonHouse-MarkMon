@@ -863,41 +863,44 @@ def ingest_macro():
         if not isinstance(data, dict):
             return jsonify({"ok": False, "error": "payload_not_object_after_unwrap"}), 400
 
-        with STATE_LOCK:
-    STATE["_server_ts"] = int(time.time() * 1000)
-
-    if "type" in data:
         try:
-            _parse_typed_payload(data)
+            with STATE_LOCK:
+                STATE["_server_ts"] = int(time.time() * 1000)
+
+                if "type" in data:
+                    try:
+                        _parse_typed_payload(data)
+                    except Exception:
+                        pass
+
+        if "card" in data:
+            _parse_card_payload(data)
+
+        if isinstance(data.get("secret"), dict):
+            for sk in STATE["secret"].keys():
+                if sk in data["secret"]:
+                    STATE["secret"][sk] = data["secret"][sk]
+
+        _recompute_war_from_secret()
+
+        try:
+            _apply_sutton_house_normalisation()
         except Exception:
             pass
 
-    if "card" in data:
-        _parse_card_payload(data)
+        payload = copy.deepcopy(STATE)
 
-    if isinstance(data.get("secret"), dict):
-        for sk in STATE["secret"].keys():
-            if sk in data["secret"]:
-                STATE["secret"][sk] = data["secret"][sk]
+    # OUTSIDE LOCK
+    save_state_throttled()
+    socketio.emit("macro_update", _json_safe(payload))
+    _log_debug("/ingest_macro", data, ok=True)
+    return jsonify({"ok": True}), 200
 
-    _recompute_war_from_secret()
-
-    try:
-        _apply_sutton_house_normalisation()
-    except Exception:
-        pass
-
-    payload = copy.deepcopy(STATE)
-
-# OUTSIDE LOCK
-save_state_throttled()
-socketio.emit("macro_update", _json_safe(payload))
-        _log_debug("/ingest_macro", data, ok=True)
-        return jsonify({"ok": True}), 200
-
-    except Exception as e:
-        _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
-        return jsonify({"ok": False, "error": "ingest_macro_failed", "detail": str(e)}), 400
+except Exception as e:
+    _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
+    return jsonify(
+        {"ok": False, "error": "ingest_macro_failed", "detail": str(e)}
+    ), 400
 
 
 
