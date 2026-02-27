@@ -842,65 +842,48 @@ def debug_page():
 # ============================================================
 @app.route("/ingest_macro", methods=["POST"])
 def ingest_macro():
-    if not _authorised_webhook(request):
-        abort(401)
+    data = request.get_json(silent=True) or {}
 
     try:
-        data = _get_payload_any()
-        meta = _extract_meta(data)
+        with STATE_LOCK:
+            STATE["_server_ts"] = int(time.time() * 1000)
 
-        if not isinstance(data, dict):
-            return jsonify({"ok": False, "error": "payload_not_object"}), 400
+            # typed payloads first
+            if "type" in data:
+                try:
+                    _parse_typed_payload(data)
+                except Exception:
+                    pass
 
-        # unwrap envelopes
-        if isinstance(data.get("state"), dict):
-            data = data["state"]
-        elif isinstance(data.get("payload"), dict):
-            data = data["payload"]
-        elif isinstance(data.get("data"), dict):
-            data = data["data"]
+            # legacy card-number payloads
+            if "card" in data:
+                _parse_card_payload(data)
 
-        if not isinstance(data, dict):
-            return jsonify({"ok": False, "error": "payload_not_object_after_unwrap"}), 400
+            # secret block
+            if isinstance(data.get("secret"), dict):
+                for sk in STATE["secret"].keys():
+                    if sk in data["secret"]:
+                        STATE["secret"][sk] = data["secret"][sk]
 
-        try:
-            with STATE_LOCK:
-                STATE["_server_ts"] = int(time.time() * 1000)
+            _recompute_war_from_secret()
 
-                if "type" in data:
-                    try:
-                        _parse_typed_payload(data)
-                    except Exception:
-                        pass
+            try:
+                _apply_sutton_house_normalisation()
+            except Exception:
+                pass
 
-        if "card" in data:
-            _parse_card_payload(data)
+            payload = copy.deepcopy(STATE)
 
-        if isinstance(data.get("secret"), dict):
-            for sk in STATE["secret"].keys():
-                if sk in data["secret"]:
-                    STATE["secret"][sk] = data["secret"][sk]
+        # OUTSIDE LOCK
+        save_state_throttled()
+        socketio.emit("macro_update", _json_safe(payload))
 
-        _recompute_war_from_secret()
+        _log_debug("/ingest_macro", data, ok=True)
+        return jsonify({"ok": True}), 200
 
-        try:
-            _apply_sutton_house_normalisation()
-        except Exception:
-            pass
-
-        payload = copy.deepcopy(STATE)
-
-    # OUTSIDE LOCK
-    save_state_throttled()
-    socketio.emit("macro_update", _json_safe(payload))
-    _log_debug("/ingest_macro", data, ok=True)
-    return jsonify({"ok": True}), 200
-
-except Exception as e:
-    _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
-    return jsonify(
-        {"ok": False, "error": "ingest_macro_failed", "detail": str(e)}
-    ), 400
+    except Exception as e:
+        _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
+        return jsonify({"ok": False, "error": "ingest_macro_failed", "detail": str(e)}), 400
 
 
 
