@@ -3702,7 +3702,8 @@ if (!Number.isFinite(ts)){
  
 function applyAllFromState(data) {
   lastState = data || {};
-
+  window.lastState = lastState;   // ✅ add this
+  window.__LAST = lastState;      // ✅ optional alias
   // --- WAR badge (unchanged) ---
   const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
   setWarBadge(warActive);
