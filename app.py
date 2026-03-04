@@ -59,6 +59,16 @@ STATE: Dict[str, Any] = {
         "ref_id": None,
     },
 
+    # ✅ Message System — canonical lane for the terminal stepper
+    # (Do NOT put this inside "monitor" — monitor is heartbeat/telemetry only.)
+    "message": {
+        "setup": False,     # bool: setup gate
+        "trigger": "—",     # string: trigger text or "—"
+        "ticker": "",       # string: active ticker (upper)
+        "ref_id": None,     # int: active ref_id
+        "_ts": None,        # int ms: last change timestamp
+    },
+
     "monitor": {
         "last_by_ref": {},
         "last_by_ticker": {},
@@ -297,14 +307,118 @@ def _safe_int(v) -> Optional[int]:
         return int(float(v))
     except Exception:
         return None
+def _truthy(v) -> bool:
+    if v is True:
+        return True
+    if v is False or v is None:
+        return False
+    s = str(v).strip().upper()
+    return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
 
+def _derive_message_from_scada(out: Dict[str, Any], prev_msg: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Builds the canonical Message System lane from a SCADA_STATUS payload.
+    Uses your existing fields: setup_any / pill_setup_any / trigger_any / signal.
+    """
+    ticker = str(out.get("ticker") or "").strip().upper()
+
+    ref_id = out.get("ref_id")
+    try:
+        ref_id = int(ref_id) if ref_id is not None else None
+    except Exception:
+        ref_id = None
+
+    setup_on = _truthy(out.get("setup_any")) or _truthy(out.get("pill_setup_any"))
+    # Treat "signal" as trigger truth too (your Pine includes signal_any -> "signal")
+    trigger_on = _truthy(out.get("trigger_any")) or _truthy(out.get("signal")) or _truthy(out.get("signal_any"))
+    trig_text = "TRIGGER" if trigger_on else "—"
+
+    now = int(time.time() * 1000)
+
+    # If setup/trigger is ON for this ref/ticker, promote it to the message lane
+    if setup_on or trigger_on:
+        return {
+            "setup": bool(setup_on),
+            "trigger": trig_text,
+            "ticker": ticker,
+            "ref_id": ref_id,
+            "_ts": now,
+        }
+
+    # Otherwise: only clear if we were tracking THIS ref/ticker
+    cur_ref = prev_msg.get("ref_id")
+    cur_tkr = str(prev_msg.get("ticker") or "").strip().upper()
+    if (ref_id is not None and cur_ref == ref_id) or (ticker and cur_tkr == ticker):
+        return {
+            "setup": False,
+            "trigger": "—",
+            "ticker": ticker or "",
+            "ref_id": ref_id,
+            "_ts": now,
+        }
+
+    # No change
+    return prev_msg
 
 def _normalise_str(v) -> Optional[str]:
     if v is None:
         return None
     s = str(v).strip()
     return s if s else None
+def _truthy(v) -> bool:
+    if v is True:
+        return True
+    if v is False or v is None:
+        return False
+    s = str(v).strip().upper()
+    return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
 
+def _update_message_from_scada(out: Dict[str, Any]) -> None:
+    """
+    Update STATE['message'] using SCADA_STATUS truth.
+    Priority:
+      - if signal/trigger present: step to signal
+      - else if setup present: step to setup
+      - else if previously tracking this ref/ticker, clear
+    """
+    if str(out.get("type") or "").upper() != "SCADA_STATUS":
+        return
+
+    ticker = str(out.get("ticker") or "").strip().upper()
+    try:
+        ref_id = int(out.get("ref_id")) if out.get("ref_id") is not None else None
+    except Exception:
+        ref_id = None
+
+    setup_on   = _truthy(out.get("setup_any")) or _truthy(out.get("pill_setup_any"))
+    trigger_on = _truthy(out.get("trigger_any")) or _truthy(out.get("signal")) or _truthy(out.get("signal_any"))
+    # If you have a human-readable trigger string, map it here; otherwise dash
+    trig_text = "TRIGGER" if trigger_on else "—"
+
+    now = int(time.time() * 1000)
+
+    # If this payload indicates setup/trigger, it becomes the active message lane.
+    if trigger_on or setup_on:
+        STATE.setdefault("message", {})
+        STATE["message"].update({
+            "setup": bool(setup_on),
+            "trigger": trig_text,
+            "ticker": ticker,
+            "ref_id": ref_id,
+            "_ts": now,
+        })
+        return
+
+    # Otherwise, only clear message lane if it was tracking this same ref/ticker.
+    cur = STATE.get("message") or {}
+    if (ref_id is not None and cur.get("ref_id") == ref_id) or (ticker and cur.get("ticker") == ticker):
+        STATE["message"].update({
+            "setup": False,
+            "trigger": "—",
+            "ticker": ticker or "",
+            "ref_id": ref_id,
+            "_ts": now,
+        })
 # Optional: lock webhook/ingest endpoints (set in Render env)
 WEBHOOK_SECRET = (os.environ.get("WEBHOOK_SECRET") or "").strip()
 def _authorised_webhook(req) -> bool:
@@ -924,12 +1038,40 @@ def webhook():
         emit_event = None
         emit_payload = None
 
+        # optional second emit (for message lane transitions)
+        emit_event2 = None
+        emit_payload2 = None
+
         # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
         # ====================================================
         with STATE_LOCK:
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
+
+            typ = str(data.get("type") or "").strip().upper()
+
+            # ----------------------------------------------------
+            # Ensure storage exists (warm start lanes)
+            # ----------------------------------------------------
+            if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
+                STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
+            if "last_scada_by_ref" not in STATE["stocks"]:
+                STATE["stocks"]["last_scada_by_ref"] = {}
+            if "last_watch_by_ref" not in STATE["stocks"]:
+                STATE["stocks"]["last_watch_by_ref"] = {}
+
+            # ----------------------------------------------------
+            # Ensure Message System lane exists (terminal stepper)
+            # ----------------------------------------------------
+            if "message" not in STATE or not isinstance(STATE.get("message"), dict):
+                STATE["message"] = {
+                    "setup": False,
+                    "trigger": "—",
+                    "ticker": "",
+                    "ref_id": None,
+                    "_ts": None,
+                }
 
             # ====================================================
             # STOCK LANES (FAST PATH)
@@ -939,16 +1081,6 @@ def webhook():
             # Emits: socketio.emit("stock_update", msg)
             # Persists into STATE["stocks"] for warm start
             # ====================================================
-            typ = str(data.get("type") or "").strip().upper()
-
-            # Ensure storage exists
-            if "stocks" not in STATE or not isinstance(STATE.get("stocks"), dict):
-                STATE["stocks"] = {"last_scada_by_ref": {}, "last_watch_by_ref": {}}
-            if "last_scada_by_ref" not in STATE["stocks"]:
-                STATE["stocks"]["last_scada_by_ref"] = {}
-            if "last_watch_by_ref" not in STATE["stocks"]:
-                STATE["stocks"]["last_watch_by_ref"] = {}
-
             if typ in ("SCADA_STATUS", "WATCH"):
                 # normalize minimal fields
                 try:
@@ -1001,9 +1133,49 @@ def webhook():
                             out["s3_allowed"] = STATE.get("s3_allowed")
                     else:
                         # master not ready yet — do NOT allow node to invent gates
-                        for k in ("cycle_120", "cycle", "regime", "vol",
-                                  "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"):
+                        for k in (
+                            "cycle_120", "cycle", "regime", "vol",
+                            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
+                        ):
                             out.pop(k, None)
+
+                    # ------------------------------------------------
+                    # MESSAGE SYSTEM BRIDGE (derive from SCADA truth)
+                    # ------------------------------------------------
+                    def _truthy(v) -> bool:
+                        if v is True:
+                            return True
+                        if v is False or v is None:
+                            return False
+                        s = str(v).strip().upper()
+                        return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
+
+                    prev_msg = dict(STATE.get("message") or {})
+
+                    setup_on = _truthy(out.get("setup_any")) or _truthy(out.get("pill_setup_any"))
+                    trigger_on = (
+                        _truthy(out.get("trigger_any")) or
+                        _truthy(out.get("signal")) or
+                        _truthy(out.get("signal_any"))
+                    )
+
+                    ticker = str(out.get("ticker") or "").strip().upper()
+                    # If you later add out["trigger_label"], swap "TRIGGER" for that.
+                    trig_text = "TRIGGER" if trigger_on else "—"
+
+                    new_msg = {
+                        "setup": bool(setup_on),
+                        "trigger": trig_text,
+                        "ticker": ticker,
+                        "ref_id": ref_id,
+                        "_ts": int(time.time() * 1000),
+                    }
+
+                    if new_msg != prev_msg:
+                        STATE["message"] = new_msg
+                        # when message changes, also emit macro_update so the stepper updates
+                        emit_event2 = "macro_update"
+                        emit_payload2 = copy.deepcopy(STATE)
 
                 # persist warm-start lanes
                 if typ == "SCADA_STATUS":
@@ -1184,6 +1356,8 @@ def webhook():
         if emit_event and emit_payload is not None:
             socketio.emit(emit_event, _json_safe(emit_payload))
 
+        if emit_event2 and emit_payload2 is not None:
+            socketio.emit(emit_event2, _json_safe(emit_payload2))
 
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
