@@ -3357,7 +3357,7 @@ if (typeof window.applyFounderHaze !== "function") {
   }
  function applyMessageFromState(data){
   const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
-  const m = (data && data.monitor) ? data.monitor : {};
+  const m = (data && data.message) ? data.message : {};
 
   const headlineEl = document.getElementById('msg-headline');
   const subEl      = document.getElementById('msg-subline');
