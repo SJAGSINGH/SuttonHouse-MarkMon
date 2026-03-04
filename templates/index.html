@@ -3379,7 +3379,14 @@ if (typeof window.applyFounderHaze !== "function") {
   }
 
   // normalize inputs
-  const setupOn   = (m.setup === true || String(m.setup || '').toUpperCase() === 'ON');
+  function truthy(v){
+    if (v === true) return true;
+    if (v === false || v == null) return false;
+    const s = String(v).trim().toUpperCase();
+    return (s === "1" || s === "TRUE" || s === "ON" || s === "YES" || s === "ACTIVE");
+  }
+
+  const setupOn = truthy(m.setup ?? m.setup_active ?? m.setupOn ?? m.setup_state);
   const trigRaw   = String(m.trigger || '').trim();
   const hasSignal = trigRaw.length > 0 && trigRaw !== '—';
   const ticker    = String(m.ticker || '').toUpperCase();
