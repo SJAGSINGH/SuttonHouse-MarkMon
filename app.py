@@ -77,7 +77,14 @@ STATE: Dict[str, Any] = {
     "nodes": {
         "by_ref": {},   # "12": { "last_setup": {...}, "last_scada_status": {...}, "last_watch": {...}, "_ts": {...} }
     },
-
+    
+    #  NEW — market masters
+    "anchors": {
+        "ASX": None,
+        "LSE": None,
+        "TSX": None,
+        "NYSE": None,
+    },
     "secret": {
         "vix": None,
         "gvz": None,
@@ -248,6 +255,18 @@ def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
 
     typ = str(msg.get("type") or "").strip().upper()
+    # ----------------------------
+    # Market Anchor Updates
+    # ----------------------------
+    if typ == "ANCHOR_UPDATE":
+        market = str(msg.get("market_id") or "").upper()
+
+        if market in STATE["anchors"]:
+            STATE["anchors"][market] = msg
+            STATE["_server_ts"] = int(time.time() * 1000)
+
+        return None
+    
     if typ not in ("SCADA_STATUS", "WATCH"):
         return None
 
@@ -1042,7 +1061,7 @@ def webhook():
         emit_event2 = None
         emit_payload2 = None
 
-        # ====================================================
+               # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
         # ====================================================
         with STATE_LOCK:
@@ -1073,6 +1092,63 @@ def webhook():
                     "_ts": None,
                 }
 
+            # ----------------------------------------------------
+            # Ensure Market Anchors lane exists
+            # ----------------------------------------------------
+            if "anchors" not in STATE or not isinstance(STATE.get("anchors"), dict):
+                STATE["anchors"] = {
+                    "ASX": None,
+                    "LSE": None,
+                    "TSX": None,
+                    "NYSE": None,
+                }
+
+            # ====================================================
+            # MARKET ANCHOR FAST PATH
+            # ref_id transport ids:
+            # 101 = ASX master (XJO)
+            # 105 = LSE master
+            # 106 = TSX master
+            # 107 = NYSE master
+            # ====================================================
+            if typ == "ANCHOR_UPDATE":
+                try:
+                    ref_id = data.get("ref_id")
+                    ref_id = int(float(ref_id)) if ref_id is not None else None
+                except Exception:
+                    ref_id = None
+
+                market = None
+                if ref_id == 101:
+                    market = "ASX"
+                elif ref_id == 105:
+                    market = "LSE"
+                elif ref_id == 106:
+                    market = "TSX"
+                elif ref_id == 107:
+                    market = "NYSE"
+
+                if market:
+                    anchor_out = dict(data)
+                    anchor_out["type"] = "ANCHOR_UPDATE"
+                    anchor_out["ref_id"] = ref_id
+                    anchor_out["market_id"] = market
+                    anchor_out["_server_ts"] = int(time.time() * 1000)
+
+                    if anchor_out.get("ticker") is not None:
+                        anchor_out["ticker"] = str(anchor_out["ticker"]).upper()
+
+                    STATE["anchors"][market] = anchor_out
+
+                    _update_monitor_lane(_extract_meta(anchor_out))
+
+                    do_save = True
+                    emit_event = "macro_update"
+                    emit_payload = copy.deepcopy(STATE)
+
+                else:
+                    abort(400)
+
             # ====================================================
             # STOCK LANES (FAST PATH)
             # Accepts:
@@ -1081,7 +1157,7 @@ def webhook():
             # Emits: socketio.emit("stock_update", msg)
             # Persists into STATE["stocks"] for warm start
             # ====================================================
-            if typ in ("SCADA_STATUS", "WATCH"):
+            elif typ in ("SCADA_STATUS", "WATCH"):
                 # normalize minimal fields
                 try:
                     ref_id = data.get("ref_id")
@@ -1098,6 +1174,26 @@ def webhook():
 
                 if out.get("ticker") is not None:
                     out["ticker"] = str(out["ticker"]).upper()
+
+                # ----------------------------------------------------
+                # MARKET DETECTION (for anchor attachment)
+                # ----------------------------------------------------
+                ticker = str(out.get("ticker") or "").strip().upper()
+                market = None
+
+                if ticker.startswith("ASX:"):
+                    market = "ASX"
+                elif ticker.startswith("LSE:"):
+                    market = "LSE"
+                elif ticker.startswith("TSX:"):
+                    market = "TSX"
+                elif ticker.startswith("NYSE:") or ticker.startswith("NASDAQ:"):
+                    market = "NYSE"
+
+                out["_market"] = market
+
+                if market and STATE["anchors"].get(market):
+                    out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
                 # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
