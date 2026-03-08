@@ -529,10 +529,46 @@ def _load_state_from_disk() -> None:
                 return
 
         with STATE_LOCK:
+            # -----------------------------------------
+            # Core macro state
+            # -----------------------------------------
             for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
                 if k in cached:
                     STATE[k] = cached.get(k)
 
+            # -----------------------------------------
+            # Card 2
+            # -----------------------------------------
+            if isinstance(cached.get("card2"), dict):
+                STATE["card2"] = cached.get("card2")
+
+            # -----------------------------------------
+            # Message system
+            # -----------------------------------------
+            if isinstance(cached.get("message"), dict):
+                STATE["message"] = cached.get("message")
+
+            # -----------------------------------------
+            # Stock lanes (warm start)
+            # -----------------------------------------
+            if isinstance(cached.get("stocks"), dict):
+                STATE["stocks"] = cached.get("stocks")
+
+            # -----------------------------------------
+            # Node click-through/debug payloads
+            # -----------------------------------------
+            if isinstance(cached.get("nodes"), dict):
+                STATE["nodes"] = cached.get("nodes")
+
+            # -----------------------------------------
+            # Market anchors
+            # -----------------------------------------
+            if isinstance(cached.get("anchors"), dict):
+                STATE["anchors"] = cached.get("anchors")
+
+            # -----------------------------------------
+            # Secret block
+            # -----------------------------------------
             if isinstance(cached.get("secret"), dict):
                 for sk in STATE["secret"]:
                     STATE["secret"][sk] = cached["secret"].get(sk)
