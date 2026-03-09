@@ -1217,17 +1217,24 @@ def webhook():
                 ticker = str(out.get("ticker") or "").strip().upper()
                 market = None
 
-                if ticker.startswith("ASX:"):
+                if ticker.startswith(("ASX:", "ASX_DLY:")):
                     market = "ASX"
-                elif ticker.startswith("LSE:"):
+
+                elif ticker.startswith(("LSE:", "LSE_DLY:")):
                     market = "LSE"
-                elif ticker.startswith("TSX:"):
+
+                elif ticker.startswith(("TSX:", "TSX_DLY:", "TSXV:", "TSXV_DLY:")):
                     market = "TSX"
-                elif ticker.startswith("NYSE:") or ticker.startswith("NASDAQ:"):
+
+                elif ticker.startswith((
+                    "NYSE:", "NYSE_DLY:",
+                    "NASDAQ:", "NASDAQ_DLY:"
+                )):
                     market = "NYSE"
 
                 out["_market"] = market
 
+                # Attach market anchor if available
                 if market and STATE["anchors"].get(market):
                     out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
