@@ -1553,7 +1553,26 @@ def on_connect():
         if not isinstance(STATE.get("_server_ts"), (int, float)):
             STATE["_server_ts"] = int(time.time() * 1000)
         snap = copy.deepcopy(STATE)
+
+    # Full macro/state snapshot
     emit("macro_update", _json_safe(snap))
+
+    # ----------------------------------------------------
+    # Warm-start stock lanes so nodes repaint on refresh
+    # ----------------------------------------------------
+    stocks = snap.get("stocks", {}) if isinstance(snap.get("stocks"), dict) else {}
+
+    for lane in stocks.get("last_scada_by_ref", {}).values():
+        try:
+            emit("stock_update", _json_safe(lane))
+        except Exception:
+            pass
+
+    for lane in stocks.get("last_watch_by_ref", {}).values():
+        try:
+            emit("stock_update", _json_safe(lane))
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
