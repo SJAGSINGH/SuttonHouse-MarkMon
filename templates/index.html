@@ -3732,32 +3732,33 @@ function applySentinelFromState(data){
   if (!data) return;
 
   const t = fmtSentinelTime(data?._server_ts);
-
-  const s2Allowed = !!data?.S2_permission;
-  const signalEvent = !!data?.signal_event;
-  const signalCluster = Number(data?.signal_cluster || 0);
   const sahm = Number(data?.sahm || 0);
 
-  let msg = `[${t}] Sentinel: SILENCE`;
+  const s2Allowed =
+    data?.s2_allowed === true ||
+    String(data?.s2_allowed).toLowerCase() === "true";
+
+  const msgSetup =
+    data?.message?.setup === true ||
+    String(data?.message?.setup).toLowerCase() === "true";
+
+  const msgTrigger = String(data?.message?.trigger || "").trim();
+
+  let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (signalCluster >= 3) {
-    msg = `[${t}] Sentinel: Signal cluster detected. Maintain approved unit size.`;
-  }
-  else if (s2Allowed && signalEvent) {
+  else if (s2Allowed && msgSetup && msgTrigger !== "—" && msgTrigger !== "") {
     msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
   }
   else if (s2Allowed) {
     msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
   }
-  else {
-    msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
-  }
 
   setSentinel(msg);
-} 
+}
+    
 function applyAllFromState(data) {
   lastState = data || {};
   window.lastState = lastState;   // ✅ add this
