@@ -702,7 +702,7 @@ body.war-room .scada-card{
   background:rgba(60,255,180,0.12);
   border:1px solid rgba(60,255,180,0.35);
   border-radius:10px;
-  padding:6px 14px;              /* 1-line height */
+  padding:6px 14px;
   overflow:hidden;
 }
 
@@ -714,6 +714,15 @@ body.war-room .scada-card{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+}
+
+.sentinel-output.sentinel-priority{
+  animation: sentinelFlash 2s ease;
+}
+
+@keyframes sentinelFlash {
+  0%   { color:#ffbf47; }
+  100% { color:var(--lime); }
 }
 
 /* ============================
@@ -3020,14 +3029,23 @@ _updateDebugBtn();
 // ----------------------------
 // DEBUG BUTTON (secret + shift only)
 // ============================
-// SENTINEL OUTPUT (UI ONLY)
+// SENTINEL OUTPUT
 // ============================
-function setSentinel(line){
+window.__SENTINEL_LAST__ = window.__SENTINEL_LAST__ || null;
+
+function setSentinel(line, isPriority = false) {
   const el = document.getElementById("sentinel-output");
   if (!el) return;
-  el.textContent = line || "Sentinel: SILENCE";
-}
 
+  el.textContent = line || "Sentinel: SILENCE";
+
+  // brief priority flash on important messages
+  if (isPriority) {
+    el.classList.remove("sentinel-priority");
+    void el.offsetWidth; // restart animation
+    el.classList.add("sentinel-priority");
+  }
+}
 
 
 function _updateDebugBtn() {
@@ -3699,7 +3717,47 @@ if (!Number.isFinite(ts)){
   }
 }
 
- 
+// ============================
+// SENTINEL HELPERS
+// ============================
+
+function fmtSentinelTime(serverTs) {
+  const d = serverTs ? new Date(serverTs) : new Date();
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mm = String(d.getMinutes()).padStart(2,"0");
+  return `${hh}:${mm}`;
+}
+
+function applySentinelFromState(data){
+  if (!data) return;
+
+  const t = fmtSentinelTime(data?._server_ts);
+
+  const s2Allowed = !!data?.S2_permission;
+  const signalEvent = !!data?.signal_event;
+  const signalCluster = Number(data?.signal_cluster || 0);
+  const sahm = Number(data?.sahm || 0);
+
+  let msg = `[${t}] Sentinel: SILENCE`;
+
+  if (sahm >= 0.5) {
+    msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
+  }
+  else if (signalCluster >= 3) {
+    msg = `[${t}] Sentinel: Signal cluster detected. Maintain approved unit size.`;
+  }
+  else if (s2Allowed && signalEvent) {
+    msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
+  }
+  else if (s2Allowed) {
+    msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
+  }
+  else {
+    msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
+  }
+
+  setSentinel(msg);
+} 
 function applyAllFromState(data) {
   lastState = data || {};
   window.lastState = lastState;   // ✅ add this
@@ -3714,7 +3772,10 @@ function applyAllFromState(data) {
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  setSentinel("Sentinel: SILENCE");
+  // ✅ Sentinel owns its own state now — do NOT force SILENCE on every update
+  if (typeof applySentinelFromState === "function") {
+    applySentinelFromState(data);
+  }
 
 // ============================================================
 // CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY) ✅ CANONICAL
