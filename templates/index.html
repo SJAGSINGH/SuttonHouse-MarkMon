@@ -3740,8 +3740,9 @@ function applySentinelFromState(data){
 
   const byRef = data?.nodes?.by_ref || {};
 
-  let anyS2Signal = false;
   let anyS2Allowed = false;
+  let anyS2Setup = false;
+  let anyS2Trigger = false;
 
   Object.values(byRef).forEach((node) => {
     const sc = node?.last_scada_status;
@@ -3759,12 +3760,11 @@ function applySentinelFromState(data){
 
     const triggerAny =
       sc.trigger_any === true ||
-      String(sc.trigger_any).toLowerCase() === "true" ||
-      sc.signal === true ||
-      String(sc.signal).toLowerCase() === "true";
+      String(sc.trigger_any).toLowerCase() === "true";
 
     if (nodeS2Allowed) anyS2Allowed = true;
-    if (nodeS2Allowed && setupAny && triggerAny) anyS2Signal = true;
+    if (nodeS2Allowed && setupAny) anyS2Setup = true;
+    if (nodeS2Allowed && triggerAny) anyS2Trigger = true;
   });
 
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
@@ -3772,8 +3772,11 @@ function applySentinelFromState(data){
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (anyS2Signal) {
+  else if (anyS2Trigger) {
     msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
+  }
+  else if (anyS2Setup) {
+    msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required.`;
   }
   else if (anyS2Allowed || topS2Allowed) {
     msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
