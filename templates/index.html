@@ -3738,53 +3738,29 @@ function applySentinelFromState(data){
     data?.s2_allowed === true ||
     String(data?.s2_allowed).toLowerCase() === "true";
 
-  const byRef = data?.nodes?.by_ref || {};
+  const msgSetup =
+    data?.message?.setup === true ||
+    String(data?.message?.setup).toLowerCase() === "true";
 
-  let anyS2Allowed = false;
-  let anyS2Setup = false;
-  let anyS2Trigger = false;
-
-  Object.values(byRef).forEach((node) => {
-    const sc = node?.last_scada_status;
-    if (!sc) return;
-
-    const nodeS2Allowed =
-      sc.s2_allowed === true ||
-      String(sc.s2_allowed).toLowerCase() === "true";
-
-    const setupAny =
-      sc.setup_any === true ||
-      String(sc.setup_any).toLowerCase() === "true" ||
-      sc.pill_setup_any === true ||
-      String(sc.pill_setup_any).toLowerCase() === "true";
-
-    const triggerAny =
-      sc.trigger_any === true ||
-      String(sc.trigger_any).toLowerCase() === "true";
-
-    if (nodeS2Allowed) anyS2Allowed = true;
-    if (nodeS2Allowed && setupAny) anyS2Setup = true;
-    if (nodeS2Allowed && triggerAny) anyS2Trigger = true;
-  });
+  const msgTrigger = String(data?.message?.trigger || "").trim().toUpperCase();
 
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (anyS2Trigger) {
+  else if (topS2Allowed && msgSetup && msgTrigger === "TRIGGER") {
     msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
   }
-  else if (anyS2Setup) {
+  else if (topS2Allowed && msgSetup) {
     msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required.`;
   }
-  else if (anyS2Allowed || topS2Allowed) {
+  else if (topS2Allowed) {
     msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
   }
 
   setSentinel(msg);
-}
-    
+}    
 function applyAllFromState(data) {
   lastState = data || {};
   window.lastState = lastState;   // ✅ add this
