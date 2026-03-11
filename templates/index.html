@@ -3733,6 +3733,7 @@ function applySentinelFromState(data){
 
   const t = fmtSentinelTime(data?._server_ts);
   const sahm = Number(data?.sahm || 0);
+  const nowTs = Number(data?._server_ts || Date.now());
 
   const topS2Allowed =
     data?.s2_allowed === true ||
@@ -3744,15 +3745,56 @@ function applySentinelFromState(data){
 
   const msgTrigger = String(data?.message?.trigger || "").trim().toUpperCase();
 
+  const byRef = data?.nodes?.by_ref || {};
+
+  let anyFreshS2Setup = false;
+  let anyFreshS2Trigger = false;
+
+  Object.values(byRef).forEach((node) => {
+    const sc = node?.last_scada_status;
+    if (!sc) return;
+
+    const nodeTsRaw =
+      node?._ts?.last_scada_status ??
+      node?._ts?.scada_status ??
+      node?._ts ??
+      sc?._ts ??
+      sc?.time ??
+      null;
+
+    const nodeTs = Number(nodeTsRaw);
+    const ageMs = Number.isFinite(nodeTs) ? Math.abs(nowTs - nodeTs) : Number.POSITIVE_INFINITY;
+    const isFresh = ageMs <= 90 * 1000; // 90 seconds
+
+    if (!isFresh) return;
+
+    const nodeS2Allowed =
+      sc.s2_allowed === true ||
+      String(sc.s2_allowed).toLowerCase() === "true";
+
+    const setupAny =
+      sc.setup_any === true ||
+      String(sc.setup_any).toLowerCase() === "true" ||
+      sc.pill_setup_any === true ||
+      String(sc.pill_setup_any).toLowerCase() === "true";
+
+    const triggerAny =
+      sc.trigger_any === true ||
+      String(sc.trigger_any).toLowerCase() === "true";
+
+    if (nodeS2Allowed && setupAny) anyFreshS2Setup = true;
+    if (nodeS2Allowed && triggerAny) anyFreshS2Trigger = true;
+  });
+
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (topS2Allowed && msgSetup && msgTrigger === "TRIGGER") {
+  else if (topS2Allowed && (msgTrigger === "TRIGGER" || anyFreshS2Trigger)) {
     msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
   }
-  else if (topS2Allowed && msgSetup) {
+  else if (topS2Allowed && (msgSetup || anyFreshS2Setup)) {
     msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required.`;
   }
   else if (topS2Allowed) {
@@ -3760,7 +3802,7 @@ function applySentinelFromState(data){
   }
 
   setSentinel(msg);
-}    
+}
 function applyAllFromState(data) {
   lastState = data || {};
   window.lastState = lastState;   // ✅ add this
