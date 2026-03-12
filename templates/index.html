@@ -3720,35 +3720,13 @@ if (!Number.isFinite(ts)){
 // ============================
 // SENTINEL HELPERS
 // ============================
-
-function fmtSentinelTime(serverTs) {
-  const d = serverTs ? new Date(serverTs) : new Date();
-  const hh = String(d.getHours()).padStart(2,"0");
-  const mm = String(d.getMinutes()).padStart(2,"0");
-  return `${hh}:${mm}`;
-}
-
-function applySentinelFromState(data){
-  if (!data) return;
-
-  const t = fmtSentinelTime(data?._server_ts);
-  const sahm = Number(data?.sahm || 0);
+function getSentinelNodeState(data) {
+  const byRef = data?.nodes?.by_ref || {};
   const nowTs = Number(data?._server_ts || Date.now());
 
-  const topS2Allowed =
-    data?.s2_allowed === true ||
-    String(data?.s2_allowed).toLowerCase() === "true";
-
-  const msgSetup =
-    data?.message?.setup === true ||
-    String(data?.message?.setup).toLowerCase() === "true";
-
-  const msgTrigger = String(data?.message?.trigger || "").trim().toUpperCase();
-
-  const byRef = data?.nodes?.by_ref || {};
-
-  let anyFreshS2Setup = false;
-  let anyFreshS2Trigger = false;
+  let anyS2Allowed = false;
+  let anySetupAvailable = false;
+  let anySignalAvailable = false;
 
   Object.values(byRef).forEach((node) => {
     const sc = node?.last_scada_status;
@@ -3764,40 +3742,67 @@ function applySentinelFromState(data){
 
     const nodeTs = Number(nodeTsRaw);
     const ageMs = Number.isFinite(nodeTs) ? Math.abs(nowTs - nodeTs) : Number.POSITIVE_INFINITY;
-    const isFresh = ageMs <= 90 * 1000; // 90 seconds
+    const isFresh = ageMs <= 90 * 1000;
 
     if (!isFresh) return;
 
-    const nodeS2Allowed =
+    const s2Allowed =
       sc.s2_allowed === true ||
       String(sc.s2_allowed).toLowerCase() === "true";
 
-    const setupAny =
+    const setupAvailable =
       sc.setup_any === true ||
       String(sc.setup_any).toLowerCase() === "true" ||
       sc.pill_setup_any === true ||
       String(sc.pill_setup_any).toLowerCase() === "true";
 
-    const triggerAny =
+    const signalAvailable =
       sc.trigger_any === true ||
       String(sc.trigger_any).toLowerCase() === "true";
 
-    if (nodeS2Allowed && setupAny) anyFreshS2Setup = true;
-    if (nodeS2Allowed && triggerAny) anyFreshS2Trigger = true;
+    if (s2Allowed) anyS2Allowed = true;
+    if (s2Allowed && setupAvailable) anySetupAvailable = true;
+    if (s2Allowed && signalAvailable) anySignalAvailable = true;
   });
+
+  return {
+    anyS2Allowed,
+    anySetupAvailable,
+    anySignalAvailable
+  };
+}
+    
+function fmtSentinelTime(serverTs) {
+  const d = serverTs ? new Date(serverTs) : new Date();
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mm = String(d.getMinutes()).padStart(2,"0");
+  return `${hh}:${mm}`;
+}
+
+function applySentinelFromState(data){
+  if (!data) return;
+
+  const t = fmtSentinelTime(data?._server_ts);
+  const sahm = Number(data?.sahm || 0);
+
+  const topS2Allowed =
+    data?.s2_allowed === true ||
+    String(data?.s2_allowed).toLowerCase() === "true";
+
+  const nodeState = getSentinelNodeState(data);
 
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (topS2Allowed && (msgTrigger === "TRIGGER" || anyFreshS2Trigger)) {
+  else if ((topS2Allowed || nodeState.anyS2Allowed) && nodeState.anySignalAvailable) {
     msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
   }
-  else if (topS2Allowed && (msgSetup || anyFreshS2Setup)) {
+  else if ((topS2Allowed || nodeState.anyS2Allowed) && nodeState.anySetupAvailable) {
     msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required.`;
   }
-  else if (topS2Allowed) {
+  else if (topS2Allowed || nodeState.anyS2Allowed) {
     msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
   }
 
