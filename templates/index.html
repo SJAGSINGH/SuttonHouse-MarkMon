@@ -3230,11 +3230,11 @@ if (s1){
     if (vol === 'COMPRESSION'){
       s1.style.color = 'var(--amber)';
     }
-    else if (vol === 'EXPANSION'){
-      s1.style.color = 'var(--red)';
+    else if (vol === 'STABLE'){
+      s1.style.color = 'var(--lime)';
     }
-    else { // STABLE
-      s1.style.color = 'var(--text)'; // neutral
+    else if (vol === 'EXPANSION'){
+      s1.style.color = 'var(--grey)';
     }
   }
 }
