@@ -3217,7 +3217,7 @@ if (typeof window.applyFounderHaze !== "function") {
     else c1.classList.add('halo-bg-silver');
   }
 
- // Vol line (Pine: data.vol)
+  // Vol line (Pine: data.vol)
 const vol = String(data?.vol || '').toUpperCase();
 
 if (s1){
@@ -3229,12 +3229,12 @@ if (s1){
 
     if (vol === 'COMPRESSION'){
       s1.style.color = 'var(--amber)';
-    } else if (vol === 'STABLE'){
-      s1.style.color = 'var(--lime)';
-    } else if (vol === 'EXPANSION'){
-      s1.style.color = '#8a8f98';   // grey
-    } else {
-      s1.style.color = 'var(--text)';
+    }
+    else if (vol === 'EXPANSION'){
+      s1.style.color = 'var(--red)';
+    }
+    else { // STABLE
+      s1.style.color = 'var(--text)'; // neutral
     }
   }
 }
