@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -3218,26 +3218,18 @@ if (typeof window.applyFounderHaze !== "function") {
   }
 
   // Vol line (Pine: data.vol)
-const vol = String(data?.vol || '').toUpperCase();
-
-if (s1){
-  if (!vol){
-    s1.innerText = '';
-    s1.style.color = 'var(--text)';
-  } else {
-    s1.innerText = `VOLATILITY: ${vol}`;
-
-    if (vol === 'COMPRESSION'){
-      s1.style.color = 'var(--amber)';
-    }
-    else if (vol === 'EXPANSION'){
-      s1.style.color = 'var(--red)';
-    }
-    else { // STABLE
-      s1.style.color = 'var(--text)'; // neutral
+  const vol = String(data?.vol || '').toUpperCase();
+  if (s1){
+    if (!vol){
+      s1.innerText = '';
+      s1.style.color = 'var(--text)';
+    } else {
+      s1.innerText = `VOLATILITY: ${vol}`;
+      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
     }
   }
 }
+
 
 
 // ============================================================
