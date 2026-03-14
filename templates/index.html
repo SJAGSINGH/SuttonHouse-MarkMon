@@ -3184,7 +3184,7 @@ if (typeof window.applyFounderHaze !== "function") {
   }
 
 
-  // ============================================================
+ // ============================================================
 // CARD 1 — REGIME + VOL (Pine truth)
 // Uses: data.regime (fallback data.card1)
 // ============================================================
@@ -3219,13 +3219,26 @@ if (typeof window.applyFounderHaze !== "function") {
 
   // Vol line (Pine: data.vol)
   const vol = String(data?.vol || '').toUpperCase();
+
   if (s1){
     if (!vol){
       s1.innerText = '';
       s1.style.color = 'var(--text)';
     } else {
       s1.innerText = `VOLATILITY: ${vol}`;
-      s1.style.color = (vol === 'ELEVATED') ? 'var(--red)' : 'var(--lime)';
+
+      if (vol === 'COMPRESSION'){
+        s1.style.color = 'var(--amber)';
+      }
+      else if (vol === 'STABLE'){
+        s1.style.color = 'var(--lime)';
+      }
+      else if (vol === 'EXPANSION'){
+        s1.style.color = '#8a8f98'; // neutral grey
+      }
+      else{
+        s1.style.color = 'var(--text)';
+      }
     }
   }
 }
