@@ -50,7 +50,80 @@ STATE: Dict[str, Any] = {
     "count": None,
     "sahm": None,
 
-    # ✅ Card 2 — canonical, nested ONLY
+    # ============================================================
+    # MACRO V2 — EXTENDED LAYER (NON-DESTRUCTIVE TO V1)
+    # ============================================================
+    "macro_v2": {
+        # ------------------------
+        # Gold / Copper
+        # ------------------------
+        "gc": {
+            "state": None,
+            "trend_50sma": None,
+            "msa_pct": None,
+            "valid_signal": None,
+            "explain": None,
+        },
+
+        # ------------------------
+        # Gold / Silver
+        # ------------------------
+        "gs": {
+            "state": None,
+            "trend_50sma": None,
+            "msa_pct": None,
+            "valid_signal": None,
+            "explain": None,
+        },
+
+        # ------------------------
+        # Liquidity (WALCL)
+        # ------------------------
+        "walcl": {
+            "state": None,
+            "trend": None,
+            "roc": None,
+            "explain": None,
+        },
+
+        # ------------------------
+        # FX Context (GBP lens only)
+        # ------------------------
+        "fx": {
+            "gbpcad": {
+                "state": None,
+                "trend_50sma": None,
+                "msa_pct": None,
+            },
+            "gbpaud": {
+                "state": None,
+                "trend_50sma": None,
+                "msa_pct": None,
+            },
+            # derived layer
+            "context": None,  # TAILWIND / HEADWIND / NEUTRAL
+        },
+
+        # ------------------------
+        # Combined Commodity Internal State
+        # ------------------------
+        "internal": {
+            "state": None,     # GOLD ALIGNMENT / GROWTH ALIGNMENT / TRANSITIONAL
+            "explain": None,
+        },
+
+        # ------------------------
+        # Cycle Phase (derived from 0–120 clock)
+        # ------------------------
+        "phase": {
+            "id": None,
+            "name": None,   # ACCUMULATION / EXPANSION / MATURATION / DISTRIBUTION
+        },
+    },
+
+    # ============================================================
+    # CARD 2 — canonical, nested ONLY
+    # ============================================================
     "card2": {
         "state": None,
         "text": None,
@@ -59,32 +132,43 @@ STATE: Dict[str, Any] = {
         "ref_id": None,
     },
 
-    # ✅ Message System — canonical lane for the terminal stepper
-    # (Do NOT put this inside "monitor" — monitor is heartbeat/telemetry only.)
+    # ============================================================
+    # MESSAGE SYSTEM — terminal stepper
+    # ============================================================
     "message": {
-        "setup": False,     # bool: setup gate
-        "trigger": "—",     # string: trigger text or "—"
-        "ticker": "",       # string: active ticker (upper)
-        "ref_id": None,     # int: active ref_id
-        "_ts": None,        # int ms: last change timestamp
+        "setup": False,
+        "trigger": "—",
+        "ticker": "",
+        "ref_id": None,
+        "_ts": None,
     },
 
+    # ============================================================
+    # MONITORING / TELEMETRY
+    # ============================================================
     "monitor": {
         "last_by_ref": {},
         "last_by_ticker": {},
         "last_hello": {},
     },
+
     "nodes": {
-        "by_ref": {},   # "12": { "last_setup": {...}, "last_scada_status": {...}, "last_watch": {...}, "_ts": {...} }
+        "by_ref": {},
     },
-    
-    #  NEW — market masters
+
+    # ============================================================
+    # MARKET ANCHORS
+    # ============================================================
     "anchors": {
         "ASX": None,
         "LSE": None,
         "TSX": None,
         "NYSE": None,
     },
+
+    # ============================================================
+    # SECRET / INSTITUTIONAL LAYERS
+    # ============================================================
     "secret": {
         "vix": None,
         "gvz": None,
@@ -195,6 +279,64 @@ def _json_safe(x):
 # ----------------------------
 # Helpers
 # ----------------------------
+
+def _phase_from_cycle(cycle_val: Optional[int]) -> Dict[str, Optional[Any]]:
+    if cycle_val is None:
+        return {"id": None, "name": None}
+
+    try:
+        c = int(cycle_val)
+    except Exception:
+        return {"id": None, "name": None}
+
+    if 0 <= c < 30:
+        return {"id": 1, "name": "ACCUMULATION"}
+    if 30 <= c < 70:
+        return {"id": 2, "name": "EXPANSION"}
+    if 70 <= c < 100:
+        return {"id": 3, "name": "MATURATION"}
+    if 100 <= c <= 120:
+        return {"id": 4, "name": "DISTRIBUTION"}
+
+    return {"id": 5, "name": "RESET"}
+
+
+def _derive_internal_state(gc_state: Optional[str], gs_state: Optional[str]) -> Dict[str, Optional[str]]:
+    gc = (gc_state or "").strip().upper()
+    gs = (gs_state or "").strip().upper()
+
+    if gc == "STRENGTHENING" and gs == "STRENGTHENING":
+        return {
+            "state": "GOLD ALIGNMENT",
+            "explain": "Gold is leading both copper and silver."
+        }
+
+    if gc == "WEAKENING" and gs == "WEAKENING":
+        return {
+            "state": "GROWTH ALIGNMENT",
+            "explain": "Copper and silver are leading against gold."
+        }
+
+    if gc or gs:
+        return {
+            "state": "TRANSITIONAL",
+            "explain": "Internal commodity leadership is mixed."
+        }
+
+    return {"state": None, "explain": None}
+
+
+def _derive_fx_context(gbpcad_state: Optional[str], gbpaud_state: Optional[str]) -> Optional[str]:
+    gc = (gbpcad_state or "").strip().upper()
+    ga = (gbpaud_state or "").strip().upper()
+
+    if gc == "WEAKENING" and ga == "WEAKENING":
+        return "TAILWIND"
+    if gc == "STRENGTHENING" and ga == "STRENGTHENING":
+        return "HEADWIND"
+    if gc or ga:
+        return "NEUTRAL"
+    return None
 
 NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH"}
 
@@ -620,7 +762,32 @@ def _recompute_war_from_secret() -> None:
         "reason": ", ".join(reasons)
     }
 
+def _apply_macro_v2_normalisation() -> None:
+    """
+    Derives combined Macro V2 state from raw V2 lanes.
+    Does NOT overwrite Macro V1 core fields.
+    """
+    mv2 = STATE.setdefault("macro_v2", {})
 
+    gc = mv2.setdefault("gc", {})
+    gs = mv2.setdefault("gs", {})
+    walcl = mv2.setdefault("walcl", {})
+    fx = mv2.setdefault("fx", {"gbpcad": {}, "gbpaud": {}, "context": None})
+    internal = mv2.setdefault("internal", {"state": None, "explain": None})
+
+    # Phase from cycle (0..120 canonical)
+    phase = _phase_from_cycle(_safe_int(STATE.get("cycle")))
+    mv2["phase"] = phase
+
+    # Combined commodity internal state
+    internal_state = _derive_internal_state(gc.get("state"), gs.get("state"))
+    mv2["internal"] = internal_state
+
+    # FX context
+    fx["context"] = _derive_fx_context(
+        (fx.get("gbpcad") or {}).get("state"),
+        (fx.get("gbpaud") or {}).get("state"),
+    )
 # ----------------------------
 # Merge logic (field-based payload)
 # ----------------------------
@@ -1097,7 +1264,7 @@ def webhook():
         emit_event2 = None
         emit_payload2 = None
 
-               # ====================================================
+        # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
         # ====================================================
         with STATE_LOCK:
@@ -1138,6 +1305,132 @@ def webhook():
                     "TSX": None,
                     "NYSE": None,
                 }
+
+            # ----------------------------------------------------
+            # Ensure Macro V2 lane exists
+            # ----------------------------------------------------
+            if "macro_v2" not in STATE or not isinstance(STATE.get("macro_v2"), dict):
+                STATE["macro_v2"] = {
+                    "gc": {
+                        "state": None,
+                        "trend_50sma": None,
+                        "msa_pct": None,
+                        "valid_signal": None,
+                        "explain": None,
+                    },
+                    "gs": {
+                        "state": None,
+                        "trend_50sma": None,
+                        "msa_pct": None,
+                        "valid_signal": None,
+                        "explain": None,
+                    },
+                    "walcl": {
+                        "state": None,
+                        "trend": None,
+                        "roc": None,
+                        "explain": None,
+                    },
+                    "fx": {
+                        "gbpcad": {
+                            "state": None,
+                            "trend_50sma": None,
+                            "msa_pct": None,
+                        },
+                        "gbpaud": {
+                            "state": None,
+                            "trend_50sma": None,
+                            "msa_pct": None,
+                        },
+                        "context": None,
+                    },
+                    "internal": {
+                        "state": None,
+                        "explain": None,
+                    },
+                    "phase": {
+                        "id": None,
+                        "name": None,
+                    },
+                }
+
+            # ----------------------------------------------------
+            # Local helpers for Macro V2 derivations
+            # ----------------------------------------------------
+            def _phase_from_cycle(cycle_val):
+                try:
+                    c = int(float(cycle_val))
+                except Exception:
+                    return {"id": None, "name": None}
+
+                if 0 <= c < 30:
+                    return {"id": 1, "name": "ACCUMULATION"}
+                if 30 <= c < 70:
+                    return {"id": 2, "name": "EXPANSION"}
+                if 70 <= c < 100:
+                    return {"id": 3, "name": "MATURATION"}
+                if 100 <= c <= 120:
+                    return {"id": 4, "name": "DISTRIBUTION"}
+                return {"id": 5, "name": "RESET"}
+
+            def _derive_internal_state(gc_state, gs_state):
+                gc = str(gc_state or "").strip().upper()
+                gs = str(gs_state or "").strip().upper()
+
+                if gc == "STRENGTHENING" and gs == "STRENGTHENING":
+                    return {
+                        "state": "GOLD ALIGNMENT",
+                        "explain": "Gold is leading both copper and silver."
+                    }
+
+                if gc == "WEAKENING" and gs == "WEAKENING":
+                    return {
+                        "state": "GROWTH ALIGNMENT",
+                        "explain": "Copper and silver are leading against gold."
+                    }
+
+                if gc or gs:
+                    return {
+                        "state": "TRANSITIONAL",
+                        "explain": "Internal commodity leadership is mixed."
+                    }
+
+                return {"state": None, "explain": None}
+
+            def _derive_fx_context(gbpcad_state, gbpaud_state):
+                gc = str(gbpcad_state or "").strip().upper()
+                ga = str(gbpaud_state or "").strip().upper()
+
+                if gc == "WEAKENING" and ga == "WEAKENING":
+                    return "TAILWIND"
+                if gc == "STRENGTHENING" and ga == "STRENGTHENING":
+                    return "HEADWIND"
+                if gc or ga:
+                    return "NEUTRAL"
+                return None
+
+            def _apply_macro_v2_normalisation():
+                mv2 = STATE.setdefault("macro_v2", {})
+
+                gc = mv2.setdefault("gc", {})
+                gs = mv2.setdefault("gs", {})
+                walcl = mv2.setdefault("walcl", {})
+                fx = mv2.setdefault("fx", {"gbpcad": {}, "gbpaud": {}, "context": None})
+
+                # phase from cycle
+                mv2["phase"] = _phase_from_cycle(STATE.get("cycle"))
+
+                # combined commodity internal state
+                mv2["internal"] = _derive_internal_state(
+                    gc.get("state"),
+                    gs.get("state"),
+                )
+
+                # fx context
+                fx["context"] = _derive_fx_context(
+                    (fx.get("gbpcad") or {}).get("state"),
+                    (fx.get("gbpaud") or {}).get("state"),
+                )
 
             # ====================================================
             # MARKET ANCHOR FAST PATH
@@ -1194,7 +1487,6 @@ def webhook():
             # Persists into STATE["stocks"] for warm start
             # ====================================================
             elif typ in ("SCADA_STATUS", "WATCH"):
-                # normalize minimal fields
                 try:
                     ref_id = data.get("ref_id")
                     ref_id = int(float(ref_id)) if ref_id is not None else None
@@ -1219,13 +1511,10 @@ def webhook():
 
                 if ticker.startswith(("ASX:", "ASX_DLY:")):
                     market = "ASX"
-
                 elif ticker.startswith(("LSE:", "LSE_DLY:")):
                     market = "LSE"
-
                 elif ticker.startswith(("TSX:", "TSX_DLY:", "TSXV:", "TSXV_DLY:")):
                     market = "TSX"
-
                 elif ticker.startswith((
                     "NYSE:", "NYSE_DLY:",
                     "NASDAQ:", "NASDAQ_DLY:"
@@ -1243,18 +1532,15 @@ def webhook():
 
                 # ----------------------------------------------------
                 # ENFORCE MASTER GOVERNANCE FIELDS IN SCADA_STATUS
-                # (UI reads these from node payload; keep UI unchanged)
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle     = STATE.get("cycle")
 
-                    # If master exists, overwrite. If not, remove node-provided gates
                     if master_cycle_120 is not None or master_cycle is not None:
                         out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
                         out["cycle"]     = master_cycle
 
-                        # Only stamp if present in STATE (avoid creating noisy keys)
                         if STATE.get("regime") is not None:
                             out["regime"] = STATE.get("regime")
                         if STATE.get("vol") is not None:
@@ -1271,7 +1557,6 @@ def webhook():
                         if STATE.get("s3_allowed") is not None:
                             out["s3_allowed"] = STATE.get("s3_allowed")
                     else:
-                        # master not ready yet — do NOT allow node to invent gates
                         for k in (
                             "cycle_120", "cycle", "regime", "vol",
                             "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
@@ -1299,7 +1584,6 @@ def webhook():
                     )
 
                     ticker = str(out.get("ticker") or "").strip().upper()
-                    # If you later add out["trigger_label"], swap "TRIGGER" for that.
                     trig_text = "TRIGGER" if trigger_on else "—"
 
                     new_msg = {
@@ -1312,7 +1596,6 @@ def webhook():
 
                     if new_msg != prev_msg:
                         STATE["message"] = new_msg
-                        # when message changes, also emit macro_update so the stepper updates
                         emit_event2 = "macro_update"
                         emit_payload2 = copy.deepcopy(STATE)
 
@@ -1322,7 +1605,6 @@ def webhook():
                 else:
                     STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
 
-                # store node payload for click-through debug page
                 try:
                     _store_node_payload(out)
                 except Exception:
@@ -1330,7 +1612,6 @@ def webhook():
 
                 _update_monitor_lane(_extract_meta(out))
 
-                # decide what happens OUTSIDE lock
                 do_save = True
                 emit_event = "stock_update"
                 emit_payload = out
@@ -1423,7 +1704,53 @@ def webhook():
                     STATE.update(pine_allow)
 
                 # ------------------------------------------------
-                # CARD 2 — CANONICAL (nested) ✅
+                # MACRO V2 LANES
+                # ------------------------------------------------
+                if typ == "MACRO_V2_RATIO":
+                    lane = str(data.get("lane") or "").strip().lower()
+
+                    if lane == "gold_copper":
+                        STATE["macro_v2"]["gc"] = {
+                            "state": _normalise_str(data.get("state")),
+                            "trend_50sma": _normalise_str(data.get("trend_50sma")),
+                            "msa_pct": _safe_float(data.get("msa_pct")),
+                            "valid_signal": data.get("valid_signal"),
+                            "explain": _normalise_str(data.get("explain")),
+                        }
+
+                    elif lane == "gold_silver":
+                        STATE["macro_v2"]["gs"] = {
+                            "state": _normalise_str(data.get("state")),
+                            "trend_50sma": _normalise_str(data.get("trend_50sma")),
+                            "msa_pct": _safe_float(data.get("msa_pct")),
+                            "valid_signal": data.get("valid_signal"),
+                            "explain": _normalise_str(data.get("explain")),
+                        }
+
+                elif typ == "MACRO_V2_LIQUIDITY":
+                    if str(data.get("lane") or "").strip().lower() == "walcl":
+                        STATE["macro_v2"]["walcl"] = {
+                            "state": _normalise_str(data.get("walcl_state")),
+                            "trend": _normalise_str(data.get("walcl_trend")),
+                            "roc": _safe_float(data.get("walcl_roc")),
+                            "explain": _normalise_str(data.get("walcl_explain")),
+                        }
+
+                elif typ == "MACRO_V2_FX":
+                    if str(data.get("lane") or "").strip().lower() == "fx":
+                        STATE["macro_v2"]["fx"]["gbpcad"] = {
+                            "state": _normalise_str(data.get("gbpcad_state")),
+                            "trend_50sma": _normalise_str(data.get("gbpcad_trend")),
+                            "msa_pct": _safe_float(data.get("gbpcad_msa")),
+                        }
+                        STATE["macro_v2"]["fx"]["gbpaud"] = {
+                            "state": _normalise_str(data.get("gbpaud_state")),
+                            "trend_50sma": _normalise_str(data.get("gbpaud_trend")),
+                            "msa_pct": _safe_float(data.get("gbpaud_msa")),
+                        }
+
+                # ------------------------------------------------
+                # CARD 2 — CANONICAL (nested)
                 # ------------------------------------------------
                 try:
                     if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
@@ -1460,7 +1787,6 @@ def webhook():
                 except Exception:
                     pass
 
-                # ------------------------------------------------
                 if "type" in data:
                     try:
                         _parse_typed_payload(data)
@@ -1475,13 +1801,17 @@ def webhook():
                     except Exception:
                         pass
 
+                # ------------------------------------------------
+                # Recompute Macro V2 derived states
+                # ------------------------------------------------
+                _apply_macro_v2_normalisation()
+
                 _recompute_war_from_secret()
                 _update_monitor_lane(meta)
 
                 # snapshot for client OUTSIDE lock
                 payload = copy.deepcopy(STATE)
 
-                # decide what happens OUTSIDE lock
                 do_save = True
                 emit_event = "macro_update"
                 emit_payload = payload
@@ -1505,6 +1835,8 @@ def webhook():
         msg = str(e)
         _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
         return jsonify({"ok": False, "error": msg}), 400
+
+
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
