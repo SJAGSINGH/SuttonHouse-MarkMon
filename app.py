@@ -16,7 +16,7 @@ app = Flask(__name__, static_folder="static")
 # ✅ Threading mode (works with Gunicorn gthreads)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "toffees").strip()
+VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD")).strip()
 
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
