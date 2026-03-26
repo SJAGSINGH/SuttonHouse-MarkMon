@@ -679,6 +679,12 @@ def _load_state_from_disk() -> None:
                     STATE[k] = cached.get(k)
 
             # -----------------------------------------
+            # Macro V2
+            # -----------------------------------------
+            if isinstance(cached.get("macro_v2"), dict):
+                STATE["macro_v2"] = cached.get("macro_v2")
+
+            # -----------------------------------------
             # Card 2
             # -----------------------------------------
             if isinstance(cached.get("card2"), dict):
@@ -717,7 +723,6 @@ def _load_state_from_disk() -> None:
 
     except Exception as e:
         print("State load error:", e)
-
 
 def _save_state_to_disk() -> None:
     try:
