@@ -3245,10 +3245,16 @@ function applyPublicFromState(data){
     const t3 = document.getElementById('track-3');
     const fill3 = document.getElementById('fill-3');
     if (t3) t3.style.display = 'none';
-    if (fill3) { fill3.style.width = '0%'; }
+    if (fill3) fill3.style.width = '0%';
+
+    const phaseEl = document.getElementById('c3-phase');
+    if (phaseEl){
+      phaseEl.textContent = 'PHASE: —';
+      phaseEl.style.color = 'rgba(255,255,255,0.60)';
+    }
   }
 
-    // ============================================================
+  // ============================================================
   // CARD 1 — REGIME + VOL (Pine truth)
   // Uses: data.regime (fallback data.card1)
   // ============================================================
@@ -3257,9 +3263,8 @@ function applyPublicFromState(data){
     const s1 = document.getElementById('sub-1');
     const c1 = document.getElementById('card-1');
 
-    // Pine truth: regime is a string like "EQUITIES" / "COMMODITIES"
     const regimeRaw = String(data?.regime || data?.card1 || '').trim();
-    const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
+    const dir = rscRegimeDirection(data?.regime || data?.card1);
 
     if (v1){
       if (!regimeRaw){
@@ -3281,10 +3286,7 @@ function applyPublicFromState(data){
       else c1.classList.add('halo-bg-silver');
     }
 
-    // Vol line (Pine: data.vol)
     const vol = String(data?.vol || '').toUpperCase();
-
-    // --- Macro V2 context (silent influence only) ---
     const walclState = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
 
     if (s1){
@@ -3303,19 +3305,14 @@ function applyPublicFromState(data){
           color = 'var(--lime)';
         }
         else if (vol === 'EXPANSION'){
-          color = '#8a8f98'; // neutral grey
+          color = '#8a8f98';
         }
 
-        // WALCL context (subtle adjust)
-        if (walclState === 'CONTRACTING'){
-          if (vol === 'STABLE'){
-            color = '#c7a96b'; // slightly duller amber tone
-          }
+        if (walclState === 'CONTRACTING' && vol === 'STABLE'){
+          color = '#c7a96b';
         }
-        else if (walclState === 'EXPANDING'){
-          if (vol === 'STABLE'){
-            color = 'var(--lime)';
-          }
+        else if (walclState === 'EXPANDING' && vol === 'STABLE'){
+          color = 'var(--lime)';
         }
 
         s1.style.color = color;
@@ -3337,7 +3334,6 @@ function applyPublicFromState(data){
     const intEl = document.getElementById('c1-internal');
     const fxEl  = document.getElementById('c1-fx');
 
-    // LIQUIDITY
     if (liqEl){
       liqEl.textContent = `LIQUIDITY: ${walclState2 || '—'}`;
       liqEl.style.color =
@@ -3345,14 +3341,12 @@ function applyPublicFromState(data){
         walclState2 === 'STABILISING' ? 'var(--orange)' :
         walclState2 === 'CONTRACTING' ? 'var(--red)' :
                                         'rgba(255,255,255,0.60)';
-
       setTooltip(
         liqEl,
         walclExplain || 'Liquidity regime derived from central bank balance sheet behaviour.'
       );
     }
 
-    // INTERNAL
     if (intEl){
       intEl.textContent = `INTERNAL: ${internalState2 || '—'}`;
       intEl.style.color =
@@ -3360,121 +3354,106 @@ function applyPublicFromState(data){
         internalState2 === 'TRANSITIONAL'     ? 'var(--orange)' :
         internalState2 === 'GROWTH ALIGNMENT' ? 'var(--red)' :
                                                 'rgba(255,255,255,0.60)';
-
       setTooltip(
         intEl,
         internalExplain || 'Internal commodity alignment (Gold vs Silver / Copper structure).'
       );
     }
 
-    // FX
     if (fxEl){
       fxEl.textContent = `FX: ${fxContext2 || '—'}`;
       fxEl.style.color =
         fxContext2 === 'TAILWIND' ? 'var(--lime)' :
         fxContext2 === 'HEADWIND' ? 'var(--red)' :
                                     'rgba(255,255,255,0.60)';
-
       setTooltip(
         fxEl,
         fxExplain || 'Currency pressure on commodity exposure (GBP vs CAD/AUD).'
       );
     }
   }
+
   // ============================================================
   // CARD 3 — CYCLE CLOCK (0–120 canonical)
-  // Pine truth: data.cycle = 0..120
-  // UI: bar + maturity use pct, but system truth remains count.
   // ============================================================
   {
     const raw = data?.cycle;
-    if (raw === undefined || raw === null) return;
 
-    const count = Number(raw);                 // 0..120 (truth)
-    if (!Number.isFinite(count)) return;
+    if (!(raw === undefined || raw === null)) {
+      const count = Number(raw);
+      if (Number.isFinite(count)) {
+        const CAP = 120;
+        const clipped = Math.max(0, Math.min(CAP, count));
+        const pct = Math.round((clipped / CAP) * 100);
 
-    const CAP = 120;
-    const clipped = Math.max(0, Math.min(CAP, count));
-    const pct = Math.round((clipped / CAP) * 100);   // 0..100 for bar + maturity
+        const v3  = document.getElementById('val-3');
+        const s3  = document.getElementById('sub-3');
+        const c3  = document.getElementById('card-3');
+        const t3b = document.getElementById('track-3');
+        const f3b = document.getElementById('fill-3');
 
-    const v3  = document.getElementById('val-3');
-    const s3  = document.getElementById('sub-3');
-    const c3  = document.getElementById('card-3');
-    const t3b = document.getElementById('track-3');
-    const f3b = document.getElementById('fill-3');
+        if (t3b) t3b.style.display = 'block';
+        if (f3b) f3b.style.width = `${pct}%`;
 
-    // bar
-    if (t3b) t3b.style.display = 'block';
-    if (f3b) f3b.style.width = `${pct}%`;
+        const phaseName = String(data?.macro_v2?.phase?.name || '').toUpperCase();
+        const phaseIdRaw = data?.macro_v2?.phase?.id;
+        const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
 
-    // ============================
-    // PHASE (with number)
-    // ============================
-    const phaseName = String(data?.macro_v2?.phase?.name || "").toUpperCase();
-    const phaseIdRaw = data?.macro_v2?.phase?.id;
-    const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
+        const phaseEl = document.getElementById('c3-phase');
+        if (phaseEl){
+          if (phaseId && phaseName){
+            phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
+            phaseEl.style.color = phaseId >= 4 ? 'var(--red)' : 'var(--lime)';
+          }
+          else if (phaseName){
+            phaseEl.textContent = `PHASE: ${phaseName}`;
+            phaseEl.style.color = 'var(--lime)';
+          }
+          else {
+            phaseEl.textContent = 'PHASE: —';
+            phaseEl.style.color = 'rgba(255,255,255,0.60)';
+          }
+        }
 
-    const phaseEl = document.getElementById("c3-phase");
-    if (phaseEl){
-      if (phaseId && phaseName){
-        phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
-        setClassOnly(phaseEl, mv2ToneClass(phaseName));
-      } 
-      else if (phaseName){
-        phaseEl.textContent = `PHASE: ${phaseName}`;
-        setClassOnly(phaseEl, mv2ToneClass(phaseName));
-      } 
-      else {
-        phaseEl.textContent = "PHASE: —";
-        setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
+        if (s3) s3.innerText = `MATURITY: ${pct}%`;
+
+        const stage = rscClockStage(pct) || 'INITIATING';
+        const dir = rscRegimeDirection(data?.regime || data?.card1);
+
+        if (typeof window.applyFounderHaze === 'function') {
+          window.applyFounderHaze(dir);
+        }
+
+        let headline = `NO REGIME → ${stage}`;
+        let cardClass = 'card halo-bg-silver';
+        let fillCol = 'var(--silver)';
+
+        if (dir === 'REAL'){
+          headline = `REAL ASSET REGIME → ${stage}`;
+          cardClass = 'card halo-bg-gold';
+          fillCol = 'var(--gold)';
+        } else if (dir === 'FIN'){
+          headline = `FINANCIAL ASSET REGIME → ${stage}`;
+          cardClass = 'card halo-bg-steel';
+          fillCol = 'var(--steel)';
+        }
+
+        if (pct >= 86){
+          cardClass = 'card glow-danger';
+          fillCol = 'var(--red)';
+        } else if (pct >= 71){
+          cardClass = 'card glow-warning';
+          fillCol = 'var(--orange)';
+        }
+
+        if (v3){
+          v3.innerText = headline;
+          v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
+        }
+        if (c3) c3.className = cardClass;
+        if (f3b) f3b.style.background = fillCol;
       }
     }
-
-    // ============================
-    // MATURITY (now below phase)
-    // ============================
-    if (s3) s3.innerText = `MATURITY: ${pct}%`;
-
-    // ============================
-    // STAGE LOGIC (unchanged)
-    // ============================
-    const stage = rscClockStage(pct) || 'INITIATING';
-
-    // regime direction MUST come from regime string, not cycle
-    const regimeRaw2 = String(data?.regime || data?.card1 || '').trim();
-    const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
-
-    window.applyFounderHaze(dir);
-
-    let headline = `NO REGIME → ${stage}`;
-    let cardClass = 'card halo-bg-silver';
-    let fillCol = 'var(--silver)';
-
-    if (dir === 'REAL'){
-      headline = `REAL ASSET REGIME → ${stage}`;
-      cardClass = 'card halo-bg-gold';
-      fillCol = 'var(--gold)';
-    } else if (dir === 'FIN'){
-      headline = `FINANCIAL ASSET REGIME → ${stage}`;
-      cardClass = 'card halo-bg-steel';
-      fillCol = 'var(--steel)';
-    }
-
-    // late/end overlays (based on pct, not count)
-    if (pct >= 86){
-      cardClass = 'card glow-danger';
-      fillCol = 'var(--red)';
-    } else if (pct >= 71){
-      cardClass = 'card glow-warning';
-      fillCol = 'var(--orange)';
-    }
-
-    if (v3){
-      v3.innerText = headline;
-      v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
-    }
-    if (c3) c3.className = cardClass;
-    if (f3b) f3b.style.background = fillCol;
   }
 }
 
