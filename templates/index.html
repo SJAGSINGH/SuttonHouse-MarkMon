@@ -1666,14 +1666,14 @@ main.grid > #cr-dump-full{
     </div>
 
 
-    <div class="card" id="card-3">
-     <h3 id="h3-3">CYCLE CLOCK</h3>
-     <div class="primary-text" id="val-3">AWAITING</div>
-     <div class="secondary-text" id="sub-3"></div>
-     <div class="macro-v2-line macro-v2-neutral" id="c3-phase" style="margin-top:8px;">PHASE: —</div>
-     <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
-     <div id="gauge-3" style="display:none;"></div>
-   </div>
+ <div class="card" id="card-3">
+   <h3 id="h3-3">CYCLE CLOCK</h3>
+   <div class="primary-text" id="val-3">AWAITING</div>
+   <div class="macro-v2-line macro-v2-neutral" id="c3-phase" style="margin-top:10px;">PHASE: —</div>
+   <div class="secondary-text" id="sub-3"></div>
+   <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
+   <div id="gauge-3" style="display:none;"></div>
+</div>
     
    <div class="card" id="card-4">
   <h3>Recession Pulse</h3>
@@ -3352,15 +3352,37 @@ function mv2ToneClass(v){
   if (f3b) f3b.style.width = `${pct}%`;
 
   // maturity line (percent)
-  if (s3) s3.innerText = `MATURITY: ${pct}%`;
+    // ============================
+  // PHASE (with number)
+  // ============================
   const phaseName = String(data?.macro_v2?.phase?.name || "").toUpperCase();
+  const phaseIdRaw = data?.macro_v2?.phase?.id;
+  const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
+
   const phaseEl = document.getElementById("c3-phase");
   if (phaseEl){
-    phaseEl.textContent = `PHASE: ${phaseName || "—"}`;
-    setClassOnly(phaseEl, mv2ToneClass(phaseName));
+    if (phaseId && phaseName){
+      phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
+      setClassOnly(phaseEl, mv2ToneClass(phaseName));
+    } 
+    else if (phaseName){
+      phaseEl.textContent = `PHASE: ${phaseName}`;
+      setClassOnly(phaseEl, mv2ToneClass(phaseName));
+    } 
+    else {
+      phaseEl.textContent = "PHASE: —";
+      setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
+    }
   }
-  // stage logic: choose ONE truth
-  // If your rscClockStage expects 0..100 -> pass pct
+
+  // ============================
+  // MATURITY (now below phase)
+  // ============================
+  if (s3) s3.innerText = `MATURITY: ${pct}%`;
+
+  // ============================
+  // STAGE LOGIC (unchanged)
+  // ============================
   const stage = rscClockStage(pct) || 'INITIATING';
 
   // regime direction MUST come from regime string, not cycle
