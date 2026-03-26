@@ -694,6 +694,30 @@ body.war-room .scada-card{
   .mono{
     font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+
+ /* ============================
+   MACRO V2 INLINE LINES
+============================ */
+.macro-v2-lines{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.macro-v2-line{
+  font-size:10px;
+  letter-spacing:1.3px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.68);
+  line-height:1.2;
+}
+
+.macro-v2-good{ color: var(--lime); }
+.macro-v2-warn{ color: var(--orange); }
+.macro-v2-bad{  color: var(--red); }
+.macro-v2-neutral{ color: rgba(255,255,255,0.60); }
+ 
 /* ============================
    SENTINEL STRIP
 ============================ */
@@ -1620,12 +1644,19 @@ main.grid > #cr-dump-full{
 
  
   <main class="grid">
-    <div class="card" id="card-1">
-      <h3 id="h3-1">Regime &amp; Volatility</h3>
-      <div class="primary-text" id="val-1">AWAITING</div>
-      <div class="secondary-text" id="sub-1"></div>
-      <div id="gauge-1" style="display:none;"></div>
-    </div>
+   <div class="card" id="card-1">
+    <h3 id="h3-1">Regime &amp; Volatility</h3>
+    <div class="primary-text" id="val-1">AWAITING</div>
+    <div class="secondary-text" id="sub-1"></div>
+
+   <div class="macro-v2-lines" id="macro-v2-card1">
+     <div class="macro-v2-line macro-v2-neutral" id="c1-liquidity">LIQUIDITY: —</div>
+     <div class="macro-v2-line macro-v2-neutral" id="c1-internal">INTERNAL: —</div>
+     <div class="macro-v2-line macro-v2-neutral" id="c1-fx">FX: —</div>
+   </div>
+
+  <div id="gauge-1" style="display:none;"></div>
+</div>
 
     <div class="card" id="card-2">
       <h3 id="h3-2">Regime &amp; Volatility</h3>
@@ -1636,12 +1667,13 @@ main.grid > #cr-dump-full{
 
 
     <div class="card" id="card-3">
-      <h3 id="h3-3">CYCLE CLOCK</h3>
-      <div class="primary-text" id="val-3">AWAITING</div>
-      <div class="secondary-text" id="sub-3"></div>
-      <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
-      <div id="gauge-3" style="display:none;"></div>
-    </div>
+     <h3 id="h3-3">CYCLE CLOCK</h3>
+     <div class="primary-text" id="val-3">AWAITING</div>
+     <div class="secondary-text" id="sub-3"></div>
+     <div class="macro-v2-line macro-v2-neutral" id="c3-phase" style="margin-top:8px;">PHASE: —</div>
+     <div class="track" id="track-3"><div class="fill" id="fill-3"></div></div>
+     <div id="gauge-3" style="display:none;"></div>
+   </div>
     
    <div class="card" id="card-4">
   <h3>Recession Pulse</h3>
@@ -3149,6 +3181,28 @@ if (typeof window.applyFounderHaze !== "function") {
   };
 }
 
+  function setClassOnly(el, cls){
+  if (!el) return;
+  el.className = cls;
+}
+
+function mv2ToneClass(v){
+  const s = String(v || "").toUpperCase();
+
+  if (["EXPANDING","GOLD ALIGNMENT","TAILWIND","STRENGTHENING","ACCUMULATION","EXPANSION"].includes(s)) {
+    return "macro-v2-line macro-v2-good";
+  }
+
+  if (["STABILISING","TRANSITIONAL","NEUTRAL","MATURATION"].includes(s)) {
+    return "macro-v2-line macro-v2-warn";
+  }
+
+  if (["CONTRACTING","HEADWIND","GROWTH ALIGNMENT","WEAKENING","DISTRIBUTION"].includes(s)) {
+    return "macro-v2-line macro-v2-bad";
+  }
+
+  return "macro-v2-line macro-v2-neutral";
+} 
   // ----------------------------
   // PUBLIC APPLY
   // ----------------------------
@@ -3220,6 +3274,9 @@ if (typeof window.applyFounderHaze !== "function") {
   // Vol line (Pine: data.vol)
   const vol = String(data?.vol || '').toUpperCase();
 
+  // --- Macro V2 context (silent influence only) ---
+  const walclState = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
+
   if (s1){
     if (!vol){
       s1.innerText = '';
@@ -3227,18 +3284,40 @@ if (typeof window.applyFounderHaze !== "function") {
     } else {
       s1.innerText = `VOLATILITY: ${vol}`;
 
+      // ============================
+      // BASE VOL COLOUR (PRIMARY)
+      // ============================
+      let color = 'var(--text)';
+
       if (vol === 'COMPRESSION'){
-        s1.style.color = 'var(--amber)';
+        color = 'var(--amber)';
       }
       else if (vol === 'STABLE'){
-        s1.style.color = 'var(--lime)';
+        color = 'var(--lime)';
       }
       else if (vol === 'EXPANSION'){
-        s1.style.color = '#8a8f98'; // neutral grey
+        color = '#8a8f98'; // neutral grey
       }
-      else{
-        s1.style.color = 'var(--text)';
+
+      // ============================
+      // WALCL CONTEXT (SUBTLE ADJUST)
+      // ============================
+      // Only influence if meaningful
+      if (walclState === 'CONTRACTING'){
+        // reinforce risk tone slightly
+        if (vol === 'STABLE'){
+          color = '#c7a96b'; // slightly duller amber tone
+        }
       }
+      else if (walclState === 'EXPANDING'){
+        // reinforce supportive tone slightly
+        if (vol === 'STABLE'){
+          color = 'var(--lime)';
+        }
+      }
+      // STABILISING / NEUTRAL → no change (important)
+
+      s1.style.color = color;
     }
   }
 }
@@ -3274,7 +3353,12 @@ if (typeof window.applyFounderHaze !== "function") {
 
   // maturity line (percent)
   if (s3) s3.innerText = `MATURITY: ${pct}%`;
-
+  const phaseName = String(data?.macro_v2?.phase?.name || "").toUpperCase();
+  const phaseEl = document.getElementById("c3-phase");
+  if (phaseEl){
+    phaseEl.textContent = `PHASE: ${phaseName || "—"}`;
+    setClassOnly(phaseEl, mv2ToneClass(phaseName));
+  }
   // stage logic: choose ONE truth
   // If your rscClockStage expects 0..100 -> pass pct
   const stage = rscClockStage(pct) || 'INITIATING';
@@ -3346,6 +3430,20 @@ if (typeof window.applyFounderHaze !== "function") {
     const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
     const sellL = Number.isFinite(sell.level) ? sell.level : 0;
     showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
+    const liqEl = document.getElementById("c1-liquidity");
+    const intEl = document.getElementById("c1-internal");
+    const fxEl  = document.getElementById("c1-fx");
+    const phaseEl = document.getElementById("c3-phase");
+
+    if (liqEl) liqEl.textContent = "LIQUIDITY: —";
+    if (intEl) intEl.textContent = "INTERNAL: —";
+    if (fxEl)  fxEl.textContent  = "FX: —";
+    if (phaseEl) phaseEl.textContent = "PHASE: —";
+
+    if (liqEl) setClassOnly(liqEl, "macro-v2-line macro-v2-neutral");
+    if (intEl) setClassOnly(intEl, "macro-v2-line macro-v2-neutral");
+    if (fxEl)  setClassOnly(fxEl,  "macro-v2-line macro-v2-neutral");
+    if (phaseEl) setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
   }
 
   // ----------------------------
