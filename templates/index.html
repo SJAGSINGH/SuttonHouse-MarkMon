@@ -3271,76 +3271,54 @@ function mv2ToneClass(v){
     else c1.classList.add('halo-bg-silver');
   }
 
- // Vol line (Pine: data.vol)
-const vol = String(data?.vol || '').toUpperCase();
+  // Vol line (Pine: data.vol)
+  const vol = String(data?.vol || '').toUpperCase();
 
-// --- Macro V2 context (silent influence only) ---
-const walclState    = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
-const internalState = String(data?.macro_v2?.internal?.state || '').toUpperCase();
-const fxContext     = String(data?.macro_v2?.fx?.context || '').toUpperCase();
+  // --- Macro V2 context (silent influence only) ---
+  const walclState = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
 
-if (s1){
-  if (!vol){
-    s1.innerText = '';
-    s1.style.color = 'var(--text)';
-  } else {
-    s1.innerText = `VOLATILITY: ${vol}`;
+  if (s1){
+    if (!vol){
+      s1.innerText = '';
+      s1.style.color = 'var(--text)';
+    } else {
+      s1.innerText = `VOLATILITY: ${vol}`;
 
-    // ============================
-    // BASE VOL COLOUR (PRIMARY)
-    // ============================
-    let color = 'var(--text)';
+      // ============================
+      // BASE VOL COLOUR (PRIMARY)
+      // ============================
+      let color = 'var(--text)';
 
-    if (vol === 'COMPRESSION'){
-      color = 'var(--amber)';
-    }
-    else if (vol === 'STABLE'){
-      color = 'var(--lime)';
-    }
-    else if (vol === 'EXPANSION'){
-      color = '#8a8f98'; // neutral grey
-    }
-
-    // ============================
-    // WALCL CONTEXT (SUBTLE ADJUST)
-    // ============================
-    if (walclState === 'CONTRACTING'){
-      if (vol === 'STABLE'){
-        color = '#c7a96b'; // slight risk tone
+      if (vol === 'COMPRESSION'){
+        color = 'var(--amber)';
       }
-    }
-    else if (walclState === 'EXPANDING'){
-      if (vol === 'STABLE'){
+      else if (vol === 'STABLE'){
         color = 'var(--lime)';
       }
+      else if (vol === 'EXPANSION'){
+        color = '#8a8f98'; // neutral grey
+      }
+
+      // ============================
+      // WALCL CONTEXT (SUBTLE ADJUST)
+      // ============================
+      // Only influence if meaningful
+      if (walclState === 'CONTRACTING'){
+        // reinforce risk tone slightly
+        if (vol === 'STABLE'){
+          color = '#c7a96b'; // slightly duller amber tone
+        }
+      }
+      else if (walclState === 'EXPANDING'){
+        // reinforce supportive tone slightly
+        if (vol === 'STABLE'){
+          color = 'var(--lime)';
+        }
+      }
+      // STABILISING / NEUTRAL → no change (important)
+
+      s1.style.color = color;
     }
-    // STABILISING / NEUTRAL → no change
-
-    s1.style.color = color;
-  }
-}
-
-// ============================================================
-// CARD 1 — MACRO V2 INLINE LINES (NOW ADDED)
-// ============================================================
-{
-  const liqEl = document.getElementById("c1-liquidity");
-  const intEl = document.getElementById("c1-internal");
-  const fxEl  = document.getElementById("c1-fx");
-
-  if (liqEl){
-    liqEl.textContent = `LIQUIDITY: ${walclState || "—"}`;
-    setClassOnly(liqEl, mv2ToneClass(walclState));
-  }
-
-  if (intEl){
-    intEl.textContent = `INTERNAL: ${internalState || "—"}`;
-    setClassOnly(intEl, mv2ToneClass(internalState));
-  }
-
-  if (fxEl){
-    fxEl.textContent = `FX: ${fxContext || "—"}`;
-    setClassOnly(fxEl, mv2ToneClass(fxContext));
   }
 }
 
