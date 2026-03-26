@@ -1850,7 +1850,16 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
-    
+   
+function setTooltip(el, text){
+  if (!el) return;
+  if (!text){
+    el.removeAttribute('title');
+  } else {
+    el.setAttribute('title', text);
+  }
+}
+   
 function srBox(k, v){
   const val = (v == null || v === "" ? "—" : String(v));
   return `
@@ -3239,7 +3248,7 @@ function applyPublicFromState(data){
     if (fill3) { fill3.style.width = '0%'; }
   }
 
-  // ============================================================
+    // ============================================================
   // CARD 1 — REGIME + VOL (Pine truth)
   // Uses: data.regime (fallback data.card1)
   // ============================================================
@@ -3285,9 +3294,6 @@ function applyPublicFromState(data){
       } else {
         s1.innerText = `VOLATILITY: ${vol}`;
 
-        // ============================
-        // BASE VOL COLOUR (PRIMARY)
-        // ============================
         let color = 'var(--text)';
 
         if (vol === 'COMPRESSION'){
@@ -3300,9 +3306,7 @@ function applyPublicFromState(data){
           color = '#8a8f98'; // neutral grey
         }
 
-        // ============================
-        // WALCL CONTEXT (SUBTLE ADJUST)
-        // ============================
+        // WALCL context (subtle adjust)
         if (walclState === 'CONTRACTING'){
           if (vol === 'STABLE'){
             color = '#c7a96b'; // slightly duller amber tone
@@ -3313,23 +3317,27 @@ function applyPublicFromState(data){
             color = 'var(--lime)';
           }
         }
-        // STABILISING / NEUTRAL → no change
 
         s1.style.color = color;
       }
     }
 
     // ============================
-    // CARD 1 — MACRO V2 INLINE LINES
+    // CARD 1 — MACRO V2 INLINE LINES + TOOLTIPS
     // ============================
-    const walclState2    = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
-    const internalState2 = String(data?.macro_v2?.internal?.state || '').toUpperCase();
-    const fxContext2     = String(data?.macro_v2?.fx?.context || '').toUpperCase();
+    const walclState2     = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
+    const internalState2  = String(data?.macro_v2?.internal?.state || '').toUpperCase();
+    const fxContext2      = String(data?.macro_v2?.fx?.context || '').toUpperCase();
+
+    const walclExplain    = String(data?.macro_v2?.walcl?.explain || '');
+    const internalExplain = String(data?.macro_v2?.internal?.explain || '');
+    const fxExplain       = String(data?.macro_v2?.fx?.explain || '');
 
     const liqEl = document.getElementById('c1-liquidity');
     const intEl = document.getElementById('c1-internal');
     const fxEl  = document.getElementById('c1-fx');
 
+    // LIQUIDITY
     if (liqEl){
       liqEl.textContent = `LIQUIDITY: ${walclState2 || '—'}`;
       liqEl.style.color =
@@ -3337,8 +3345,14 @@ function applyPublicFromState(data){
         walclState2 === 'STABILISING' ? 'var(--orange)' :
         walclState2 === 'CONTRACTING' ? 'var(--red)' :
                                         'rgba(255,255,255,0.60)';
+
+      setTooltip(
+        liqEl,
+        walclExplain || 'Liquidity regime derived from central bank balance sheet behaviour.'
+      );
     }
 
+    // INTERNAL
     if (intEl){
       intEl.textContent = `INTERNAL: ${internalState2 || '—'}`;
       intEl.style.color =
@@ -3346,17 +3360,27 @@ function applyPublicFromState(data){
         internalState2 === 'TRANSITIONAL'     ? 'var(--orange)' :
         internalState2 === 'GROWTH ALIGNMENT' ? 'var(--red)' :
                                                 'rgba(255,255,255,0.60)';
+
+      setTooltip(
+        intEl,
+        internalExplain || 'Internal commodity alignment (Gold vs Silver / Copper structure).'
+      );
     }
 
+    // FX
     if (fxEl){
       fxEl.textContent = `FX: ${fxContext2 || '—'}`;
       fxEl.style.color =
         fxContext2 === 'TAILWIND' ? 'var(--lime)' :
         fxContext2 === 'HEADWIND' ? 'var(--red)' :
                                     'rgba(255,255,255,0.60)';
+
+      setTooltip(
+        fxEl,
+        fxExplain || 'Currency pressure on commodity exposure (GBP vs CAD/AUD).'
+      );
     }
   }
-
   // ============================================================
   // CARD 3 — CYCLE CLOCK (0–120 canonical)
   // Pine truth: data.cycle = 0..120
