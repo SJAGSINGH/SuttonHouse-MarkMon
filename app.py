@@ -1711,6 +1711,51 @@ def webhook():
                 # ------------------------------------------------
                 # MACRO V2 LANES
                 # ------------------------------------------------
+                if "macro_v2" not in STATE or not isinstance(STATE.get("macro_v2"), dict):
+                    STATE["macro_v2"] = {
+                        "gc": {
+                            "state": None,
+                            "trend_50sma": None,
+                            "msa_pct": None,
+                            "valid_signal": None,
+                            "explain": None,
+                        },
+                        "gs": {
+                            "state": None,
+                            "trend_50sma": None,
+                            "msa_pct": None,
+                            "valid_signal": None,
+                            "explain": None,
+                        },
+                        "walcl": {
+                            "state": None,
+                            "trend": None,
+                            "roc": None,
+                            "explain": None,
+                        },
+                        "fx": {
+                            "gbpcad": {
+                                "state": None,
+                                "trend_50sma": None,
+                                "msa_pct": None,
+                            },
+                            "gbpaud": {
+                                "state": None,
+                                "trend_50sma": None,
+                                "msa_pct": None,
+                            },
+                            "context": None,
+                        },
+                        "internal": {
+                            "state": None,
+                            "explain": None,
+                        },
+                        "phase": {
+                            "id": None,
+                            "name": None,
+                        },
+                    }
+
                 if typ == "MACRO_V2_RATIO":
                     lane = str(data.get("lane") or "").strip().lower()
 
@@ -1814,6 +1859,7 @@ def webhook():
                 _recompute_war_from_secret()
                 _update_monitor_lane(meta)
                 print("MACRO_V2_STATE =", STATE.get("macro_v2"))
+
                 # snapshot for client OUTSIDE lock
                 payload = copy.deepcopy(STATE)
 
@@ -1840,8 +1886,6 @@ def webhook():
         msg = str(e)
         _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
         return jsonify({"ok": False, "error": msg}), 400
-
-
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
