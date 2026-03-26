@@ -3209,7 +3209,7 @@ function mv2ToneClass(v){
  // ----------------------------
   // PUBLIC APPLY
   // ----------------------------
-function applyPublicFromState(data){
+ function applyPublicFromState(data){
   const warActive = !!(data?.secret?.war?.active);
   document.body.classList.toggle('war-room', warActive);
   setWarBadge(warActive);
@@ -3220,10 +3220,11 @@ function applyPublicFromState(data){
     if (c) c.className = 'card';
   });
 
-  setText('val-2','SHORT-TERM PREFERENCE REMAINS');
-  setText('val-2b','UNCLEAR — MONITORING');
+  
+  setText('val-2','SHORT-TERM PREFERENCE REMAINS'); setText('val-2b','UNCLEAR — MONITORING');
 
-  // --- Card 1 defaults ONLY if regime not present in this update
+
+ // --- Card 1 defaults ONLY if regime not present in this update
   if (data?.regime == null && data?.card1 == null) {
     setText('val-1','AWAITING');
     setText('sub-1','');
@@ -3235,166 +3236,195 @@ function applyPublicFromState(data){
     setText('sub-3','');
     const t3 = document.getElementById('track-3');
     const fill3 = document.getElementById('fill-3');
-    const phaseEl = document.getElementById('c3-phase');
     if (t3) t3.style.display = 'none';
-    if (fill3) fill3.style.width = '0%';
-    if (phaseEl) phaseEl.textContent = 'PHASE: —';
+    if (fill3) { fill3.style.width = '0%'; }
   }
 
-  // ============================================================
-  // CARD 1 — REGIME + VOL (Pine truth)
-  // Uses: data.regime (fallback data.card1)
-  // ============================================================
-  {
-    const v1 = document.getElementById('val-1');
-    const s1 = document.getElementById('sub-1');
-    const c1 = document.getElementById('card-1');
 
-    const regimeRaw = String(data?.regime || data?.card1 || '').trim();
-    const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
+ // ============================================================
+// CARD 1 — REGIME + VOL (Pine truth)
+// Uses: data.regime (fallback data.card1)
+// ============================================================
+{
+  const v1 = document.getElementById('val-1');
+  const s1 = document.getElementById('sub-1');
+  const c1 = document.getElementById('card-1');
 
-    if (v1){
-      if (!regimeRaw){
-        v1.innerText = 'AWAITING';
-      } else if (dir === 'REAL'){
-        v1.innerText = 'REAL ASSET REGIME';
-      } else if (dir === 'FIN'){
-        v1.innerText = 'FINANCIAL ASSET REGIME';
-      } else {
-        v1.innerText = regimeRaw.toUpperCase();
+  // Pine truth: regime is a string like "EQUITIES" / "COMMODITIES"
+  const regimeRaw = String(data?.regime || data?.card1 || '').trim();
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
+
+  if (v1){
+    if (!regimeRaw){
+      v1.innerText = 'AWAITING';
+    } else if (dir === 'REAL'){
+      v1.innerText = 'REAL ASSET REGIME';
+    } else if (dir === 'FIN'){
+      v1.innerText = 'FINANCIAL ASSET REGIME';
+    } else {
+      v1.innerText = regimeRaw.toUpperCase();
+    }
+    v1.style.color = 'var(--text)';
+  }
+
+  if (c1){
+    c1.className = 'card';
+    if (dir === 'REAL') c1.classList.add('halo-bg-gold');
+    else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
+    else c1.classList.add('halo-bg-silver');
+  }
+
+  // Vol line (Pine: data.vol)
+  const vol = String(data?.vol || '').toUpperCase();
+
+  // --- Macro V2 context (silent influence only) ---
+  const walclState = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
+
+  if (s1){
+    if (!vol){
+      s1.innerText = '';
+      s1.style.color = 'var(--text)';
+    } else {
+      s1.innerText = `VOLATILITY: ${vol}`;
+
+      // ============================
+      // BASE VOL COLOUR (PRIMARY)
+      // ============================
+      let color = 'var(--text)';
+
+      if (vol === 'COMPRESSION'){
+        color = 'var(--amber)';
       }
-      v1.style.color = 'var(--text)';
-    }
+      else if (vol === 'STABLE'){
+        color = 'var(--lime)';
+      }
+      else if (vol === 'EXPANSION'){
+        color = '#8a8f98'; // neutral grey
+      }
 
-    if (c1){
-      c1.className = 'card';
-      if (dir === 'REAL') c1.classList.add('halo-bg-gold');
-      else if (dir === 'FIN') c1.classList.add('halo-bg-steel');
-      else c1.classList.add('halo-bg-silver');
-    }
-
-    // Vol line
-    const vol = String(data?.vol || '').toUpperCase();
-
-    // Macro V2 values (safe reads only)
-    const walclState    = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
-    const internalState = String(data?.macro_v2?.internal?.state || '').toUpperCase();
-    const fxContext     = String(data?.macro_v2?.fx?.context || '').toUpperCase();
-
-    if (s1){
-      if (!vol){
-        s1.innerText = '';
-        s1.style.color = 'var(--text)';
-      } else {
-        s1.innerText = `VOLATILITY: ${vol}`;
-
-        let color = 'var(--text)';
-        if (vol === 'COMPRESSION') color = 'var(--amber)';
-        else if (vol === 'STABLE') color = 'var(--lime)';
-        else if (vol === 'EXPANSION') color = '#8a8f98';
-
-        // subtle WALCL influence only
-        if (walclState === 'CONTRACTING' && vol === 'STABLE'){
-          color = '#c7a96b';
-        } else if (walclState === 'EXPANDING' && vol === 'STABLE'){
+      // ============================
+      // WALCL CONTEXT (SUBTLE ADJUST)
+      // ============================
+      // Only influence if meaningful
+      if (walclState === 'CONTRACTING'){
+        // reinforce risk tone slightly
+        if (vol === 'STABLE'){
+          color = '#c7a96b'; // slightly duller amber tone
+        }
+      }
+      else if (walclState === 'EXPANDING'){
+        // reinforce supportive tone slightly
+        if (vol === 'STABLE'){
           color = 'var(--lime)';
         }
-
-        s1.style.color = color;
       }
-    }
+      // STABILISING / NEUTRAL → no change (important)
 
-    // Card 1 extra Macro V2 lines (TEXT ONLY)
-    const liqEl = document.getElementById('c1-liquidity');
-    const intEl = document.getElementById('c1-internal');
-    const fxEl  = document.getElementById('c1-fx');
-
-    if (liqEl) liqEl.textContent = `LIQUIDITY: ${walclState || '—'}`;
-    if (intEl) intEl.textContent = `INTERNAL: ${internalState || '—'}`;
-    if (fxEl)  fxEl.textContent  = `FX: ${fxContext || '—'}`;
-  }
-
-  // ============================================================
-  // CARD 3 — CYCLE CLOCK (0–120 canonical)
-  // Pine truth: data.cycle = 0..120
-  // UI: bar + maturity use pct, but system truth remains count.
-  // ============================================================
-  {
-    const raw = data?.cycle;
-
-    if (!(raw === undefined || raw === null)) {
-      const count = Number(raw);
-
-      if (Number.isFinite(count)) {
-        const CAP = 120;
-        const clipped = Math.max(0, Math.min(CAP, count));
-        const pct = Math.round((clipped / CAP) * 100);
-
-        const v3  = document.getElementById('val-3');
-        const s3  = document.getElementById('sub-3');
-        const c3  = document.getElementById('card-3');
-        const t3b = document.getElementById('track-3');
-        const f3b = document.getElementById('fill-3');
-
-        if (t3b) t3b.style.display = 'block';
-        if (f3b) f3b.style.width = `${pct}%`;
-
-        // Phase text only (safe)
-        const phaseName = String(data?.macro_v2?.phase?.name || '').toUpperCase();
-        const phaseIdRaw = data?.macro_v2?.phase?.id;
-        const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
-        const phaseEl = document.getElementById('c3-phase');
-
-        if (phaseEl){
-          if (phaseId && phaseName){
-            phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
-          } else if (phaseName){
-            phaseEl.textContent = `PHASE: ${phaseName}`;
-          } else {
-            phaseEl.textContent = 'PHASE: —';
-          }
-        }
-
-        if (s3) s3.innerText = `MATURITY: ${pct}%`;
-
-        const stage = rscClockStage(pct) || 'INITIATING';
-        const dir = rscRegimeDirection(data?.regime || data?.card1);
-
-        if (typeof window.applyFounderHaze === 'function') {
-          window.applyFounderHaze(dir);
-        }
-
-        let headline = `NO REGIME → ${stage}`;
-        let cardClass = 'card halo-bg-silver';
-        let fillCol = 'var(--silver)';
-
-        if (dir === 'REAL'){
-          headline = `REAL ASSET REGIME → ${stage}`;
-          cardClass = 'card halo-bg-gold';
-          fillCol = 'var(--gold)';
-        } else if (dir === 'FIN'){
-          headline = `FINANCIAL ASSET REGIME → ${stage}`;
-          cardClass = 'card halo-bg-steel';
-          fillCol = 'var(--steel)';
-        }
-
-        if (pct >= 86){
-          cardClass = 'card glow-danger';
-          fillCol = 'var(--red)';
-        } else if (pct >= 71){
-          cardClass = 'card glow-warning';
-          fillCol = 'var(--orange)';
-        }
-
-        if (v3){
-          v3.innerText = headline;
-          v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
-        }
-        if (c3) c3.className = cardClass;
-        if (f3b) f3b.style.background = fillCol;
-      }
+      s1.style.color = color;
     }
   }
+}
+
+
+
+// ============================================================
+// CARD 3 — CYCLE CLOCK (0–120 canonical)
+// Pine truth: data.cycle = 0..120
+// UI: bar + maturity use pct, but system truth remains count.
+// ============================================================
+
+{
+  const raw = data?.cycle;
+  if (raw === undefined || raw === null) return;
+
+  const count = Number(raw);                 // 0..120 (truth)
+  if (!Number.isFinite(count)) return;
+
+  const CAP = 120;
+  const clipped = Math.max(0, Math.min(CAP, count));
+  const pct = Math.round((clipped / CAP) * 100);   // 0..100 for bar + maturity
+
+  const v3  = document.getElementById('val-3');
+  const s3  = document.getElementById('sub-3');
+  const c3  = document.getElementById('card-3');
+  const t3b = document.getElementById('track-3');
+  const f3b = document.getElementById('fill-3');
+
+  // bar
+  if (t3b) t3b.style.display = 'block';
+  if (f3b) f3b.style.width = `${pct}%`;
+
+  // maturity line (percent)
+    // ============================
+  // PHASE (with number)
+  // ============================
+  const phaseName = String(data?.macro_v2?.phase?.name || "").toUpperCase();
+  const phaseIdRaw = data?.macro_v2?.phase?.id;
+  const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
+
+  const phaseEl = document.getElementById("c3-phase");
+  if (phaseEl){
+    if (phaseId && phaseName){
+      phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
+      setClassOnly(phaseEl, mv2ToneClass(phaseName));
+    } 
+    else if (phaseName){
+      phaseEl.textContent = `PHASE: ${phaseName}`;
+      setClassOnly(phaseEl, mv2ToneClass(phaseName));
+    } 
+    else {
+      phaseEl.textContent = "PHASE: —";
+      setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
+    }
+  }
+
+  // ============================
+  // MATURITY (now below phase)
+  // ============================
+  if (s3) s3.innerText = `MATURITY: ${pct}%`;
+
+  // ============================
+  // STAGE LOGIC (unchanged)
+  // ============================
+  const stage = rscClockStage(pct) || 'INITIATING';
+
+  // regime direction MUST come from regime string, not cycle
+  const regimeRaw = String(data?.regime || data?.card1 || '').trim();
+  const dir = rscRegimeDirection(data?.regime || data?.card1); // REAL | FIN | null
+
+  window.applyFounderHaze(dir);
+
+
+  let headline = `NO REGIME → ${stage}`;
+  let cardClass = 'card halo-bg-silver';
+  let fillCol = 'var(--silver)';
+
+  if (dir === 'REAL'){
+    headline = `REAL ASSET REGIME → ${stage}`;
+    cardClass = 'card halo-bg-gold';
+    fillCol = 'var(--gold)';
+  } else if (dir === 'FIN'){
+    headline = `FINANCIAL ASSET REGIME → ${stage}`;
+    cardClass = 'card halo-bg-steel';
+    fillCol = 'var(--steel)';
+  }
+
+  // late/end overlays (based on pct, not count)
+  if (pct >= 86){
+    cardClass = 'card glow-danger';
+    fillCol = 'var(--red)';
+  } else if (pct >= 71){
+    cardClass = 'card glow-warning';
+    fillCol = 'var(--orange)';
+  }
+
+  if (v3){
+    v3.innerText = headline;
+    v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
+  }
+  if (c3) c3.className = cardClass;
+  if (f3b) f3b.style.background = fillCol;
+}
 }
 
 
@@ -3402,108 +3432,84 @@ function applyPublicFromState(data){
   // SECRET APPLY (unchanged)
   // ----------------------------
   function applySecretFromState(data){
-  const secret = (data && data.secret) ? data.secret : {};
-  const vix  = secret.vix  || {};
-  const gvz  = secret.gvz  || {};
-  const buy  = secret.buy  || {};
-  const sell = secret.sell || {};
-  const vold = secret.vold || {};
+    const secret = (data && data.secret) ? data.secret : {};
+    const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
+    const warActive = !!(secret && secret.war && secret.war.active);
+    document.body.classList.toggle('war-room', warActive); setWarBadge(false);
 
-  const warActive = !!(secret && secret.war && secret.war.active);
-  document.body.classList.toggle('war-room', warActive);
-  setWarBadge(false);
+    const v1 = document.getElementById('val-1'); const s1 = document.getElementById('sub-1'); const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3');
 
-  const v1 = document.getElementById('val-1');
-  const s1 = document.getElementById('sub-1');
-  const v2 = document.getElementById('val-2');
-  const s2 = document.getElementById('sub-2');
-  const v3 = document.getElementById('val-3');
-  const s3 = document.getElementById('sub-3');
+    const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
+    setText('val-1', xVal); setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL'); if (v1) v1.style.color = 'var(--text)'; if (s1) s1.style.color = 'var(--text)';
+    showGauge('gauge-1', vix.level, 'LEVEL', [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`], XY_COL);
 
-  const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
-  setText('val-1', xVal);
-  setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
-  if (v1) v1.style.color = 'var(--text)';
-  if (s1) s1.style.color = 'var(--text)';
+    const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
+    setText('val-2', yVal); setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL'); if (v2) v2.style.color = 'var(--text)'; if (s2) s2.style.color = 'var(--text)';
+    showGauge('gauge-2', gvz.level, 'LEVEL', [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`], XY_COL);
 
-  showGauge(
-    'gauge-1',
-    vix.level,
-    'LEVEL',
-    [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`],
-    XY_COL
-  );
+    const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
+    const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
+    setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
+    setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
+    if (v3) v3.style.color = 'var(--text)'; if (s3) s3.style.color = 'var(--text)';
 
-  const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
-  setText('val-2', yVal);
-  setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
-  if (v2) v2.style.color = 'var(--text)';
-  if (s2) s2.style.color = 'var(--text)';
+    const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
+    const sellL = Number.isFinite(sell.level) ? sell.level : 0;
+    showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
+    const liqEl = document.getElementById("c1-liquidity");
+    const intEl = document.getElementById("c1-internal");
+    const fxEl  = document.getElementById("c1-fx");
+    const phaseEl = document.getElementById("c3-phase");
 
-  showGauge(
-    'gauge-2',
-    gvz.level,
-    'LEVEL',
-    [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`],
-    XY_COL
-  );
+    if (liqEl) liqEl.textContent = "LIQUIDITY: —";
+    if (intEl) intEl.textContent = "INTERNAL: —";
+    if (fxEl)  fxEl.textContent  = "FX: —";
+    if (phaseEl) phaseEl.textContent = "PHASE: —";
 
-  const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
-  const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
-
-  setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-  setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-
-  if (v3) v3.style.color = 'var(--text)';
-  if (s3) s3.style.color = 'var(--text)';
-
-  const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-  const sellL = Number.isFinite(sell.level) ? sell.level : 0;
-
-  showDualGauge(
-    'gauge-3',
-    buyL,
-    sellL,
-    'PRESSURE',
-    [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]
-  );
-
-  // ============================================================
-  // CLEAR PUBLIC-ONLY MACRO V2 LINES IN SECRET MODE
-  // ============================================================
-  const liqEl   = document.getElementById('c1-liquidity');
-  const intEl   = document.getElementById('c1-internal');
-  const fxEl    = document.getElementById('c1-fx');
-  const phaseEl = document.getElementById('c3-phase');
-
-  if (liqEl){
-    liqEl.textContent = 'LIQUIDITY: —';
-    liqEl.style.color = 'var(--text-dim)';
-    liqEl.title = '';
-    liqEl.className = 'macro-v2-line macro-v2-neutral';
+    if (liqEl) setClassOnly(liqEl, "macro-v2-line macro-v2-neutral");
+    if (intEl) setClassOnly(intEl, "macro-v2-line macro-v2-neutral");
+    if (fxEl)  setClassOnly(fxEl,  "macro-v2-line macro-v2-neutral");
+    if (phaseEl) setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
   }
 
-  if (intEl){
-    intEl.textContent = 'INTERNAL: —';
-    intEl.style.color = 'var(--text-dim)';
-    intEl.title = '';
-    intEl.className = 'macro-v2-line macro-v2-neutral';
-  }
+  // ----------------------------
+  // MONITORING STATE APPLY (unchanged)
+  // ----------------------------
+  function applyMonitoringFromState(data){
+    const m = data && data.monitor ? data.monitor : {};
+    const ticker   = (m.ticker || '').toUpperCase();
+    const trigger  = (m.trigger || '').toUpperCase();
+    const status   = m.status || '';
+    const setup    = m.setup;
+    const trend    = (m.trend || '').toUpperCase();
+    const strategy = (m.strategy || '').toUpperCase();
+    const updated  = m.updated || '';
 
-  if (fxEl){
-    fxEl.textContent = 'FX: —';
-    fxEl.style.color = 'var(--text-dim)';
-    fxEl.title = '';
-    fxEl.className = 'macro-v2-line macro-v2-neutral';
-  }
+    const tickerEl = document.getElementById('mon-ticker');
+    const trigEl   = document.getElementById('mon-trigger');
+    const statusEl = document.getElementById('mon-status');
+    if (tickerEl) tickerEl.innerText = ticker || 'NO SYMBOL';
+    if (trigEl)   trigEl.innerText   = `TRIGGER: ${trigger || '—'}`;
+    if (statusEl) statusEl.innerText = status || 'AWAITING — NO ACTIVE MONITORING';
 
-  if (phaseEl){
-    phaseEl.textContent = 'PHASE: —';
-    phaseEl.style.color = 'var(--text-dim)';
-    phaseEl.title = '';
-    phaseEl.className = 'macro-v2-line macro-v2-neutral';
+    const setupEl = document.getElementById('mon-setup');
+    if (setupEl){ setupEl.className = 'badge'; if (setup === true || setup === 'ON'){ setupEl.classList.add('badge-warn'); setupEl.innerText = 'SETUP: ACTIVE'; } else { setupEl.innerText = 'SETUP: INACTIVE'; } }
+
+    const trendEl = document.getElementById('mon-trend');
+    if (trendEl){ trendEl.className = 'badge'; if (trend === 'ALIGNED'){ trendEl.classList.add('badge-good'); trendEl.innerText = 'TREND: ALIGNED'; } else if (trend === 'MISALIGNED'){ trendEl.classList.add('badge-bad'); trendEl.innerText = 'TREND: MISALIGNED'; } else { trendEl.innerText = 'TREND: —'; } }
+
+    const stratEl = document.getElementById('mon-strategy'); if (stratEl){ stratEl.className = 'badge'; stratEl.innerText = `STRATEGY: ${strategy || '—'}`; }
+    const updEl   = document.getElementById('mon-updated');  if (updEl){   updEl.innerText   = `UPDATED: ${updated || '—'}`; }
+
+    const card = document.getElementById('monitor-card');
+    if (card){
+      card.className = 'card card-wide';
+      const setupOn = (setup === true || setup === 'ON');
+      if (setupOn && trend === 'ALIGNED') card.classList.add('glow-lime');
+      if (trend === 'MISALIGNED')          card.classList.add('glow-danger');
+      if (setupOn && trend !== 'ALIGNED')  card.classList.add('glow-warning');
+    }
   }
-}
  function applyMessageFromState(data){
   const dir = rscRegimeDirection(data?.regime || data?.card1); // 'REAL' | 'FIN' | null
   const m = (data && data.message) ? data.message : {};
