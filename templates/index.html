@@ -3319,57 +3319,60 @@ function applyPublicFromState(data){
       }
     }
 
-    // ============================
+       // ============================
     // CARD 1 — MACRO V2 INLINE LINES + TOOLTIPS
+    // (DISABLED IN SECRET MODE)
     // ============================
-    const walclState2     = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
-    const internalState2  = String(data?.macro_v2?.internal?.state || '').toUpperCase();
-    const fxContext2      = String(data?.macro_v2?.fx?.context || '').toUpperCase();
+    if (!secretMode){
+      const walclState2     = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
+      const internalState2  = String(data?.macro_v2?.internal?.state || '').toUpperCase();
+      const fxContext2      = String(data?.macro_v2?.fx?.context || '').toUpperCase();
 
-    const walclExplain    = String(data?.macro_v2?.walcl?.explain || '');
-    const internalExplain = String(data?.macro_v2?.internal?.explain || '');
-    const fxExplain       = String(data?.macro_v2?.fx?.explain || '');
+      const walclExplain    = String(data?.macro_v2?.walcl?.explain || '');
+      const internalExplain = String(data?.macro_v2?.internal?.explain || '');
+      const fxExplain       = String(data?.macro_v2?.fx?.explain || '');
 
-    const liqEl = document.getElementById('c1-liquidity');
-    const intEl = document.getElementById('c1-internal');
-    const fxEl  = document.getElementById('c1-fx');
+      const liqEl = document.getElementById('c1-liquidity');
+      const intEl = document.getElementById('c1-internal');
+      const fxEl  = document.getElementById('c1-fx');
 
-    if (liqEl){
-      liqEl.textContent = `LIQUIDITY: ${walclState2 || '—'}`;
-      liqEl.style.color =
-        walclState2 === 'EXPANDING'   ? 'var(--lime)' :
-        walclState2 === 'STABILISING' ? 'var(--orange)' :
-        walclState2 === 'CONTRACTING' ? 'var(--red)' :
-                                        'rgba(255,255,255,0.60)';
-      setTooltip(
-        liqEl,
-        walclExplain || 'Liquidity regime derived from central bank balance sheet behaviour.'
-      );
-    }
+      if (liqEl){
+        liqEl.textContent = `LIQUIDITY: ${walclState2 || '—'}`;
+        liqEl.style.color =
+          walclState2 === 'EXPANDING'   ? 'var(--lime)' :
+          walclState2 === 'STABILISING' ? 'var(--orange)' :
+          walclState2 === 'CONTRACTING' ? 'var(--red)' :
+                                          'rgba(255,255,255,0.60)';
+        setTooltip(
+          liqEl,
+          walclExplain || 'Liquidity regime derived from central bank balance sheet behaviour.'
+        );
+      }
 
-    if (intEl){
-      intEl.textContent = `INTERNAL: ${internalState2 || '—'}`;
-      intEl.style.color =
-        internalState2 === 'GOLD ALIGNMENT'   ? 'var(--lime)' :
-        internalState2 === 'TRANSITIONAL'     ? 'var(--orange)' :
-        internalState2 === 'GROWTH ALIGNMENT' ? 'var(--red)' :
-                                                'rgba(255,255,255,0.60)';
-      setTooltip(
-        intEl,
-        internalExplain || 'Internal commodity alignment (Gold vs Silver / Copper structure).'
-      );
-    }
+      if (intEl){
+        intEl.textContent = `INTERNAL: ${internalState2 || '—'}`;
+        intEl.style.color =
+          internalState2 === 'GOLD ALIGNMENT'   ? 'var(--lime)' :
+          internalState2 === 'TRANSITIONAL'     ? 'var(--orange)' :
+          internalState2 === 'GROWTH ALIGNMENT' ? 'var(--red)' :
+                                                  'rgba(255,255,255,0.60)';
+        setTooltip(
+          intEl,
+          internalExplain || 'Internal commodity alignment (Gold vs Silver / Copper structure).'
+        );
+      }
 
-    if (fxEl){
-      fxEl.textContent = `FX: ${fxContext2 || '—'}`;
-      fxEl.style.color =
-        fxContext2 === 'TAILWIND' ? 'var(--lime)' :
-        fxContext2 === 'HEADWIND' ? 'var(--red)' :
-                                    'rgba(255,255,255,0.60)';
-      setTooltip(
-        fxEl,
-        fxExplain || 'Currency pressure on commodity exposure (GBP vs CAD/AUD).'
-      );
+      if (fxEl){
+        fxEl.textContent = `FX: ${fxContext2 || '—'}`;
+        fxEl.style.color =
+          fxContext2 === 'TAILWIND' ? 'var(--lime)' :
+          fxContext2 === 'HEADWIND' ? 'var(--red)' :
+                                      'rgba(255,255,255,0.60)';
+        setTooltip(
+          fxEl,
+          fxExplain || 'Currency pressure on commodity exposure (GBP vs CAD/AUD).'
+        );
+      }
     }
   }
 
