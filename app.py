@@ -1813,7 +1813,7 @@ def webhook():
 
                 _recompute_war_from_secret()
                 _update_monitor_lane(meta)
-
+                print("MACRO_V2_STATE =", STATE.get("macro_v2"))
                 # snapshot for client OUTSIDE lock
                 payload = copy.deepcopy(STATE)
 
