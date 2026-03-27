@@ -4217,34 +4217,39 @@ function applyAllFromState(data) {
       const meanTxt  = Number.isFinite(mean) ? String(mean.toFixed(1)) : "—";
       const pctTxt   = Number.isFinite(pctRaw) ? `${pctRaw.toFixed(1)}%` : "—";
 
-      host.innerHTML = `
-        <div class="gauge">
-          <div class="gauge-title">GC PRESSURE</div>
-          <div style="width:100%;">
-            <div style="
-              width:100%;
-              height:10px;
-              border-radius:999px;
-              background:rgba(255,255,255,0.08);
-              border:1px solid rgba(255,255,255,0.10);
-              overflow:hidden;
-            ">
-              <div style="
-                width:${fillPct}%;
-                height:100%;
-                background:${gaugeColor};
-                box-shadow:0 0 14px ${gaugeColor};
-                transition:width .45s ease;
-              "></div>
-            </div>
-            <div class="gmeta">
-              <div><strong>${gaugeLabel}</strong></div>
-              <div>STATE: ${latchState} • PHASE: ${phase}</div>
-              <div>COUNT: ${countTxt} • MEAN: ${meanTxt} • ${pctTxt}</div>
-            </div>
-          </div>
-        </div>
-      `;
+     const meanMode = String(gc?.mean_mode || "MANUAL").toUpperCase();
+
+host.innerHTML = `
+  <div class="gauge" style="align-items:flex-start; gap:14px; margin-top:16px;">
+    <div class="gauge-title" style="min-width:110px; padding-top:14px;">GC PRESSURE</div>
+    <div style="width:100%;">
+      <div style="
+        width:100%;
+        height:4px;
+        border-radius:999px;
+        background:rgba(255,255,255,0.08);
+        border:1px solid rgba(255,255,255,0.08);
+        overflow:hidden;
+        margin-top:2px;
+      ">
+        <div style="
+          width:${fillPct}%;
+          height:100%;
+          background:${gaugeColor};
+          box-shadow:0 0 10px ${gaugeColor};
+          transition:width .45s ease;
+        "></div>
+      </div>
+
+      <div class="gmeta" style="margin-top:12px;">
+        <div><strong>${gaugeLabel}</strong></div>
+        <div>STATE: ${latchState} • PHASE: ${phase}</div>
+        <div>COUNT: ${countTxt} • MEAN: ${meanTxt} • ${pctTxt}</div>
+        <div>MODE: ${meanMode}</div>
+      </div>
+    </div>
+  </div>
+`;
       host.style.display = "block";
     })();
   } else {
