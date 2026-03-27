@@ -1772,19 +1772,22 @@ def webhook():
                             # ------------------------
                             # NEW STRUCTURAL LAYER (GC PRESSURE ENGINE)
                             # ------------------------
-                            "latch_state": _normalise_str(data.get("gc_latch_state")),
-                            "latch_count": _safe_int(data.get("gc_latch_count")),
-                            "mean_duration": _safe_float(data.get("gc_mean_duration")),
+                            # ------------------------
+                            # NEW STRUCTURAL LAYER (GC PRESSURE ENGINE)
+                            # ------------------------
+                            "latch_state": _normalise_str(data.get("gc_latch_state")) or "NEUTRAL",
+                            "latch_count": _safe_int(data.get("gc_latch_count")) or 0,
+                            "mean_duration": _safe_float(data.get("gc_mean_duration")) or 0.0,
 
-                            "green_mean": _safe_float(data.get("gc_green_mean_duration")),
-                            "red_mean": _safe_float(data.get("gc_red_mean_duration")),
-                            "orange_mean": _safe_float(data.get("gc_orange_mean_duration")),
+                            "green_mean": _safe_float(data.get("gc_green_mean_duration")) or 0.0,
+                            "red_mean": _safe_float(data.get("gc_red_mean_duration")) or 0.0,
+                            "orange_mean": _safe_float(data.get("gc_orange_mean_duration")) or 0.0,
 
-                            "pct_of_mean": _safe_float(data.get("gc_pct")),
-                            "phase": _normalise_str(data.get("gc_phase")),
+                            "pct_of_mean": _safe_float(data.get("gc_pct")) or 0.0,
+                            "phase": _normalise_str(data.get("gc_phase")) or "UNSET",
 
-                            "support": data.get("gc_support"),
-                            "latch_changed": data.get("gc_latch_changed"),
+                            "support": bool(data.get("gc_support")),
+                            "latch_changed": bool(data.get("gc_latch_changed")),
                         }
 
                     elif lane == "gold_silver":
