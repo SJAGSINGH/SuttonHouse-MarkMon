@@ -3065,45 +3065,78 @@ function renderGcGauge(hostId, gc, s2Allowed){
   const host = document.getElementById(hostId);
   if (!host) return;
 
-  const active = !!s2Allowed;
-  const state  = String(gc?.latch_state || "NEUTRAL").toUpperCase();
-  const pct    = clampPct(gc?.pct_of_mean);
-  const phase  = String(gc?.phase || "UNSET").toUpperCase();
-  const count  = gc?.latch_count ?? "—";
-  const mean   = gc?.mean_duration ?? "—";
-  const color  = active ? gcStateColor(state) : "rgba(255,255,255,0.18)";
+  const active  = !!s2Allowed;
+  const state   = String(gc?.latch_state || "NEUTRAL").toUpperCase();
+  const phase   = String(gc?.phase || "UNSET").toUpperCase();
+  const count   = gc?.latch_count ?? "—";
+  const mean    = gc?.mean_duration ?? "—";
+  const pctRaw  = Number(gc?.pct_of_mean);
+  const pct     = Number.isFinite(pctRaw) ? Math.max(0, Math.min(160, pctRaw)) : 0;
   const fillPct = Math.max(0, Math.min(100, pct));
+  const color   = active ? gcStateColor(state) : "rgba(255,255,255,0.18)";
+  const mode    = String(gc?.mean_mode || "MANUAL").toUpperCase();
+
+  // hard reset host layout so old gauge styles cannot interfere
+  host.style.display = "block";
+  host.style.width = "100%";
+  host.style.margin = "14px 0 0 0";
+  host.style.padding = "0";
+  host.style.textAlign = "left";
 
   host.innerHTML = `
-  <div style="margin-top:16px; width:100%;">
-    <div class="gauge-title" style="min-width:0; margin-bottom:8px;">GC PRESSURE</div>
-
-    <div style="
-      width:100%;
-      height:4px;
-      border-radius:999px;
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.08);
-      overflow:hidden;
-    ">
+    <div style="display:block; width:100%; margin:0; padding:0; text-align:left;">
       <div style="
-        width:${fillPct}%;
-        height:100%;
-        background:${color};
-        box-shadow:0 0 10px ${color};
-        transition:width .45s ease;
-      "></div>
-    </div>
+        font-size:10px;
+        letter-spacing:2px;
+        text-transform:uppercase;
+        color:#8a8a8a;
+        margin:0 0 8px 0;
+        text-align:left;
+      ">GC PRESSURE</div>
 
-    <div class="gmeta" style="margin-top:12px; text-align:left;">
-      <div><strong>${active ? gcStateLabel(state) : "S2 NOT PERMITTED"}</strong></div>
-      <div>STATE: ${state} • PHASE: ${phase}</div>
-      <div>COUNT: ${count} • MEAN: ${mean} • ${pct.toFixed(1)}%</div>
-      <div>MODE: ${String(gc?.mean_mode || "MANUAL").toUpperCase()}</div>
+      <div style="
+        display:block;
+        width:100%;
+        margin:0;
+        padding:0;
+      ">
+        <div style="
+          width:100%;
+          height:4px;
+          border-radius:999px;
+          background:rgba(255,255,255,0.08);
+          border:1px solid rgba(255,255,255,0.08);
+          overflow:hidden;
+          margin:0;
+        ">
+          <div style="
+            width:${fillPct}%;
+            height:100%;
+            background:${color};
+            box-shadow:0 0 10px ${color};
+            transition:width .45s ease;
+          "></div>
+        </div>
+      </div>
+
+      <div style="
+        margin-top:12px;
+        text-align:left;
+        font-size:10px;
+        letter-spacing:1.4px;
+        text-transform:uppercase;
+        color:#8a8a8a;
+        line-height:1.45;
+      ">
+        <div style="margin:0 0 2px 0; color:#fff; font-weight:700;">
+          ${active ? gcStateLabel(state) : "S2 NOT PERMITTED"}
+        </div>
+        <div>STATE: ${state} • PHASE: ${phase}</div>
+        <div>COUNT: ${count} • MEAN: ${mean} • ${pct.toFixed(1)}%</div>
+        <div>MODE: ${mode}</div>
+      </div>
     </div>
-  </div>
-`;
-  host.style.display = "block";
+  `;
 }
   // ----------------------------
   // SECRET MODE
