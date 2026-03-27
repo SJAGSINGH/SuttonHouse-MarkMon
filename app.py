@@ -1758,14 +1758,33 @@ def webhook():
 
                 if typ == "MACRO_V2_RATIO":
                     lane = str(data.get("lane") or "").strip().lower()
-
                     if lane == "gold_copper":
                         STATE["macro_v2"]["gc"] = {
+                            # ------------------------
+                            # ORIGINAL FIELDS
+                            # ------------------------
                             "state": _normalise_str(data.get("state")),
                             "trend_50sma": _normalise_str(data.get("trend_50sma")),
                             "msa_pct": _safe_float(data.get("msa_pct")),
                             "valid_signal": data.get("valid_signal"),
                             "explain": _normalise_str(data.get("explain")),
+
+                            # ------------------------
+                            # NEW STRUCTURAL LAYER (GC PRESSURE ENGINE)
+                            # ------------------------
+                            "latch_state": _normalise_str(data.get("gc_latch_state")),
+                            "latch_count": _safe_int(data.get("gc_latch_count")),
+                            "mean_duration": _safe_float(data.get("gc_mean_duration")),
+
+                            "green_mean": _safe_float(data.get("gc_green_mean_duration")),
+                            "red_mean": _safe_float(data.get("gc_red_mean_duration")),
+                            "orange_mean": _safe_float(data.get("gc_orange_mean_duration")),
+
+                            "pct_of_mean": _safe_float(data.get("gc_pct")),
+                            "phase": _normalise_str(data.get("gc_phase")),
+
+                            "support": data.get("gc_support"),
+                            "latch_changed": data.get("gc_latch_changed"),
                         }
 
                     elif lane == "gold_silver":
