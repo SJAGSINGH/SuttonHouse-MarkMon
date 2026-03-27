@@ -1778,7 +1778,8 @@ def webhook():
                             "latch_state": _normalise_str(data.get("gc_latch_state")) or "NEUTRAL",
                             "latch_count": _safe_int(data.get("gc_latch_count")) or 0,
                             "mean_duration": _safe_float(data.get("gc_mean_duration")) or 0.0,
-
+                            "mean_mode": _normalise_str(data.get("gc_mean_mode")) or "MANUAL",
+                            
                             "green_mean": _safe_float(data.get("gc_green_mean_duration")) or 0.0,
                             "red_mean": _safe_float(data.get("gc_red_mean_duration")) or 0.0,
                             "orange_mean": _safe_float(data.get("gc_orange_mean_duration")) or 0.0,
