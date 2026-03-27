@@ -4254,6 +4254,62 @@ function applyAllFromState(data) {
      const meanMode = String(gc?.mean_mode || "MANUAL").toUpperCase();
 
 host.innerHTML = `
+  // ----------------------------
+      // GC PRESSURE GAUGE
+      // Active only when S2 allowed
+      // ----------------------------
+      const gc = data?.macro_v2?.gc || null;
+      const s2Allowed =
+        data?.s2_allowed === true ||
+        String(data?.s2_allowed).toLowerCase() === "true";
+
+      const host = document.getElementById("gauge-2");
+      if (!host) return;
+
+      if (!gc) {
+        host.style.display = "none";
+        host.innerHTML = "";
+        return;
+      }
+
+      const latchState = String(gc?.latch_state || "NEUTRAL").toUpperCase();
+      const phase      = String(gc?.phase || "UNSET").toUpperCase();
+      const count      = Number(gc?.latch_count);
+      const mean       = Number(gc?.mean_duration);
+      const pctRaw     = Number(gc?.pct_of_mean);
+
+      const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(160, pctRaw)) : 0;
+      const fillPct = Math.max(0, Math.min(100, pct));
+
+      let gaugeColor = "rgba(255,255,255,0.18)";
+      let gaugeLabel = "INACTIVE";
+
+      if (s2Allowed) {
+        if (latchState === "GREEN") {
+          gaugeColor = "var(--lime)";
+          gaugeLabel = "TREND SUPPORTED";
+        } else if (latchState === "RED") {
+          gaugeColor = "var(--red)";
+          gaugeLabel = "PULLBACK PRESSURE";
+        } else if (latchState === "ORANGE") {
+          gaugeColor = "var(--orange)";
+          gaugeLabel = "TRANSITION / BASING";
+        } else {
+          gaugeColor = "rgba(255,255,255,0.22)";
+          gaugeLabel = "INACTIVE";
+        }
+      } else {
+        gaugeColor = "rgba(255,255,255,0.18)";
+        gaugeLabel = "S2 NOT PERMITTED";
+      }
+
+      const countTxt = Number.isFinite(count) ? String(count) : "—";
+      const meanTxt  = Number.isFinite(mean) ? String(mean.toFixed(1)) : "—";
+      const pctTxt   = Number.isFinite(pctRaw) ? `${pctRaw.toFixed(1)}%` : "—";
+
+     const meanMode = String(gc?.mean_mode || "MANUAL").toUpperCase();
+
+host.innerHTML = `
   <div class="gauge" style="align-items:flex-start; gap:14px; margin-top:16px;">
     <div class="gauge-title" style="min-width:110px; padding-top:14px;">GC PRESSURE</div>
     <div style="width:100%;">
@@ -4284,6 +4340,16 @@ host.innerHTML = `
     </div>
   </div>
 `;
+      host.style.display = "block";
+    })();
+  } else {
+    const host = document.getElementById("gauge-2");
+    if (host) {
+      host.style.display = "none";
+      host.innerHTML = "";
+    }
+  }
+
       host.style.display = "block";
     })();
   } else {
