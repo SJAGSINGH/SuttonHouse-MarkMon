@@ -4190,7 +4190,7 @@ function applyAllFromState(data) {
       }
 
       // ----------------------------
-      // GC PRESSURE GAUGE
+      // TREND PRESSURE GAUGE
       // ----------------------------
       const gc = data?.macro_v2?.gc || null;
       const s2Allowed =
@@ -4248,58 +4248,58 @@ function applyAllFromState(data) {
       host.style.padding = "0";
       host.style.textAlign = "left";
 
-host.innerHTML = `
-  <div style="display:block; width:100%; margin:6px 0 0 0; padding:0; text-align:left;">
+      host.innerHTML = `
+        <div style="display:block; width:100%; margin:6px 0 0 0; padding:0; text-align:left;">
 
-    <div style="
-      font-size:9px;
-      letter-spacing:1.6px;
-      text-transform:uppercase;
-      color:#7a7a7a;
-      margin:0 0 4px 0;
-    ">TREND PRESSURE</div>
+          <div style="
+            font-size:9px;
+            letter-spacing:1.6px;
+            text-transform:uppercase;
+            color:#7a7a7a;
+            margin:0 0 4px 0;
+          ">TREND PRESSURE</div>
 
-    <div style="
-      width:100%;
-      height:3px;
-      border-radius:999px;
-      background:rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.06);
-      overflow:hidden;
-      margin:0 0 6px 0;
-    ">
-      <div style="
-        width:${fillPct}%;
-        height:100%;
-        background:${gaugeColor};
-        box-shadow:0 0 8px ${gaugeColor};
-        transition:width .4s ease;
-      "></div>
-    </div>
+          <div style="
+            width:100%;
+            height:3px;
+            border-radius:999px;
+            background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.06);
+            overflow:hidden;
+            margin:0 0 6px 0;
+          ">
+            <div style="
+              width:${fillPct}%;
+              height:100%;
+              background:${gaugeColor};
+              box-shadow:0 0 8px ${gaugeColor};
+              transition:width .4s ease;
+            "></div>
+          </div>
 
-    <div style="
-      text-align:left;
-      font-size:9px;
-      letter-spacing:1.2px;
-      text-transform:uppercase;
-      color:#8a8a8a;
-      line-height:1.25;
-    ">
-      <div style="color:#fff; font-weight:600; margin-bottom:2px;">
-        ${gaugeLabel}
-      </div>
+          <div style="
+            text-align:left;
+            font-size:9px;
+            letter-spacing:1.2px;
+            text-transform:uppercase;
+            color:#8a8a8a;
+            line-height:1.25;
+          ">
+            <div style="color:#fff; font-weight:600; margin-bottom:2px;">
+              ${gaugeLabel}
+            </div>
 
-      <div style="margin-bottom:1px;">
-        ${latchState} • ${phase}
-      </div>
+            <div style="margin-bottom:1px;">
+              ${latchState} • ${phase}
+            </div>
 
-      <div>
-        ${countTxt} • ${meanTxt} • ${meanMode} • ${pctTxt}
-      </div>
-    </div>
+            <div>
+              ${countTxt}/${meanTxt} (${pctTxt}) • ${meanMode}
+            </div>
+          </div>
 
-  </div>
-`;
+        </div>
+      `;
     })();
   } else {
     const host = document.getElementById("gauge-2");
@@ -4407,6 +4407,7 @@ host.innerHTML = `
     }
   })();
 }// ✅ CLOSE applyAllFromState()
+   
 window.applyAllFromState = applyAllFromState;
 
 
