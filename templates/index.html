@@ -4142,10 +4142,6 @@ function applyAllFromState(data) {
 
   // ============================================================
   // CARD 2 — SHORT-TERM BIAS + GC PRESSURE GAUGE (PUBLIC ONLY)
-  // Reads:
-  // - data.card2 = {state,text,time,tf,ref_id}
-  // - data.macro_v2.gc = structural GC layer
-  // Gauge is ACTIVE only when S2 is allowed.
   // ============================================================
   if (!secretMode) {
     (function applyCard2FromState() {
@@ -4157,7 +4153,6 @@ function applyAllFromState(data) {
       // headline fixed
       v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-      // nested truth
       const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
       const s2 = String(c2obj?.state || "").toUpperCase();
 
@@ -4172,14 +4167,10 @@ function applyAllFromState(data) {
         text = "AGAINST MACRO CONDITIONS";
       }
 
-      // text + colour (second line)
       v2b.textContent = text;
       v2b.classList.remove("card2-green", "card2-red", "card2-neutral");
       v2b.classList.add(cls);
 
-      // ----------------------------
-      // HALO: Card2 ONLY (public)
-      // ----------------------------
       c2.classList.remove(
         "halo-bg-gold", "halo-bg-steel", "halo-bg-silver", "halo-bg-secret",
         "glow-lime", "glow-warning", "glow-danger"
@@ -4200,7 +4191,6 @@ function applyAllFromState(data) {
 
       // ----------------------------
       // GC PRESSURE GAUGE
-      // Active only when S2 allowed
       // ----------------------------
       const gc = data?.macro_v2?.gc || null;
       const s2Allowed =
@@ -4221,6 +4211,7 @@ function applyAllFromState(data) {
       const count      = Number(gc?.latch_count);
       const mean       = Number(gc?.mean_duration);
       const pctRaw     = Number(gc?.pct_of_mean);
+      const meanMode   = String(gc?.mean_mode || "MANUAL").toUpperCase();
 
       const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(160, pctRaw)) : 0;
       const fillPct = Math.max(0, Math.min(100, pct));
@@ -4251,106 +4242,66 @@ function applyAllFromState(data) {
       const meanTxt  = Number.isFinite(mean) ? String(mean.toFixed(1)) : "—";
       const pctTxt   = Number.isFinite(pctRaw) ? `${pctRaw.toFixed(1)}%` : "—";
 
-     const meanMode = String(gc?.mean_mode || "MANUAL").toUpperCase();
-
-host.innerHTML = `
-  // ----------------------------
-      // GC PRESSURE GAUGE
-      // Active only when S2 allowed
-      // ----------------------------
-      const gc = data?.macro_v2?.gc || null;
-      const s2Allowed =
-        data?.s2_allowed === true ||
-        String(data?.s2_allowed).toLowerCase() === "true";
-
-      const host = document.getElementById("gauge-2");
-      if (!host) return;
-
-      if (!gc) {
-        host.style.display = "none";
-        host.innerHTML = "";
-        return;
-      }
-
-      const latchState = String(gc?.latch_state || "NEUTRAL").toUpperCase();
-      const phase      = String(gc?.phase || "UNSET").toUpperCase();
-      const count      = Number(gc?.latch_count);
-      const mean       = Number(gc?.mean_duration);
-      const pctRaw     = Number(gc?.pct_of_mean);
-
-      const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(160, pctRaw)) : 0;
-      const fillPct = Math.max(0, Math.min(100, pct));
-
-      let gaugeColor = "rgba(255,255,255,0.18)";
-      let gaugeLabel = "INACTIVE";
-
-      if (s2Allowed) {
-        if (latchState === "GREEN") {
-          gaugeColor = "var(--lime)";
-          gaugeLabel = "TREND SUPPORTED";
-        } else if (latchState === "RED") {
-          gaugeColor = "var(--red)";
-          gaugeLabel = "PULLBACK PRESSURE";
-        } else if (latchState === "ORANGE") {
-          gaugeColor = "var(--orange)";
-          gaugeLabel = "TRANSITION / BASING";
-        } else {
-          gaugeColor = "rgba(255,255,255,0.22)";
-          gaugeLabel = "INACTIVE";
-        }
-      } else {
-        gaugeColor = "rgba(255,255,255,0.18)";
-        gaugeLabel = "S2 NOT PERMITTED";
-      }
-
-      const countTxt = Number.isFinite(count) ? String(count) : "—";
-      const meanTxt  = Number.isFinite(mean) ? String(mean.toFixed(1)) : "—";
-      const pctTxt   = Number.isFinite(pctRaw) ? `${pctRaw.toFixed(1)}%` : "—";
-
-     const meanMode = String(gc?.mean_mode || "MANUAL").toUpperCase();
-
-host.innerHTML = `
-  <div class="gauge" style="align-items:flex-start; gap:14px; margin-top:16px;">
-    <div class="gauge-title" style="min-width:110px; padding-top:14px;">GC PRESSURE</div>
-    <div style="width:100%;">
-      <div style="
-        width:100%;
-        height:4px;
-        border-radius:999px;
-        background:rgba(255,255,255,0.08);
-        border:1px solid rgba(255,255,255,0.08);
-        overflow:hidden;
-        margin-top:2px;
-      ">
-        <div style="
-          width:${fillPct}%;
-          height:100%;
-          background:${gaugeColor};
-          box-shadow:0 0 10px ${gaugeColor};
-          transition:width .45s ease;
-        "></div>
-      </div>
-
-      <div class="gmeta" style="margin-top:12px;">
-        <div><strong>${gaugeLabel}</strong></div>
-        <div>STATE: ${latchState} • PHASE: ${phase}</div>
-        <div>COUNT: ${countTxt} • MEAN: ${meanTxt} • ${pctTxt}</div>
-        <div>MODE: ${meanMode}</div>
-      </div>
-    </div>
-  </div>
-`;
       host.style.display = "block";
-    })();
-  } else {
-    const host = document.getElementById("gauge-2");
-    if (host) {
-      host.style.display = "none";
-      host.innerHTML = "";
-    }
-  }
+      host.style.width = "100%";
+      host.style.margin = "14px 0 0 0";
+      host.style.padding = "0";
+      host.style.textAlign = "left";
 
-      host.style.display = "block";
+      host.innerHTML = `
+        <div style="display:block; width:100%; margin:0; padding:0; text-align:left;">
+          <div style="
+            font-size:10px;
+            letter-spacing:2px;
+            text-transform:uppercase;
+            color:#8a8a8a;
+            margin:0 0 8px 0;
+            text-align:left;
+          ">GC PRESSURE</div>
+
+          <div style="
+            display:block;
+            width:100%;
+            margin:0;
+            padding:0;
+          ">
+            <div style="
+              width:100%;
+              height:4px;
+              border-radius:999px;
+              background:rgba(255,255,255,0.08);
+              border:1px solid rgba(255,255,255,0.08);
+              overflow:hidden;
+              margin:0;
+            ">
+              <div style="
+                width:${fillPct}%;
+                height:100%;
+                background:${gaugeColor};
+                box-shadow:0 0 10px ${gaugeColor};
+                transition:width .45s ease;
+              "></div>
+            </div>
+          </div>
+
+          <div style="
+            margin-top:12px;
+            text-align:left;
+            font-size:10px;
+            letter-spacing:1.4px;
+            text-transform:uppercase;
+            color:#8a8a8a;
+            line-height:1.45;
+          ">
+            <div style="margin:0 0 2px 0; color:#fff; font-weight:700;">
+              ${gaugeLabel}
+            </div>
+            <div>STATE: ${latchState} • PHASE: ${phase}</div>
+            <div>COUNT: ${countTxt} • MEAN: ${meanTxt} • ${pctTxt}</div>
+            <div>MODE: ${meanMode}</div>
+          </div>
+        </div>
+      `;
     })();
   } else {
     const host = document.getElementById("gauge-2");
@@ -4458,7 +4409,6 @@ host.innerHTML = `
     }
   })();
 }// ✅ CLOSE applyAllFromState()
-
 window.applyAllFromState = applyAllFromState;
 
 
