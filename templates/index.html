@@ -3075,33 +3075,34 @@ function renderGcGauge(hostId, gc, s2Allowed){
   const fillPct = Math.max(0, Math.min(100, pct));
 
   host.innerHTML = `
-    <div class="gauge">
-      <div class="gauge-title">GC PRESSURE</div>
-      <div style="width:100%;">
-        <div style="
-          width:100%;
-          height:10px;
-          border-radius:999px;
-          background:rgba(255,255,255,0.08);
-          border:1px solid rgba(255,255,255,0.10);
-          overflow:hidden;
-        ">
-          <div style="
-            width:${fillPct}%;
-            height:100%;
-            background:${color};
-            box-shadow:0 0 14px ${color};
-            transition:width .45s ease;
-          "></div>
-        </div>
-        <div class="gmeta">
-          <div><strong>${active ? gcStateLabel(state) : "S2 NOT PERMITTED"}</strong></div>
-          <div>STATE: ${state} • PHASE: ${phase}</div>
-          <div>COUNT: ${count} • MEAN: ${mean} • ${pct.toFixed(1)}%</div>
-        </div>
-      </div>
+  <div style="margin-top:16px; width:100%;">
+    <div class="gauge-title" style="min-width:0; margin-bottom:8px;">GC PRESSURE</div>
+
+    <div style="
+      width:100%;
+      height:4px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.08);
+      overflow:hidden;
+    ">
+      <div style="
+        width:${fillPct}%;
+        height:100%;
+        background:${color};
+        box-shadow:0 0 10px ${color};
+        transition:width .45s ease;
+      "></div>
     </div>
-  `;
+
+    <div class="gmeta" style="margin-top:12px; text-align:left;">
+      <div><strong>${active ? gcStateLabel(state) : "S2 NOT PERMITTED"}</strong></div>
+      <div>STATE: ${state} • PHASE: ${phase}</div>
+      <div>COUNT: ${count} • MEAN: ${mean} • ${pct.toFixed(1)}%</div>
+      <div>MODE: ${String(gc?.mean_mode || "MANUAL").toUpperCase()}</div>
+    </div>
+  </div>
+`;
   host.style.display = "block";
 }
   // ----------------------------
