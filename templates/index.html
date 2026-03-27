@@ -3228,10 +3228,10 @@ function applyPublicFromState(data){
     const c = document.getElementById(id);
     if (c) c.className = 'card';
   });
-
+  
   setText('val-2','SHORT-TERM PREFERENCE REMAINS');
   setText('val-2b','UNCLEAR — MONITORING');
-
+  
   // --- Card 1 defaults ONLY if regime not present in this update
   if (data?.regime == null && data?.card1 == null) {
     setText('val-1','AWAITING');
@@ -3265,7 +3265,8 @@ function applyPublicFromState(data){
 
     const regimeRaw = String(data?.regime || data?.card1 || '').trim();
     const dir = rscRegimeDirection(data?.regime || data?.card1);
-
+    const macroV2Card1 = document.getElementById('macro-v2-card1');
+    if (macroV2Card1) macroV2Card1.style.display = 'flex';
     if (v1){
       if (!regimeRaw){
         v1.innerText = 'AWAITING';
@@ -3465,45 +3466,81 @@ function applyPublicFromState(data){
   // SECRET APPLY (unchanged)
   // ----------------------------
   function applySecretFromState(data){
-    const secret = (data && data.secret) ? data.secret : {};
-    const vix = secret.vix || {}; const gvz = secret.gvz || {}; const buy = secret.buy || {}; const sell = secret.sell || {}; const vold = secret.vold || {};
-    const warActive = !!(secret && secret.war && secret.war.active);
-    document.body.classList.toggle('war-room', warActive); setWarBadge(false);
+  const secret = (data && data.secret) ? data.secret : {};
+  const vix  = secret.vix  || {};
+  const gvz  = secret.gvz  || {};
+  const buy  = secret.buy  || {};
+  const sell = secret.sell || {};
+  const vold = secret.vold || {};
 
-    const v1 = document.getElementById('val-1'); const s1 = document.getElementById('sub-1'); const v2 = document.getElementById('val-2'); const s2 = document.getElementById('sub-2'); const v3 = document.getElementById('val-3'); const s3 = document.getElementById('sub-3');
+  const warActive = !!(secret && secret.war && secret.war.active);
+  document.body.classList.toggle('war-room', warActive);
+  setWarBadge(false);
 
-    const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
-    setText('val-1', xVal); setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL'); if (v1) v1.style.color = 'var(--text)'; if (s1) s1.style.color = 'var(--text)';
-    showGauge('gauge-1', vix.level, 'LEVEL', [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`], XY_COL);
+  const v1 = document.getElementById('val-1');
+  const s1 = document.getElementById('sub-1');
+  const v2 = document.getElementById('val-2');
+  const s2 = document.getElementById('sub-2');
+  const v3 = document.getElementById('val-3');
+  const s3 = document.getElementById('sub-3');
 
-    const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
-    setText('val-2', yVal); setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL'); if (v2) v2.style.color = 'var(--text)'; if (s2) s2.style.color = 'var(--text)';
-    showGauge('gauge-2', gvz.level, 'LEVEL', [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`], XY_COL);
+  const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
+  setText('val-1', xVal);
+  setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
+  if (v1) v1.style.color = 'var(--text)';
+  if (s1) s1.style.color = 'var(--text)';
 
-    const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
-    const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
-    setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-    setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
-    if (v3) v3.style.color = 'var(--text)'; if (s3) s3.style.color = 'var(--text)';
+  showGauge(
+    'gauge-1',
+    vix.level,
+    'LEVEL',
+    [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`],
+    XY_COL
+  );
 
-    const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-    const sellL = Number.isFinite(sell.level) ? sell.level : 0;
-    showDualGauge('gauge-3', buyL, sellL, 'PRESSURE', [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]);
-    const liqEl = document.getElementById("c1-liquidity");
-    const intEl = document.getElementById("c1-internal");
-    const fxEl  = document.getElementById("c1-fx");
-    const phaseEl = document.getElementById("c3-phase");
+  const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
+  setText('val-2', yVal);
+  setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
+  if (v2) v2.style.color = 'var(--text)';
+  if (s2) s2.style.color = 'var(--text)';
 
-    if (liqEl) liqEl.textContent = "LIQUIDITY: —";
-    if (intEl) intEl.textContent = "INTERNAL: —";
-    if (fxEl)  fxEl.textContent  = "FX: —";
-    if (phaseEl) phaseEl.textContent = "PHASE: —";
+  showGauge(
+    'gauge-2',
+    gvz.level,
+    'LEVEL',
+    [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`],
+    XY_COL
+  );
 
-    if (liqEl) setClassOnly(liqEl, "macro-v2-line macro-v2-neutral");
-    if (intEl) setClassOnly(intEl, "macro-v2-line macro-v2-neutral");
-    if (fxEl)  setClassOnly(fxEl,  "macro-v2-line macro-v2-neutral");
-    if (phaseEl) setClassOnly(phaseEl, "macro-v2-line macro-v2-neutral");
-  }
+  const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
+  const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
+
+  setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
+  setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
+
+  if (v3) v3.style.color = 'var(--text)';
+  if (s3) s3.style.color = 'var(--text)';
+
+  const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
+  const sellL = Number.isFinite(sell.level) ? sell.level : 0;
+
+  showDualGauge(
+    'gauge-3',
+    buyL,
+    sellL,
+    'PRESSURE',
+    [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]
+  );
+
+  // ============================================================
+  // HIDE PUBLIC-ONLY MACRO V2 LINES IN SECRET MODE
+  // ============================================================
+  const macroV2Card1 = document.getElementById('macro-v2-card1');
+  const phaseEl = document.getElementById('c3-phase');
+
+  if (macroV2Card1) macroV2Card1.style.display = 'none';
+  if (phaseEl) phaseEl.style.display = 'none';
+}
 
   // ----------------------------
   // MONITORING STATE APPLY (unchanged)
