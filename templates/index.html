@@ -3228,10 +3228,10 @@ function applyPublicFromState(data){
     const c = document.getElementById(id);
     if (c) c.className = 'card';
   });
-  
+
   setText('val-2','SHORT-TERM PREFERENCE REMAINS');
   setText('val-2b','UNCLEAR — MONITORING');
-  
+
   // --- Card 1 defaults ONLY if regime not present in this update
   if (data?.regime == null && data?.card1 == null) {
     setText('val-1','AWAITING');
@@ -3251,6 +3251,7 @@ function applyPublicFromState(data){
     if (phaseEl){
       phaseEl.textContent = 'PHASE: —';
       phaseEl.style.color = 'rgba(255,255,255,0.60)';
+      phaseEl.style.display = 'block';
     }
   }
 
@@ -3265,8 +3266,10 @@ function applyPublicFromState(data){
 
     const regimeRaw = String(data?.regime || data?.card1 || '').trim();
     const dir = rscRegimeDirection(data?.regime || data?.card1);
+
     const macroV2Card1 = document.getElementById('macro-v2-card1');
     if (macroV2Card1) macroV2Card1.style.display = 'flex';
+
     if (v1){
       if (!regimeRaw){
         v1.innerText = 'AWAITING';
@@ -3320,7 +3323,7 @@ function applyPublicFromState(data){
       }
     }
 
-       // ============================
+    // ============================
     // CARD 1 — MACRO V2 INLINE LINES + TOOLTIPS
     // (DISABLED IN SECRET MODE)
     // ============================
@@ -3385,6 +3388,7 @@ function applyPublicFromState(data){
 
     if (!(raw === undefined || raw === null)) {
       const count = Number(raw);
+
       if (Number.isFinite(count)) {
         const CAP = 120;
         const clipped = Math.max(0, Math.min(CAP, count));
@@ -3404,6 +3408,8 @@ function applyPublicFromState(data){
         const phaseId = Number.isFinite(Number(phaseIdRaw)) ? Number(phaseIdRaw) : null;
 
         const phaseEl = document.getElementById('c3-phase');
+        if (phaseEl) phaseEl.style.display = 'block';
+
         if (phaseEl){
           if (phaseId && phaseName){
             phaseEl.textContent = `PHASE: ${phaseId}/4 ${phaseName}`;
@@ -3454,6 +3460,7 @@ function applyPublicFromState(data){
           v3.innerText = headline;
           v3.style.color = (pct >= 71) ? fillCol : 'var(--text)';
         }
+
         if (c3) c3.className = cardClass;
         if (f3b) f3b.style.background = fillCol;
       }
