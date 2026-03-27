@@ -3039,7 +3039,71 @@ function rscApplyClockOffset(rawCount){
       ${metaHtml}`;
     host.style.display='block';
   }
+function gcStateColor(state){
+  const s = String(state || "").toUpperCase();
+  if (s === "GREEN")  return "var(--lime)";
+  if (s === "RED")    return "var(--red)";
+  if (s === "ORANGE") return "var(--orange)";
+  return "rgba(255,255,255,0.22)";
+}
 
+function gcStateLabel(state){
+  const s = String(state || "").toUpperCase();
+  if (s === "GREEN")  return "TREND SUPPORTED";
+  if (s === "RED")    return "PULLBACK PRESSURE";
+  if (s === "ORANGE") return "TRANSITION / BASING";
+  return "INACTIVE";
+}
+
+function clampPct(x){
+  const n = Number(x);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(160, n));
+}
+
+function renderGcGauge(hostId, gc, s2Allowed){
+  const host = document.getElementById(hostId);
+  if (!host) return;
+
+  const active = !!s2Allowed;
+  const state  = String(gc?.latch_state || "NEUTRAL").toUpperCase();
+  const pct    = clampPct(gc?.pct_of_mean);
+  const phase  = String(gc?.phase || "UNSET").toUpperCase();
+  const count  = gc?.latch_count ?? "—";
+  const mean   = gc?.mean_duration ?? "—";
+  const color  = active ? gcStateColor(state) : "rgba(255,255,255,0.18)";
+  const fillPct = Math.max(0, Math.min(100, pct));
+
+  host.innerHTML = `
+    <div class="gauge">
+      <div class="gauge-title">GC PRESSURE</div>
+      <div style="width:100%;">
+        <div style="
+          width:100%;
+          height:10px;
+          border-radius:999px;
+          background:rgba(255,255,255,0.08);
+          border:1px solid rgba(255,255,255,0.10);
+          overflow:hidden;
+        ">
+          <div style="
+            width:${fillPct}%;
+            height:100%;
+            background:${color};
+            box-shadow:0 0 14px ${color};
+            transition:width .45s ease;
+          "></div>
+        </div>
+        <div class="gmeta">
+          <div><strong>${active ? gcStateLabel(state) : "S2 NOT PERMITTED"}</strong></div>
+          <div>STATE: ${state} • PHASE: ${phase}</div>
+          <div>COUNT: ${count} • MEAN: ${mean} • ${pct.toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  `;
+  host.style.display = "block";
+}
   // ----------------------------
   // SECRET MODE
   // ----------------------------
@@ -4024,98 +4088,176 @@ function applySentinelFromState(data){
 }
 function applyAllFromState(data) {
   lastState = data || {};
-  window.lastState = lastState;   // ✅ add this
-  window.__LAST = lastState;      // ✅ optional alias
-  // --- WAR badge (unchanged) ---
+  window.lastState = lastState;
+  window.__LAST = lastState;
+
+  // --- WAR badge ---
   const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
   setWarBadge(warActive);
 
-  // --- Existing render lanes (unchanged) ---
+  // --- Core render lanes ---
   if (!secretMode) applyPublicFromState(data);
   else applySecretFromState(data);
 
   applyMonitoringFromState(data);
   applyMessageFromState(data);
-  // ✅ Sentinel owns its own state now — do NOT force SILENCE on every update
+
   if (typeof applySentinelFromState === "function") {
     applySentinelFromState(data);
   }
 
-// ============================================================
-// CARD 2 — SHORT-TERM BIAS (PUBLIC ONLY) ✅ CANONICAL
-// Reads ONLY: data.card2 = {state,text,time,tf,ref_id}
-// - Headline is fixed.
-// - Second line colour is driven by data.card2.state.
-// - Halo: GOLD/STEEL ONLY when GREEN + regime direction is known.
-// - Otherwise: SILVER (no surprises).
-// ============================================================
+  // ============================================================
+  // CARD 2 — SHORT-TERM BIAS + GC PRESSURE GAUGE (PUBLIC ONLY)
+  // Reads:
+  // - data.card2 = {state,text,time,tf,ref_id}
+  // - data.macro_v2.gc = structural GC layer
+  // Gauge is ACTIVE only when S2 is allowed.
+  // ============================================================
+  if (!secretMode) {
+    (function applyCard2FromState() {
+      const c2  = document.getElementById("card-2");
+      const v2  = document.getElementById("val-2");
+      const v2b = document.getElementById("sub-2");
+      if (!c2 || !v2 || !v2b) return;
 
-if (!secretMode) {
-  (function applyCard2FromState() {
-    const c2  = document.getElementById("card-2");
-    const v2  = document.getElementById("val-2");
-    const v2b = document.getElementById("sub-2");
-    if (!c2 || !v2 || !v2b) return;
+      // headline fixed
+      v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
-    // headline fixed
-    v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
+      // nested truth
+      const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
+      const s2 = String(c2obj?.state || "").toUpperCase();
 
-    // nested truth
-    const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
-    const s2 = String(c2obj?.state || "").toUpperCase();
+      let cls  = "card2-neutral";
+      let text = "UNCLEAR — MONITORING";
 
-    let cls  = "card2-neutral";
-    let text = "UNCLEAR — MONITORING";
+      if (s2 === "GREEN") {
+        cls = "card2-green";
+        text = "CONSISTENT WITH MACRO CONDITIONS";
+      } else if (s2 === "RED") {
+        cls = "card2-red";
+        text = "AGAINST MACRO CONDITIONS";
+      }
 
-    if (s2 === "GREEN") { cls = "card2-green"; text = "CONSISTENT WITH MACRO CONDITIONS"; }
-    else if (s2 === "RED") { cls = "card2-red"; text = "AGAINST MACRO CONDITIONS"; }
+      // text + colour (second line)
+      v2b.textContent = text;
+      v2b.classList.remove("card2-green", "card2-red", "card2-neutral");
+      v2b.classList.add(cls);
 
-    // text + colour (second line)
-    v2b.textContent = text;
-    v2b.classList.remove("card2-green","card2-red","card2-neutral");
-    v2b.classList.add(cls);
+      // ----------------------------
+      // HALO: Card2 ONLY (public)
+      // ----------------------------
+      c2.classList.remove(
+        "halo-bg-gold", "halo-bg-steel", "halo-bg-silver", "halo-bg-secret",
+        "glow-lime", "glow-warning", "glow-danger"
+      );
 
-    // ----------------------------
-    // HALO: Card2 ONLY (public)
-    // hard reset halo/glow, then apply base + default halo
-    // ----------------------------
-    c2.classList.remove(
-      "halo-bg-gold","halo-bg-steel","halo-bg-silver","halo-bg-secret",
-      "glow-lime","glow-warning","glow-danger"
-    );
+      if (!c2.classList.contains("card")) c2.classList.add("card");
+      c2.classList.add("halo-bg-silver");
 
-    // ✅ ensure base card class exists
-    if (!c2.classList.contains("card")) c2.classList.add("card");
+      const dir = rscRegimeDirection(data?.regime || data?.card1);
+      if (cls === "card2-green" && dir === "REAL") {
+        c2.classList.remove("halo-bg-silver");
+        c2.classList.add("halo-bg-gold");
+      }
+      if (cls === "card2-green" && dir === "FIN") {
+        c2.classList.remove("halo-bg-silver");
+        c2.classList.add("halo-bg-steel");
+      }
 
-    // default halo
-    c2.classList.add("halo-bg-silver");
+      // ----------------------------
+      // GC PRESSURE GAUGE
+      // Active only when S2 allowed
+      // ----------------------------
+      const gc = data?.macro_v2?.gc || null;
+      const s2Allowed =
+        data?.s2_allowed === true ||
+        String(data?.s2_allowed).toLowerCase() === "true";
 
-    // upgrade halo only when GREEN + regime direction known
-    const dir = rscRegimeDirection(data?.regime || data?.card1);
-    if (cls === "card2-green" && dir === "REAL") {
-      c2.classList.remove("halo-bg-silver");
-      c2.classList.add("halo-bg-gold");
+      const host = document.getElementById("gauge-2");
+      if (!host) return;
+
+      if (!gc) {
+        host.style.display = "none";
+        host.innerHTML = "";
+        return;
+      }
+
+      const latchState = String(gc?.latch_state || "NEUTRAL").toUpperCase();
+      const phase      = String(gc?.phase || "UNSET").toUpperCase();
+      const count      = Number(gc?.latch_count);
+      const mean       = Number(gc?.mean_duration);
+      const pctRaw     = Number(gc?.pct_of_mean);
+
+      const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(160, pctRaw)) : 0;
+      const fillPct = Math.max(0, Math.min(100, pct));
+
+      let gaugeColor = "rgba(255,255,255,0.18)";
+      let gaugeLabel = "INACTIVE";
+
+      if (s2Allowed) {
+        if (latchState === "GREEN") {
+          gaugeColor = "var(--lime)";
+          gaugeLabel = "TREND SUPPORTED";
+        } else if (latchState === "RED") {
+          gaugeColor = "var(--red)";
+          gaugeLabel = "PULLBACK PRESSURE";
+        } else if (latchState === "ORANGE") {
+          gaugeColor = "var(--orange)";
+          gaugeLabel = "TRANSITION / BASING";
+        } else {
+          gaugeColor = "rgba(255,255,255,0.22)";
+          gaugeLabel = "INACTIVE";
+        }
+      } else {
+        gaugeColor = "rgba(255,255,255,0.18)";
+        gaugeLabel = "S2 NOT PERMITTED";
+      }
+
+      const countTxt = Number.isFinite(count) ? String(count) : "—";
+      const meanTxt  = Number.isFinite(mean) ? String(mean.toFixed(1)) : "—";
+      const pctTxt   = Number.isFinite(pctRaw) ? `${pctRaw.toFixed(1)}%` : "—";
+
+      host.innerHTML = `
+        <div class="gauge">
+          <div class="gauge-title">GC PRESSURE</div>
+          <div style="width:100%;">
+            <div style="
+              width:100%;
+              height:10px;
+              border-radius:999px;
+              background:rgba(255,255,255,0.08);
+              border:1px solid rgba(255,255,255,0.10);
+              overflow:hidden;
+            ">
+              <div style="
+                width:${fillPct}%;
+                height:100%;
+                background:${gaugeColor};
+                box-shadow:0 0 14px ${gaugeColor};
+                transition:width .45s ease;
+              "></div>
+            </div>
+            <div class="gmeta">
+              <div><strong>${gaugeLabel}</strong></div>
+              <div>STATE: ${latchState} • PHASE: ${phase}</div>
+              <div>COUNT: ${countTxt} • MEAN: ${meanTxt} • ${pctTxt}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      host.style.display = "block";
+    })();
+  } else {
+    const host = document.getElementById("gauge-2");
+    if (host) {
+      host.style.display = "none";
+      host.innerHTML = "";
     }
-    if (cls === "card2-green" && dir === "FIN") {
-      c2.classList.remove("halo-bg-silver");
-      c2.classList.add("halo-bg-steel");
-    }
-  })();
-}
-
-
-
+  }
 
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
-  // Sahm Rule:
-  // < 0.35  = EXPANSION
-  // 0.35–0.49 = STALLING
-  // >= 0.50 = CONTRACTION
-  // Contraction shows Market Weakness (SPX DD → 35%)
-  // Observational only
   // ============================================================
-
   (function applyCard4FromState() {
     if (!(data && data.sahm != null)) return;
 
@@ -4131,13 +4273,11 @@ if (!secretMode) {
     const mwVal  = document.getElementById("mw-val");
     const mwNote = document.getElementById("mw-note");
 
-    // reset
     if (mwWrap) mwWrap.style.display = "none";
     if (mwNote) mwNote.style.display = "none";
     if (mwFill) mwFill.style.height = "0%";
     window.__S3_ARMED = false;
 
-    // -------- EXPANSION --------
     if (s < 0.35) {
       if (v4) v4.innerText = "Economic:EXPANSION";
       if (c4) c4.className = "card glow-lime";
@@ -4149,7 +4289,6 @@ if (!secretMode) {
       return;
     }
 
-    // -------- STALLING --------
     if (s < 0.50) {
       if (v4) v4.innerText = "Economy:STALLING";
       if (c4) c4.className = "card glow-warning";
@@ -4161,7 +4300,6 @@ if (!secretMode) {
       return;
     }
 
-    // -------- CONTRACTION --------
     if (v4) v4.innerText = "Economic:CONTRACTION";
     if (c4) c4.className = "card glow-danger";
     if (node) {
@@ -4170,7 +4308,6 @@ if (!secretMode) {
       node.style.boxShadow = "0 0 60px var(--red)";
     }
 
-    // -------- MARKET WEAKNESS --------
     if (mwWrap) mwWrap.style.display = "flex";
 
     let dd =
@@ -4181,7 +4318,6 @@ if (!secretMode) {
       data.drawdown ??
       null;
 
-    // dd can arrive as a string sometimes ("12.3")
     if (typeof dd === "string") dd = Number(dd);
 
     if (typeof dd !== "number" || !Number.isFinite(dd)) {
@@ -4194,7 +4330,7 @@ if (!secretMode) {
     }
 
     dd = Math.abs(dd);
-    if (dd <= 1) dd *= 100; // allow 0.12 or 12
+    if (dd <= 1) dd *= 100;
 
     const CAP = 35;
     const clipped = Math.min(CAP, dd);
@@ -4216,7 +4352,7 @@ if (!secretMode) {
       }
     }
   })();
-} // ✅ CLOSE applyAllFromState()
+}// ✅ CLOSE applyAllFromState()
 
 window.applyAllFromState = applyAllFromState;
 
