@@ -4091,11 +4091,13 @@ function fmtSentinelTime(serverTs) {
   return `${hh}:${mm}`;
 }
 
-function applySentinelFromState(data){
+function applySentinelFromState(data) {
   if (!data) return;
 
   const t = fmtSentinelTime(data?._server_ts);
   const sahm = Number(data?.sahm || 0);
+  const cycle = Number(data?.count ?? data?.cycle_count ?? data?.cycle ?? 0);
+  const volRaw = String(data?.vol ?? data?.vol_state ?? data?.card1?.vol ?? "").toUpperCase();
 
   const topS2Allowed =
     data?.s2_allowed === true ||
@@ -4103,19 +4105,64 @@ function applySentinelFromState(data){
 
   const nodeState = getSentinelNodeState(data);
 
+  const s2Allowed = topS2Allowed || nodeState.anyS2Allowed;
+  const anySignal = !!nodeState.anySignalAvailable;
+  const anySetup = !!nodeState.anySetupAvailable;
+
+  const volCompression =
+    volRaw.includes("COMPRESSION") ||
+    volRaw.includes("COMPRESSED");
+
+  let cycleTag = "";
+  if (cycle >= 120) cycleTag = "terminal";
+  else if (cycle >= 110) cycleTag = "late";
+  else if (cycle >= 90) cycleTag = "maturing";
+  else if (cycle >= 30) cycleTag = "trend";
+  else cycleTag = "early";
+
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if ((topS2Allowed || nodeState.anyS2Allowed) && nodeState.anySignalAvailable) {
-    msg = `[${t}] Sentinel: Attention. Entries feel difficult by design.`;
+  else if (cycle >= 120) {
+    msg = `[${t}] Sentinel: Cycle terminal. Observation only.`;
   }
-  else if ((topS2Allowed || nodeState.anyS2Allowed) && nodeState.anySetupAvailable) {
-    msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required.`;
+  else if (cycle >= 110 && volCompression) {
+    msg = `[${t}] Sentinel: Compression detected in late cycle. Regime transition risk elevated.`;
   }
-  else if (topS2Allowed || nodeState.anyS2Allowed) {
-    msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
+  else if (s2Allowed && anySignal) {
+    if (cycleTag === "early") {
+      msg = `[${t}] Sentinel: Attention. Entries feel difficult by design. Cycle early.`;
+    } else if (cycleTag === "trend") {
+      msg = `[${t}] Sentinel: Attention. Entries feel difficult by design. Trend phase active.`;
+    } else if (cycleTag === "maturing") {
+      msg = `[${t}] Sentinel: Attention. Entries feel difficult by design. Cycle maturing.`;
+    } else if (cycleTag === "late") {
+      msg = `[${t}] Sentinel: Attention. Entries feel difficult by design. Discipline tightening.`;
+    }
+  }
+  else if (s2Allowed && anySetup) {
+    if (cycleTag === "early") {
+      msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required. Cycle early.`;
+    } else if (cycleTag === "trend") {
+      msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required. Trend phase active.`;
+    } else if (cycleTag === "maturing") {
+      msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required. Cycle maturing.`;
+    } else if (cycleTag === "late") {
+      msg = `[${t}] Sentinel: Setup conditions developing. Observation discipline required. Discipline tightening.`;
+    }
+  }
+  else if (s2Allowed) {
+    if (cycleTag === "early") {
+      msg = `[${t}] Sentinel: Trend participation permitted. Cycle early.`;
+    } else if (cycleTag === "trend") {
+      msg = `[${t}] Sentinel: Trend participation permitted. Conditions aligned with cycle phase.`;
+    } else if (cycleTag === "maturing") {
+      msg = `[${t}] Sentinel: Trend participation permitted. Cycle maturing. Discipline tightening.`;
+    } else if (cycleTag === "late") {
+      msg = `[${t}] Sentinel: Trend participation restricted. Late-cycle conditions in force.`;
+    }
   }
 
   setSentinel(msg);
