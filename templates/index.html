@@ -1622,10 +1622,295 @@ main.grid > #cr-dump-full{
   </div>
 
   <!-- RIGHT: SCADA Man -->
+<!-- RIGHT: SCADA Man -->
 <div class="scada-slot">
   <div class="scada-card" aria-hidden="true">
     <div class="scada-man-wrap">
-      <img src="/static/SCADA_Man.png" class="scada-man" alt="" />
+      <div id="scada-wrap" class="scada-man">
+        <svg
+          id="scada-svg"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 300 420"
+          role="img"
+          aria-labelledby="scadaTitle scadaDesc"
+        >
+          <title id="scadaTitle">SCADA Man</title>
+          <desc id="scadaDesc">
+            Layered SVG starter for Sutton House SCADA Man with separate floor scan and core twinkle elements.
+          </desc>
+
+          <defs>
+            <linearGradient id="bgGlowGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0d2a2b" stop-opacity="0.00"/>
+              <stop offset="55%" stop-color="#123f42" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#0a1618" stop-opacity="0.00"/>
+            </linearGradient>
+
+            <linearGradient id="shellGrad" x1="0" y1="40" x2="0" y2="360" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#95fff0" stop-opacity="0.82"/>
+              <stop offset="35%" stop-color="#6be6d8" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#16393a" stop-opacity="0.92"/>
+            </linearGradient>
+
+            <linearGradient id="sideGrad" x1="0" y1="90" x2="0" y2="330" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#8ff5e8" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#153536" stop-opacity="0.88"/>
+            </linearGradient>
+
+            <linearGradient id="beamGrad" x1="40" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1c4446" stop-opacity="0"/>
+              <stop offset="15%" stop-color="#69e7dc" stop-opacity="0.40"/>
+              <stop offset="50%" stop-color="#b7fff8" stop-opacity="0.80"/>
+              <stop offset="85%" stop-color="#69e7dc" stop-opacity="0.40"/>
+              <stop offset="100%" stop-color="#1c4446" stop-opacity="0"/>
+            </linearGradient>
+
+            <radialGradient id="coreGrad" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="#f7fffd" stop-opacity="1"/>
+              <stop offset="30%" stop-color="#d7fff8" stop-opacity="0.95"/>
+              <stop offset="65%" stop-color="#7deee0" stop-opacity="0.75"/>
+              <stop offset="100%" stop-color="#3ea79d" stop-opacity="0.20"/>
+            </radialGradient>
+
+            <radialGradient id="haloGrad" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stop-color="#b8fff6" stop-opacity="0.50"/>
+              <stop offset="100%" stop-color="#7cecdf" stop-opacity="0"/>
+            </radialGradient>
+
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <filter id="beamGlow" x="-30%" y="-300%" width="160%" height="700%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <filter id="coreGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <clipPath id="beamClip">
+              <rect x="56" y="342" width="188" height="10" rx="5"/>
+            </clipPath>
+          </defs>
+
+          <g id="scada-root" transform-origin="150px 285px">
+            <g id="bg-atmosphere">
+              <ellipse cx="150" cy="205" rx="118" ry="168" fill="url(#bgGlowGrad)"/>
+              <ellipse cx="150" cy="334" rx="88" ry="22" fill="#4bf0df" opacity="0.08" filter="url(#softGlow)"/>
+            </g>
+
+            <g id="floor-beam">
+              <ellipse cx="150" cy="350" rx="95" ry="13" fill="#3de7d6" opacity="0.10" filter="url(#beamGlow)"/>
+              <rect x="56" y="342" width="188" height="10" rx="5" fill="#4ff3e2" opacity="0.18"/>
+              <rect x="72" y="345" width="156" height="3" rx="1.5" fill="#b8fff8" opacity="0.28"/>
+
+              <g clip-path="url(#beamClip)">
+                <rect
+                  id="floor-scan-highlight"
+                  x="18"
+                  y="341"
+                  width="64"
+                  height="12"
+                  rx="6"
+                  fill="url(#beamGrad)"
+                  opacity="0"
+                  filter="url(#beamGlow)"
+                />
+              </g>
+            </g>
+
+            <g id="scada-man">
+              <g id="side-fins-left">
+                <path
+                  d="M84 255 L105 215 L116 145 L128 145 L121 219 L102 287 L86 287 Z"
+                  fill="url(#sideGrad)"
+                  opacity="0.82"
+                />
+                <path
+                  d="M102 234 L117 207 L122 171 L128 171 L124 214 L111 255 L101 255 Z"
+                  fill="#c8fff9"
+                  opacity="0.30"
+                />
+              </g>
+
+              <g id="side-fins-right">
+                <path
+                  d="M216 255 L195 215 L184 145 L172 145 L179 219 L198 287 L214 287 Z"
+                  fill="url(#sideGrad)"
+                  opacity="0.82"
+                />
+                <path
+                  d="M198 234 L183 207 L178 171 L172 171 L176 214 L189 255 L199 255 Z"
+                  fill="#c8fff9"
+                  opacity="0.30"
+                />
+              </g>
+
+              <g id="body-shell">
+                <path
+                  d="M126 302
+                     L126 116
+                     L142 88
+                     L158 88
+                     L174 116
+                     L174 302
+                     Z"
+                  fill="url(#shellGrad)"
+                />
+
+                <path
+                  d="M111 302
+                     L122 302
+                     L128 222
+                     L128 170
+                     L112 182
+                     L104 240
+                     Z"
+                  fill="#86fff0"
+                  opacity="0.35"
+                />
+
+                <path
+                  d="M189 302
+                     L178 302
+                     L172 222
+                     L172 170
+                     L188 182
+                     L196 240
+                     Z"
+                  fill="#86fff0"
+                  opacity="0.35"
+                />
+
+                <path
+                  d="M118 128 L132 106 L132 146 L118 164 Z"
+                  fill="#bafff7"
+                  opacity="0.45"
+                />
+                <path
+                  d="M182 128 L168 106 L168 146 L182 164 Z"
+                  fill="#bafff7"
+                  opacity="0.45"
+                />
+              </g>
+
+              <g id="body-inner-glow" opacity="0.38" filter="url(#softGlow)">
+                <path
+                  d="M138 286 L138 125 L146 109 L154 109 L162 125 L162 286 Z"
+                  fill="#9bfff3"
+                />
+              </g>
+
+              <g id="core-housing">
+                <path
+                  d="M125 165
+                     L138 149
+                     L162 149
+                     L175 165
+                     L175 197
+                     L162 213
+                     L138 213
+                     L125 197
+                     Z"
+                  fill="#173436"
+                  opacity="0.95"
+                />
+                <path
+                  d="M129 169
+                     L140 156
+                     L160 156
+                     L171 169
+                     L171 193
+                     L160 206
+                     L140 206
+                     L129 193
+                     Z"
+                  fill="#7ef2e5"
+                  opacity="0.22"
+                />
+              </g>
+
+              <g id="core-halo" opacity="0.65" filter="url(#coreGlow)">
+                <circle cx="150" cy="181" r="25" fill="url(#haloGrad)"/>
+              </g>
+
+              <g id="core-eye" filter="url(#coreGlow)">
+                <circle cx="150" cy="181" r="13" fill="url(#coreGrad)"/>
+                <circle cx="150" cy="181" r="6" fill="#ffffff" opacity="0.75"/>
+              </g>
+
+              <g id="accent-lines">
+                <path d="M126 116 L150 98 L174 116" stroke="#d2fff9" stroke-opacity="0.52" stroke-width="2" fill="none"/>
+                <path d="M126 302 H174" stroke="#a4fff5" stroke-opacity="0.28" stroke-width="2" fill="none"/>
+                <path d="M128 170 H172" stroke="#ccfff9" stroke-opacity="0.18" stroke-width="1.5" fill="none"/>
+                <path d="M138 149 L138 213" stroke="#d2fff9" stroke-opacity="0.12" stroke-width="1" fill="none"/>
+                <path d="M162 149 L162 213" stroke="#d2fff9" stroke-opacity="0.12" stroke-width="1" fill="none"/>
+              </g>
+            </g>
+          </g>
+
+          <style>
+            #scada-root {
+              animation: scadaSway 8s ease-in-out infinite;
+            }
+
+            svg.scada-scan #floor-scan-highlight {
+              animation: floorScan 1.5s ease-in-out 1;
+              opacity: 1;
+            }
+
+            svg.scada-twinkle #core-eye,
+            svg.scada-twinkle #core-halo {
+              animation: eyeTwinkle 0.5s ease-in-out 1;
+            }
+
+            svg.scada-lockdown #scada-root {
+              animation-duration: 10s;
+            }
+
+            @keyframes scadaSway {
+              0%   { transform: rotate(0deg) translateY(0px); }
+              25%  { transform: rotate(0.4deg) translateY(-0.5px); }
+              50%  { transform: rotate(0deg) translateY(0px); }
+              75%  { transform: rotate(-0.4deg) translateY(-0.5px); }
+              100% { transform: rotate(0deg) translateY(0px); }
+            }
+
+            @keyframes floorScan {
+              0%   { transform: translateX(0px); opacity: 0; }
+              10%  { opacity: 0.95; }
+              50%  { opacity: 1; }
+              90%  { opacity: 0.85; }
+              100% { transform: translateX(220px); opacity: 0; }
+            }
+
+            @keyframes eyeTwinkle {
+              0%   { opacity: 1; transform: scale(1); }
+              35%  { opacity: 1; transform: scale(1.18); }
+              60%  { opacity: 0.95; transform: scale(0.96); }
+              100% { opacity: 1; transform: scale(1); }
+            }
+
+            #core-eye,
+            #core-halo {
+              transform-origin: 150px 181px;
+            }
+          </style>
+        </svg>
+      </div>
     </div>
   </div>
 </div>
