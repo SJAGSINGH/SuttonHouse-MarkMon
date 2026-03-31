@@ -4128,7 +4128,7 @@ function applySentinelFromState(data) {
   else if (cycle >= 120) {
     msg = `[${t}] Sentinel: Cycle terminal. Observation only.`;
   }
-  else if (cycle >= 110 && volCompression) {
+  else if (cycle >= 135 && volCompression) {
     msg = `[${t}] Sentinel: Compression detected in late cycle. Regime transition risk elevated.`;
   }
   else if (s2Allowed && anySignal) {
