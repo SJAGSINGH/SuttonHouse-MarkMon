@@ -4105,7 +4105,12 @@ function applySentinelFromState(data) {
 
   const nodeState = getSentinelNodeState(data);
 
-  const s2Allowed = topS2Allowed || nodeState.anyS2Allowed;
+  // Canonical doctrine:
+  // - S2 permitted from cycle >= 1
+  // - S1 = late/terminal cycle + compression, observation only
+  const derivedS2Allowed = cycle >= 1;
+  const s2Allowed = topS2Allowed || nodeState.anyS2Allowed || derivedS2Allowed;
+
   const anySignal = !!nodeState.anySignalAvailable;
   const anySetup = !!nodeState.anySetupAvailable;
 
@@ -4114,7 +4119,7 @@ function applySentinelFromState(data) {
     volRaw.includes("COMPRESSED");
 
   let cycleTag = "";
-  if (cycle >= 120) cycleTag = "terminal";
+  if (cycle >= 135) cycleTag = "terminal";
   else if (cycle >= 110) cycleTag = "late";
   else if (cycle >= 90) cycleTag = "maturing";
   else if (cycle >= 30) cycleTag = "trend";
@@ -4122,14 +4127,16 @@ function applySentinelFromState(data) {
 
   let msg = `[${t}] Sentinel: Macro conditions unchanged. Observation continues.`;
 
+  // Highest authority first
   if (sahm >= 0.5) {
     msg = `[${t}] Sentinel: Recession conditions confirmed. S3 framework active.`;
   }
-  else if (cycle >= 120) {
-    msg = `[${t}] Sentinel: Cycle terminal. Observation only.`;
-  }
+  // S1 environment: late/terminal cycle + compression = observation only
   else if (cycle >= 135 && volCompression) {
-    msg = `[${t}] Sentinel: Compression detected in late cycle. Regime transition risk elevated.`;
+    msg = `[${t}] Sentinel: Contrarian conditions present. Observation only.`;
+  }
+  else if (cycle >= 135) {
+    msg = `[${t}] Sentinel: Cycle terminal. Observation only.`;
   }
   else if (s2Allowed && anySignal) {
     if (cycleTag === "early") {
