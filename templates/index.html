@@ -224,13 +224,16 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
 
 /* ============================
-   SCADA MAN — seated + contained (LOCK v3)
-   Fix: sits LOWER (strong seat)
-   Sway: forward/back (reduced lift)
+   SCADA MAN — PNG canonical asset (LOCK v4)
+   Original image retained
+   No sway
+   Overlay behaviour only:
+   - floor scan
+   - eye twinkle
 ============================ */
 
-#scada-comms{ display:none !important; }
-#dbg-toggle{ display:none; }
+#scada-comms { display:none !important; }
+#dbg-toggle { display:none; }
 
 .scada-slot{
   width:160px;
@@ -266,42 +269,116 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   box-shadow:
     0 0 26px rgba(31,166,122,.14),
     inset 0 0 20px rgba(31,166,122,.10);
-
-  /* SEAT HIM HARDER */
   display:flex;
   align-items:flex-end;
   justify-content:center;
-  padding-bottom:18px;          /* was 10 */
+  padding-bottom:18px;
   overflow:hidden;
-
-  /* forward/back sway */
-  transform-origin:50% 94%;
-  animation:scada-sway-fb 7.6s ease-in-out infinite;
+  position:relative;
 }
 
+/* PNG wrapper */
 .scada-man{
   width:118px;
   height:auto;
   display:block;
   object-fit:contain;
-
-  /* FINAL seat nudge */
   margin:0 auto;
-  transform: translateY(16px);  /* was 6 */
-
+  transform:translateY(16px);
+  opacity:.96;
+  position:relative;
   filter:
     drop-shadow(0 0 14px rgba(31,166,122,.22))
     drop-shadow(0 0 28px rgba(31,166,122,.12));
-  opacity:.96;
 }
 
-/* forward/back sway — reduced lift so he doesn't climb */
-@keyframes scada-sway-fb{
-  0%   { transform: translateY(0px) scale(1); }
-  50%  { transform: translateY(-1px) scale(1.012); }
-  100% { transform: translateY(0px) scale(1); }
+.scada-png-wrap{
+  position:relative;
 }
 
+#scada-png{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+/* Eye twinkle overlay */
+#scada-eye-twinkle{
+  position:absolute;
+  left:50%;
+  top:39%;
+  width:16%;
+  aspect-ratio:1 / 1;
+  transform:translate(-50%, -50%) scale(1);
+  border-radius:50%;
+  pointer-events:none;
+  opacity:0;
+  background:
+    radial-gradient(circle,
+      rgba(245,255,253,0.95) 0%,
+      rgba(175,255,245,0.75) 28%,
+      rgba(90,235,220,0.35) 58%,
+      rgba(90,235,220,0.00) 100%);
+  filter:blur(2px);
+}
+
+/* Floor beam overlay */
+#scada-floor-beam{
+  position:absolute;
+  left:50%;
+  top:79%;
+  width:48%;
+  height:7%;
+  transform:translateX(-50%);
+  border-radius:999px;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+#scada-floor-scan-highlight{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:34%;
+  height:100%;
+  transform:translate(-50%, -50%);
+  opacity:0;
+  border-radius:999px;
+  background:
+    linear-gradient(90deg,
+      rgba(28,68,70,0.00) 0%,
+      rgba(105,231,220,0.38) 20%,
+      rgba(183,255,248,0.95) 50%,
+      rgba(105,231,220,0.38) 80%,
+      rgba(28,68,70,0.00) 100%);
+  filter:blur(2px);
+}
+
+/* Trigger classes */
+.scada-scan #scada-floor-scan-highlight{
+  animation:floorScanOverlay 3s ease-in-out 1;
+}
+
+.scada-twinkle #scada-eye-twinkle{
+  animation:eyeTwinkleOverlay 0.5s ease-in-out 1;
+}
+
+@keyframes floorScanOverlay{
+  0%   { transform:translate(-50%, -50%) translateX(0); opacity:0; }
+  8%   { opacity:0.95; }
+  28%  { transform:translate(-50%, -50%) translateX(-95%); opacity:1; }
+  50%  { transform:translate(-50%, -50%) translateX(0); opacity:1; }
+  72%  { transform:translate(-50%, -50%) translateX(95%); opacity:1; }
+  92%  { transform:translate(-50%, -50%) translateX(0); opacity:0.95; }
+  100% { transform:translate(-50%, -50%) translateX(0); opacity:0; }
+}
+
+@keyframes eyeTwinkleOverlay{
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(0.92); }
+  20%  { opacity:0.95; transform:translate(-50%, -50%) scale(1.12); }
+  55%  { opacity:0.85; transform:translate(-50%, -50%) scale(0.98); }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(1); }
+}
 body.war-room .scada-card{
   box-shadow:
     0 0 30px rgba(31,166,122,.16),
@@ -1626,354 +1703,14 @@ main.grid > #cr-dump-full{
 <div class="scada-slot">
   <div class="scada-card" aria-hidden="true">
     <div class="scada-man-wrap">
-      <div id="scada-wrap" class="scada-man">
-        <svg
-          id="scada-svg"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 300 420"
-          role="img"
-          aria-labelledby="scadaTitle scadaDesc"
-        >
-          <title id="scadaTitle">SCADA Man</title>
-          <desc id="scadaDesc">
-            Layered SVG starter for Sutton House SCADA Man with separate floor scan and core twinkle elements.
-          </desc>
+      <div id="scada-wrap" class="scada-man scada-png-wrap">
+        <img id="scada-png" src="/static/SCADA_Man.png" alt="" />
 
-          <defs>
-            <linearGradient id="bgGlowGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0d2a2b" stop-opacity="0.00"/>
-              <stop offset="55%" stop-color="#123f42" stop-opacity="0.18"/>
-              <stop offset="100%" stop-color="#0a1618" stop-opacity="0.00"/>
-            </linearGradient>
+        <div id="scada-eye-twinkle"></div>
 
-            <linearGradient id="shellGrad" x1="0" y1="40" x2="0" y2="360" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#95fff0" stop-opacity="0.82"/>
-              <stop offset="35%" stop-color="#6be6d8" stop-opacity="0.55"/>
-              <stop offset="100%" stop-color="#16393a" stop-opacity="0.92"/>
-            </linearGradient>
-
-            <linearGradient id="sideGrad" x1="0" y1="90" x2="0" y2="330" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#8ff5e8" stop-opacity="0.55"/>
-              <stop offset="100%" stop-color="#153536" stop-opacity="0.88"/>
-            </linearGradient>
-
-            <linearGradient id="beamGrad" x1="40" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#1c4446" stop-opacity="0"/>
-              <stop offset="15%" stop-color="#69e7dc" stop-opacity="0.40"/>
-              <stop offset="50%" stop-color="#b7fff8" stop-opacity="0.80"/>
-              <stop offset="85%" stop-color="#69e7dc" stop-opacity="0.40"/>
-              <stop offset="100%" stop-color="#1c4446" stop-opacity="0"/>
-            </linearGradient>
-
-            <radialGradient id="coreGrad" cx="50%" cy="50%" r="60%">
-              <stop offset="0%" stop-color="#f7fffd" stop-opacity="1"/>
-              <stop offset="30%" stop-color="#d7fff8" stop-opacity="0.95"/>
-              <stop offset="65%" stop-color="#7deee0" stop-opacity="0.75"/>
-              <stop offset="100%" stop-color="#3ea79d" stop-opacity="0.20"/>
-            </radialGradient>
-
-            <radialGradient id="haloGrad" cx="50%" cy="50%" r="70%">
-              <stop offset="0%" stop-color="#b8fff6" stop-opacity="0.50"/>
-              <stop offset="100%" stop-color="#7cecdf" stop-opacity="0"/>
-            </radialGradient>
-
-            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-
-            <filter id="beamGlow" x="-30%" y="-300%" width="160%" height="700%">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-
-            <filter id="coreGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="5" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-
-            <clipPath id="beamClip">
-              <rect x="56" y="342" width="188" height="10" rx="5"/>
-            </clipPath>
-          </defs>
-
-          <g id="scada-root" transform-origin="150px 285px">
-            <g id="bg-atmosphere">
-              <ellipse cx="150" cy="205" rx="118" ry="168" fill="url(#bgGlowGrad)"/>
-              <ellipse cx="150" cy="334" rx="88" ry="22" fill="#4bf0df" opacity="0.08" filter="url(#softGlow)"/>
-            </g>
-
-            <g id="floor-beam">
-              <ellipse cx="150" cy="350" rx="95" ry="13" fill="#3de7d6" opacity="0.10" filter="url(#beamGlow)"/>
-              <rect x="56" y="342" width="188" height="10" rx="5" fill="#4ff3e2" opacity="0.18"/>
-              <rect x="72" y="345" width="156" height="3" rx="1.5" fill="#b8fff8" opacity="0.28"/>
-
-              <g clip-path="url(#beamClip)">
-                <rect
-                  id="floor-scan-highlight"
-                  x="18"
-                  y="341"
-                  width="64"
-                  height="12"
-                  rx="6"
-                  fill="url(#beamGrad)"
-                  opacity="0"
-                  filter="url(#beamGlow)"
-                />
-              </g>
-            </g>
-
-<g id="scada-man">
-  <g id="body-shell">
-    <!-- top hood -->
-    <path
-      d="M136 92
-         L144 82
-         L156 82
-         L164 92
-         L160 112
-         L140 112
-         Z"
-      fill="#c9fff9"
-      opacity="0.34"
-    />
-
-    <!-- left hood wing -->
-    <path
-      d="M132 98
-         L124 112
-         L136 128
-         L140 112
-         Z"
-      fill="#bafff7"
-      opacity="0.22"
-    />
-
-    <!-- right hood wing -->
-    <path
-      d="M168 98
-         L176 112
-         L164 128
-         L160 112
-         Z"
-      fill="#bafff7"
-      opacity="0.18"
-    />
-
-    <!-- main central body -->
-    <path
-      d="M138 118
-         L162 118
-         L162 296
-         L156 316
-         L144 316
-         L138 296
-         Z"
-      fill="url(#shellGrad)"
-    />
-
-    <!-- lower pointed pedestal -->
-    <path
-      d="M142 316
-         L158 316
-         L154 334
-         L146 334
-         Z"
-      fill="#8ff6ea"
-      opacity="0.28"
-    />
-  </g>
-
-  <g id="side-fins-left">
-    <!-- outer arm -->
-    <path
-      d="M122 118
-         L110 144
-         L106 214
-         L110 274
-         L118 274
-         L122 216
-         L126 152
-         L130 126
-         Z"
-      fill="url(#sideGrad)"
-      opacity="0.82"
-    />
-    <!-- inner arm glow -->
-    <path
-      d="M116 148
-         L112 186
-         L112 246
-         L116 266
-         L120 266
-         L122 226
-         L124 176
-         L126 148
-         Z"
-      fill="#d9fffb"
-      opacity="0.18"
-    />
-    <!-- arm tip -->
-    <path
-      d="M114 274
-         L108 294
-         L114 296
-         L120 276
-         Z"
-      fill="#bafff7"
-      opacity="0.18"
-    />
-  </g>
-
-  <g id="side-fins-right">
-    <!-- outer arm -->
-    <path
-      d="M178 118
-         L190 144
-         L194 214
-         L190 274
-         L182 274
-         L178 216
-         L174 152
-         L170 126
-         Z"
-      fill="url(#sideGrad)"
-      opacity="0.82"
-    />
-    <!-- inner arm glow -->
-    <path
-      d="M184 148
-         L188 186
-         L188 246
-         L184 266
-         L180 266
-         L178 226
-         L176 176
-         L174 148
-         Z"
-      fill="#d9fffb"
-      opacity="0.18"
-    />
-    <!-- arm tip -->
-    <path
-      d="M186 274
-         L192 294
-         L186 296
-         L180 276
-         Z"
-      fill="#bafff7"
-      opacity="0.18"
-    />
-  </g>
-
-  <g id="body-inner-glow" opacity="0.28" filter="url(#softGlow)">
-    <path
-      d="M144 124
-         L156 124
-         L156 294
-         L152 310
-         L148 310
-         L144 294
-         Z"
-      fill="#a8fff5"
-    />
-  </g>
-
-  <g id="core-housing">
-    <!-- outer chamber -->
-    <path
-      d="M132 164
-         L150 152
-         L168 164
-         L168 198
-         L150 210
-         L132 198
-         Z"
-      fill="#173436"
-      opacity="0.94"
-    />
-
-    <!-- inner chamber -->
-    <path
-      d="M138 168
-         L150 160
-         L162 168
-         L162 194
-         L150 202
-         L138 194
-         Z"
-      fill="#86fff0"
-      opacity="0.16"
-    />
-  </g>
-
-  <g id="core-halo" opacity="0.65" filter="url(#coreGlow)">
-    <circle cx="150" cy="181" r="21" fill="url(#haloGrad)" />
-  </g>
-
-  <g id="core-eye" filter="url(#coreGlow)">
-    <circle cx="150" cy="181" r="10" fill="url(#coreGrad)" />
-    <circle cx="150" cy="181" r="4" fill="#ffffff" opacity="0.75" />
-  </g>
-
-  <g id="accent-lines">
-    <path d="M144 82 L150 76 L156 82" stroke="#d2fff9" stroke-opacity="0.24" stroke-width="1.5" fill="none"/>
-    <path d="M138 118 L138 296" stroke="#d2fff9" stroke-opacity="0.08" stroke-width="1" fill="none"/>
-    <path d="M162 118 L162 296" stroke="#d2fff9" stroke-opacity="0.08" stroke-width="1" fill="none"/>
-  </g>
-</g>
-          <style>
-            #scada-root {
-              animation: scadaSway 8s ease-in-out infinite;
-            }
-
-            svg.scada-scan #floor-scan-highlight {
-              animation: floorScan 3.0s ease-in-out 1;
-              opacity: 1;
-            }
-
-            svg.scada-twinkle #core-eye,
-            svg.scada-twinkle #core-halo {
-              animation: eyeTwinkle 0.5s ease-in-out 1;
-            }
-
-            svg.scada-lockdown #scada-root {
-              animation-duration: 10s;
-            }
-
-            
-            @keyframes floorScan {
-              0%   { transform: translateX(110px); opacity: 0; }
-              8%   { opacity: 0.95; }
-              28%  { transform: translateX(0px); opacity: 1; }
-              50%  { transform: translateX(110px); opacity: 1; }
-              72%  { transform: translateX(220px); opacity: 1; }
-              92%  { transform: translateX(110px); opacity: 0.95; }
-              100% { transform: translateX(110px); opacity: 0; }
-             }
-
-            @keyframes eyeTwinkle {
-              0%   { opacity: 1; transform: scale(1); }
-              35%  { opacity: 1; transform: scale(1.18); }
-              60%  { opacity: 0.95; transform: scale(0.96); }
-              100% { opacity: 1; transform: scale(1); }
-            }
-
-            #core-eye,
-            #core-halo {
-              transform-origin: 150px 181px;
-            }
-          </style>
-        </svg>
+        <div id="scada-floor-beam">
+          <div id="scada-floor-scan-highlight"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -2213,30 +1950,20 @@ function setTooltip(el, text){
 let __lastSentinelMsg = "";
 let __lastScadaState = "";
 
-function triggerScadaScan() {
-  const svg = document.getElementById("scada-svg");
-  if (!svg) return;
+function applyScadaManState(data) {
+  const el = document.getElementById("scada-wrap");
+  if (!el) return;
 
-  svg.classList.remove("scada-scan");
-  void svg.offsetWidth;
-  svg.classList.add("scada-scan");
+  const newState = getScadaVisualState(data);
 
-  setTimeout(() => {
-    svg.classList.remove("scada-scan");
-  }, 2300);
-}
+  el.classList.remove("scada-idle", "scada-observe", "scada-active", "scada-lockdown");
+  el.classList.add(`scada-${newState}`);
 
-function triggerScadaTwinkle() {
-  const svg = document.getElementById("scada-svg");
-  if (!svg) return;
+  if (__lastScadaState && __lastScadaState !== newState) {
+    triggerScadaTwinkle();
+  }
 
-  svg.classList.remove("scada-twinkle");
-  void svg.offsetWidth;
-  svg.classList.add("scada-twinkle");
-
-  setTimeout(() => {
-    svg.classList.remove("scada-twinkle");
-  }, 600);
+  __lastScadaState = newState;
 }
 
 function getScadaVisualState(data) {
