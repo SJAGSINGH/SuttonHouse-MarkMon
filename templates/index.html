@@ -1890,12 +1890,14 @@ main.grid > #cr-dump-full{
             }
 
             @keyframes floorScan {
-              0%   { transform: translateX(0px); opacity: 0; }
-              10%  { opacity: 0.95; }
-              50%  { opacity: 1; }
-              90%  { opacity: 0.85; }
-              100% { transform: translateX(220px); opacity: 0; }
-            }
+              0%   { transform: translateX(110px); opacity: 0; }
+              8%   { opacity: 0.95; }
+              28%  { transform: translateX(0px); opacity: 1; }
+              50%  { transform: translateX(110px); opacity: 1; }
+              72%  { transform: translateX(220px); opacity: 1; }
+              92%  { transform: translateX(110px); opacity: 0.95; }
+              100% { transform: translateX(110px); opacity: 0; }
+             }
 
             @keyframes eyeTwinkle {
               0%   { opacity: 1; transform: scale(1); }
