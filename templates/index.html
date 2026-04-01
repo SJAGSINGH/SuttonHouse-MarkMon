@@ -1946,7 +1946,32 @@ function setTooltip(el, text){
   }
 }
 
+function triggerScadaScan() {
+  const el = document.getElementById("scada-wrap");
+  if (!el) return;
 
+  el.classList.remove("scada-scan");
+  void el.offsetWidth;
+  el.classList.add("scada-scan");
+
+  setTimeout(() => {
+    el.classList.remove("scada-scan");
+  }, 3100);
+}
+
+function triggerScadaTwinkle() {
+  const el = document.getElementById("scada-wrap");
+  if (!el) return;
+
+  el.classList.remove("scada-twinkle");
+  void el.offsetWidth;
+  el.classList.add("scada-twinkle");
+
+  setTimeout(() => {
+    el.classList.remove("scada-twinkle");
+  }, 600);
+}
+   
 let __lastSentinelMsg = "";
 let __lastScadaState = "";
 
@@ -1980,21 +2005,7 @@ function getScadaVisualState(data) {
   return "idle";
 }
 
-function applyScadaManState(data) {
-  const svg = document.getElementById("scada-svg");
-  if (!svg) return;
 
-  const newState = getScadaVisualState(data);
-
-  svg.classList.remove("scada-idle", "scada-observe", "scada-active", "scada-lockdown");
-  svg.classList.add(`scada-${newState}`);
-
-  if (__lastScadaState && __lastScadaState !== newState) {
-    triggerScadaTwinkle();
-  }
-
-  __lastScadaState = newState;
-}   
 function srBox(k, v){
   const val = (v == null || v === "" ? "—" : String(v));
   return `
