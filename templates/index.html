@@ -1080,15 +1080,18 @@ body.war-room .scada-card{
 }
 
 /* ============================
-   EVENT TAG — secondary context
+   EVENT TAG — vertical, secondary context
    right-hand side of node
 ============================ */
 .event-tag{
-  width:34px;
+  width:14px;
   height:44px;
   display:flex;
   align-items:center;
-  justify-content:flex-start;
+  justify-content:center;
+
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
 
   font-size:9px;
   letter-spacing:1px;
@@ -1099,7 +1102,6 @@ body.war-room .scada-card{
   user-select:none;
 
   opacity:0;
-  transform:translateX(0);
   transition:opacity .18s ease;
 
   text-shadow:0 0 8px rgba(255,191,71,.12);
