@@ -966,13 +966,14 @@ body.war-room .scada-card{
   position:relative;
 }
 
-/* row that holds [MSA][NODE] */
+/* row that holds [MSA][NODE][EVENT] */
 .stock-row{
   display:flex;
   align-items:center;            /* vertical centre lock */
   justify-content:center;
-  gap:6px;                       /* spacing between msa + circle */
+  gap:6px;                       /* spacing between msa + circle + event */
   height:44px;                   /* hard lock = no drift on resize */
+  position:relative;
 }
 
 /* ============================
@@ -1005,9 +1006,6 @@ body.war-room .scada-card{
 .msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
 .msa-na  { color: var(--red) !important;    text-shadow:0 0 10px rgba(255,68,68,.22); }
 
-/* ============================
-   STOCK NODE — IMAGE + HALO
-============================ */
 /* ============================
    STOCK NODE — IMAGE + HALO
 ============================ */
@@ -1076,10 +1074,49 @@ body.war-room .scada-card{
 }
 
 @keyframes limePulse{
-  0%   { transform:scale(1);   opacity:.75; }
+  0%   { transform:scale(1);    opacity:.75; }
   45%  { transform:scale(1.06); opacity:1; }
-  100% { transform:scale(1);   opacity:.75; }
+  100% { transform:scale(1);    opacity:.75; }
 }
+
+/* ============================
+   EVENT TAG — secondary context
+   right-hand side of node
+============================ */
+.event-tag{
+  width:34px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+
+  font-size:9px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:rgba(255,191,71,0.92);
+
+  pointer-events:none;
+  user-select:none;
+
+  opacity:0;
+  transform:translateX(0);
+  transition:opacity .18s ease;
+
+  text-shadow:0 0 8px rgba(255,191,71,.12);
+}
+
+.event-tag.on{
+  opacity:1;
+}
+
+.event-tag.setup{
+  color:rgba(220,190,120,0.92);
+}
+
+.event-tag.signal{
+  color:rgba(255,210,110,0.98);
+}
+
 /* ============================
    TICKER LABEL (always visible)
 ============================ */
@@ -1099,8 +1136,9 @@ body.war-room .scada-card{
 
   position:relative;
   z-index:5;                     /* ensures never behind node */
-  transform: translateX(10px);
+  transform:translateX(10px);
 }
+
 .setup-panel{
   position:fixed;
   right:-420px;
@@ -1135,8 +1173,9 @@ body.war-room .scada-card{
   font-size:12px;
   color:#aaa;
 }
-#setup-panel {
-  display: none !important;
+
+#setup-panel{
+  display:none !important;
 }
 
 
