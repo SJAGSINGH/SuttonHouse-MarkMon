@@ -1240,7 +1240,48 @@ def ingest_macro():
         _log_debug("/ingest_macro", {"error": str(e)}, ok=False)
         return jsonify({"ok": False, "error": "ingest_macro_failed", "detail": str(e)}), 400
 
+DAY_MS = 24 * 60 * 60 * 1000
 
+
+def _safe_int_or_none(v):
+    try:
+        if v in (None, "", "NA", "na", "null"):
+            return None
+        return int(float(v))
+    except Exception:
+        return None
+
+
+def _event_state_from_ts(event_ts_ms, now_ms, pre_days=5, post_days=5):
+    """
+    Server-authoritative event lifecycle.
+    Returns: active, state, days
+      state in {"pre","today","post","none"}
+      days:
+        pre  -> positive days until event
+        today-> 0
+        post -> positive days since event
+    """
+    if not event_ts_ms:
+        return False, "none", None
+
+    delta_ms = int(event_ts_ms) - int(now_ms)
+
+    # same calendar-day style tolerance
+    if abs(delta_ms) < DAY_MS:
+        return True, "today", 0
+
+    if delta_ms > 0:
+        days_to = int(math.ceil(delta_ms / DAY_MS))
+        if days_to <= int(pre_days):
+            return True, "pre", days_to
+        return False, "none", days_to
+
+    days_since = int(math.floor(abs(delta_ms) / DAY_MS))
+    if days_since <= int(post_days):
+        return True, "post", days_since
+
+    return False, "none", days_since
 
 
 # ============================================================
@@ -1499,11 +1540,10 @@ def webhook():
 
             # ====================================================
             # EVENT LANE (FAST PATH)
-            # Accepts:
-            #   {"type":"EVENT", ...}
-            # Emits:
-            #   socketio.emit("stock_update", out)
-            # Persists into nodes.by_ref[ref_id]["event"]
+            # Pine sends NEXT known event timestamp.
+            # Server latches the live event instance and maintains:
+            #   pre / today / post / expired
+            # independent of chart runtime.
             # ====================================================
             elif typ == "EVENT":
                 try:
@@ -1515,6 +1555,8 @@ def webhook():
                 if ref_id is None:
                     abort(400)
 
+                now_ms = int(time.time() * 1000)
+
                 out = dict(data)
                 out["type"] = "EVENT"
                 out["ref_id"] = ref_id
@@ -1522,42 +1564,167 @@ def webhook():
                 if out.get("ticker") is not None:
                     out["ticker"] = str(out["ticker"]).upper()
 
-                out["_server_ts"] = int(time.time() * 1000)
+                out["_server_ts"] = now_ms
 
-                # normalise event fields
-                out["event_active"] = bool(out.get("event_active", False))
-                out["event_type"] = str(out.get("event_type") or "none").strip().lower()
-                out["event_state"] = str(out.get("event_state") or "none").strip().lower()
+                # --------------------------------------------
+                # normalise incoming fields
+                # --------------------------------------------
+                incoming_event_type = str(out.get("event_type") or "none").strip().lower()
+                incoming_event_state = str(out.get("event_state") or "none").strip().lower()
 
-                try:
-                    if out.get("event_days") is not None:
-                        out["event_days"] = int(float(out["event_days"]))
-                except Exception:
-                    out["event_days"] = None
+                incoming_earnings_ts = _safe_int_or_none(out.get("earnings_ts"))
+                incoming_div_ts = _safe_int_or_none(out.get("div_ts"))
 
-                try:
-                    if out.get("earnings_ts") is not None:
-                        out["earnings_ts"] = int(float(out["earnings_ts"]))
-                except Exception:
-                    out["earnings_ts"] = None
+                # Pine may send these later; fallback to 5/5 for now
+                event_pre_days = _safe_int_or_none(out.get("event_pre_days"))
+                event_post_days = _safe_int_or_none(out.get("event_post_days"))
+                if event_pre_days is None:
+                    event_pre_days = 5
+                if event_post_days is None:
+                    event_post_days = 5
 
-                try:
-                    if out.get("div_ts") is not None:
-                        out["div_ts"] = int(float(out["div_ts"]))
-                except Exception:
-                    out["div_ts"] = None
+                # --------------------------------------------
+                # ensure node record exists
+                # --------------------------------------------
+                if "nodes" not in STATE or not isinstance(STATE.get("nodes"), dict):
+                    STATE["nodes"] = {"by_ref": {}}
+                if "by_ref" not in STATE["nodes"] or not isinstance(STATE["nodes"].get("by_ref"), dict):
+                    STATE["nodes"]["by_ref"] = {}
 
-                try:
-                    _store_node_payload(out)
-                except Exception:
-                    pass
+                ref_key = str(ref_id)
+                node_rec = STATE["nodes"]["by_ref"].get(ref_key)
+                if not isinstance(node_rec, dict):
+                    node_rec = {}
+
+                existing_event = node_rec.get("event")
+                if not isinstance(existing_event, dict):
+                    existing_event = {}
+
+                # --------------------------------------------
+                # choose primary event timestamp
+                # For now prefer earnings, else dividend
+                # --------------------------------------------
+                incoming_event_ts = incoming_earnings_ts or incoming_div_ts
+
+                latched_event_ts = _safe_int_or_none(existing_event.get("event_ts"))
+                latched_type = str(existing_event.get("type") or "none").strip().lower()
+
+                # --------------------------------------------
+                # LATCH RULE
+                # Only replace latched event if:
+                # - none exists
+                # - or old one is expired
+                # - or same timestamp arrives again
+                #
+                # This prevents TradingView rolling to the next
+                # quarter from destroying our post-event window.
+                # --------------------------------------------
+                if latched_event_ts:
+                    prev_active, prev_state, prev_days = _event_state_from_ts(
+                        latched_event_ts, now_ms, event_pre_days, event_post_days
+                    )
+                else:
+                    prev_active, prev_state, prev_days = False, "none", None
+
+                use_event_ts = latched_event_ts
+                use_event_type = latched_type if latched_type != "none" else incoming_event_type
+
+                if incoming_event_ts:
+                    if not latched_event_ts:
+                        use_event_ts = incoming_event_ts
+                        use_event_type = incoming_event_type
+                    elif incoming_event_ts == latched_event_ts:
+                        use_event_ts = incoming_event_ts
+                        use_event_type = incoming_event_type
+                    elif prev_state == "none":
+                        # old tracked event has expired, safe to roll forward
+                        use_event_ts = incoming_event_ts
+                        use_event_type = incoming_event_type
+                    else:
+                        # keep old latched event alive through post-window
+                        pass
+
+                # --------------------------------------------
+                # compute authoritative server-side state
+                # --------------------------------------------
+                event_active, server_event_state, server_event_days = _event_state_from_ts(
+                    use_event_ts, now_ms, event_pre_days, event_post_days
+                )
+
+                # expire fully once outside post window
+                if server_event_state == "none" and use_event_ts and incoming_event_ts and incoming_event_ts != use_event_ts:
+                    # allow immediate rollover to newer future event once expired
+                    use_event_ts = incoming_event_ts
+                    use_event_type = incoming_event_type
+                    event_active, server_event_state, server_event_days = _event_state_from_ts(
+                        use_event_ts, now_ms, event_pre_days, event_post_days
+                    )
+
+                # --------------------------------------------
+                # canonical outbound payload
+                # --------------------------------------------
+                out["event_type"] = use_event_type if use_event_type != "none" else incoming_event_type
+                out["event_state"] = server_event_state
+                out["event_active"] = bool(event_active)
+                out["event_days"] = server_event_days
+                out["event_pre_days"] = event_pre_days
+                out["event_post_days"] = event_post_days
+
+                out["earnings_ts"] = incoming_earnings_ts
+                out["div_ts"] = incoming_div_ts
+                out["event_ts"] = use_event_ts
+
+                # tooltip-ready text
+                if out["event_type"] == "earnings":
+                    base_label = "EARNINGS"
+                elif out["event_type"] == "dividend":
+                    base_label = "DIVIDEND"
+                else:
+                    base_label = "EVENT"
+
+                if server_event_state == "today":
+                    out["event_label"] = f"{base_label} • TODAY"
+                elif server_event_state == "pre" and server_event_days is not None:
+                    out["event_label"] = f"{base_label} • PRE • {server_event_days}D"
+                elif server_event_state == "post" and server_event_days is not None:
+                    out["event_label"] = f"{base_label} • POST • {server_event_days}D"
+                else:
+                    out["event_label"] = base_label
+
+                # --------------------------------------------
+                # persist authoritative event onto node
+                # --------------------------------------------
+                node_rec["ticker"] = out.get("ticker") or node_rec.get("ticker")
+                node_rec["ref_id"] = ref_id
+                node_rec["event"] = {
+                    "active": bool(out["event_active"]),
+                    "type": out["event_type"],
+                    "state": out["event_state"],
+                    "days": out["event_days"],
+                    "event_ts": out["event_ts"],
+                    "earnings_ts": out["earnings_ts"],
+                    "div_ts": out["div_ts"],
+                    "pre_days": out["event_pre_days"],
+                    "post_days": out["event_post_days"],
+                    "label": out["event_label"],
+                    "_server_ts": now_ms,
+                    "time": out.get("time"),
+                    "tf": out.get("tf"),
+                }
+
+                ts_map = node_rec.get("_ts")
+                if not isinstance(ts_map, dict):
+                    ts_map = {}
+                ts_map["event"] = now_ms
+                node_rec["_ts"] = ts_map
+
+                STATE["nodes"]["by_ref"][ref_key] = node_rec
 
                 _update_monitor_lane(_extract_meta(out))
 
                 do_save = True
                 emit_event = "stock_update"
                 emit_payload = out
-
             # ====================================================
             # STOCK LANES (FAST PATH)
             # Accepts:
