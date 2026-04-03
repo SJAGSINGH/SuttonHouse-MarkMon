@@ -338,12 +338,13 @@ def _derive_fx_context(gbpcad_state: Optional[str], gbpaud_state: Optional[str])
         return "NEUTRAL"
     return None
 
-NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH"}
+NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH", "EVENT"}
 
 def _store_node_payload(data: Dict[str, Any]) -> None:
     """
-    Stores the latest payload for SETUP / SCADA_STATUS / WATCH keyed by ref_id.
-    Keeps last payload per type and a timestamp per type.
+    Stores latest node-level payloads keyed by ref_id.
+    Supports: SETUP / SCADA_STATUS / WATCH / EVENT
+    Keeps last payload per type and per-type timestamps.
     """
     try:
         typ = str(data.get("type") or "").strip().upper()
@@ -353,7 +354,7 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
         ref = data.get("ref_id")
         if ref is None:
             return
-        # TradingView sometimes sends numbers as strings
+
         try:
             ref_i = int(float(ref))
         except Exception:
@@ -371,19 +372,32 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
         if not isinstance(rec, dict):
             rec = {"_ts": {}}
 
-        k = f"last_{typ.lower()}"
-        rec[k] = data
-        rec["_ts"][k] = now
-
-        # also store common convenience fields
+        # common convenience fields
         if data.get("ticker"):
             rec["ticker"] = str(data.get("ticker")).upper()
         rec["ref_id"] = ref_i
 
+        if typ == "EVENT":
+            rec["event"] = {
+                "active": bool(data.get("event_active", False)),
+                "type": str(data.get("event_type") or "none").strip().lower(),
+                "state": str(data.get("event_state") or "none").strip().lower(),
+                "days": data.get("event_days"),
+                "earnings_ts": data.get("earnings_ts"),
+                "div_ts": data.get("div_ts"),
+                "_server_ts": now,
+                "time": data.get("time"),
+                "tf": data.get("tf"),
+            }
+            rec["_ts"]["event"] = now
+        else:
+            k = f"last_{typ.lower()}"
+            rec[k] = data
+            rec["_ts"][k] = now
+
         STATE["nodes"]["by_ref"][ref_key] = rec
 
     except Exception:
-        # fail-soft: never break webhook
         return
 
 def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -1231,7 +1245,7 @@ def ingest_macro():
 
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
-# Adds: STOCK LANES (WATCH + SCADA_STATUS) -> socket "stock_update"
+# Adds: STOCK LANES (WATCH + SCADA_STATUS + EVENT) -> socket "stock_update"
 # Also stores latest node payloads per ref_id for /node/<ref_id>
 # ============================================================
 
@@ -1482,6 +1496,67 @@ def webhook():
 
                 else:
                     abort(400)
+
+            # ====================================================
+            # EVENT LANE (FAST PATH)
+            # Accepts:
+            #   {"type":"EVENT", ...}
+            # Emits:
+            #   socketio.emit("stock_update", out)
+            # Persists into nodes.by_ref[ref_id]["event"]
+            # ====================================================
+            elif typ == "EVENT":
+                try:
+                    ref_id = data.get("ref_id")
+                    ref_id = int(float(ref_id)) if ref_id is not None else None
+                except Exception:
+                    ref_id = None
+
+                if ref_id is None:
+                    abort(400)
+
+                out = dict(data)
+                out["type"] = "EVENT"
+                out["ref_id"] = ref_id
+
+                if out.get("ticker") is not None:
+                    out["ticker"] = str(out["ticker"]).upper()
+
+                out["_server_ts"] = int(time.time() * 1000)
+
+                # normalise event fields
+                out["event_active"] = bool(out.get("event_active", False))
+                out["event_type"] = str(out.get("event_type") or "none").strip().lower()
+                out["event_state"] = str(out.get("event_state") or "none").strip().lower()
+
+                try:
+                    if out.get("event_days") is not None:
+                        out["event_days"] = int(float(out["event_days"]))
+                except Exception:
+                    out["event_days"] = None
+
+                try:
+                    if out.get("earnings_ts") is not None:
+                        out["earnings_ts"] = int(float(out["earnings_ts"]))
+                except Exception:
+                    out["earnings_ts"] = None
+
+                try:
+                    if out.get("div_ts") is not None:
+                        out["div_ts"] = int(float(out["div_ts"]))
+                except Exception:
+                    out["div_ts"] = None
+
+                try:
+                    _store_node_payload(out)
+                except Exception:
+                    pass
+
+                _update_monitor_lane(_extract_meta(out))
+
+                do_save = True
+                emit_event = "stock_update"
+                emit_payload = out
 
             # ====================================================
             # STOCK LANES (FAST PATH)
@@ -1760,33 +1835,20 @@ def webhook():
                     lane = str(data.get("lane") or "").strip().lower()
                     if lane == "gold_copper":
                         STATE["macro_v2"]["gc"] = {
-                            # ------------------------
-                            # ORIGINAL FIELDS
-                            # ------------------------
                             "state": _normalise_str(data.get("state")),
                             "trend_50sma": _normalise_str(data.get("trend_50sma")),
                             "msa_pct": _safe_float(data.get("msa_pct")),
                             "valid_signal": data.get("valid_signal"),
                             "explain": _normalise_str(data.get("explain")),
-
-                            # ------------------------
-                            # NEW STRUCTURAL LAYER (GC PRESSURE ENGINE)
-                            # ------------------------
-                            # ------------------------
-                            # NEW STRUCTURAL LAYER (GC PRESSURE ENGINE)
-                            # ------------------------
                             "latch_state": _normalise_str(data.get("gc_latch_state")) or "NEUTRAL",
                             "latch_count": _safe_int(data.get("gc_latch_count")) or 0,
                             "mean_duration": _safe_float(data.get("gc_mean_duration")) or 0.0,
                             "mean_mode": _normalise_str(data.get("gc_mean_mode")) or "MANUAL",
-                            
                             "green_mean": _safe_float(data.get("gc_green_mean_duration")) or 0.0,
                             "red_mean": _safe_float(data.get("gc_red_mean_duration")) or 0.0,
                             "orange_mean": _safe_float(data.get("gc_orange_mean_duration")) or 0.0,
-
                             "pct_of_mean": _safe_float(data.get("gc_pct")) or 0.0,
                             "phase": _normalise_str(data.get("gc_phase")) or "UNSET",
-
                             "support": bool(data.get("gc_support")),
                             "latch_changed": bool(data.get("gc_latch_changed")),
                         }
@@ -1883,7 +1945,6 @@ def webhook():
                 _update_monitor_lane(meta)
                 print("MACRO_V2_STATE =", STATE.get("macro_v2"))
 
-                # snapshot for client OUTSIDE lock
                 payload = copy.deepcopy(STATE)
 
                 do_save = True
