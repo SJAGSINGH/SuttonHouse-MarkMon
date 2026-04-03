@@ -951,7 +951,7 @@ body.war-room .scada-card{
   gap:18px 14px;
   margin-top:14px;
   align-items:start;
-}
+}.event-tag{
 
 /* ============================
    STOCK ITEM (matches your DOM)
@@ -971,7 +971,7 @@ body.war-room .scada-card{
   display:flex;
   align-items:center;            /* vertical centre lock */
   justify-content:center;
-  gap:6px;                       /* spacing between msa + circle + event */
+  gap:8px;                       /* spacing between msa + circle + event */
   height:44px;                   /* hard lock = no drift on resize */
   position:relative;
 }
@@ -1091,9 +1091,9 @@ body.war-room .scada-card{
   justify-content:center;
 
   writing-mode:vertical-rl;
-  transform:rotate(180deg);
+  transform:rotate(180deg)translateY(1px);
 
-  font-size:9px;
+  font-size:8px;
   letter-spacing:1px;
   text-transform:uppercase;
   color:rgba(255,191,71,0.92);
@@ -1101,7 +1101,7 @@ body.war-room .scada-card{
   pointer-events:none;
   user-select:none;
 
-  opacity:0;
+  opacity:0.75;
   transition:opacity .18s ease;
 
   text-shadow:0 0 8px rgba(255,191,71,.12);
