@@ -2815,9 +2815,10 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   // ✅ persist true ref_id on the tile
   item.dataset.refId = String(refId);
 
-  const node  = item.querySelector(".stock-node");
-  const label = item.querySelector(".stock-label");
-  const msa   = item.querySelector(".msa-label");
+  const node     = item.querySelector(".stock-node");
+  const label    = item.querySelector(".stock-label");
+  const msa      = item.querySelector(".msa-label");
+  const eventTag = item.querySelector(".event-tag");
 
   // TICKER (compute once, reuse)
   const tkr = ticker ? String(ticker).toUpperCase() : "—";
@@ -2848,11 +2849,12 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
         const img = document.createElement("img");
         img.alt = tkr !== "—" ? tkr : "";
         img.src = logoUrl;
-        img.onerror = () => { try { img.remove(); } catch(e) {} }; // no broken icon if missing file
+        img.onerror = () => { try { img.remove(); } catch(e) {} };
         node.appendChild(img);
       } else {
-        // update if needed
-        if (existingImg.getAttribute("src") !== logoUrl) existingImg.setAttribute("src", logoUrl);
+        if (existingImg.getAttribute("src") !== logoUrl) {
+          existingImg.setAttribute("src", logoUrl);
+        }
       }
     } else {
       if (existingImg) existingImg.remove();
@@ -2878,6 +2880,23 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     else msa.classList.add("msa-na");
   }
 
+  // EVENT TAG
+  if (eventTag){
+    const ev = (window.__EVENT_STORE__ || {})[String(refId)] || null;
+    const eventActive = !!(ev && ev.event_active === true);
+
+    // show only when event overlaps with setup or signal
+    const showEvent = eventActive && (!!isSetup || !!isSignal);
+
+    eventTag.classList.remove("on", "setup", "signal");
+    eventTag.textContent = "Event";
+
+    if (showEvent){
+      eventTag.classList.add("on");
+      eventTag.classList.add(isSignal ? "signal" : "setup");
+    }
+  }
+
   // TOOLTIP (commissioning only)
   const reasonMap = (window.__NODE_REASON__ || {});
   const reason = reasonMap[String(refId)] || "";
@@ -2891,7 +2910,6 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   if (node)  node.title  = tip;
   if (label) label.title = tip;
 }
-
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -4044,6 +4062,7 @@ socket.on("stock_update", (msg) => {
   window.__SCADA_STORE__ = window.__SCADA_STORE__ || {};
   window.__WATCH_STORE__ = window.__WATCH_STORE__ || {};
   window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
+  window.__EVENT_STORE__ = window.__EVENT_STORE__ || {};
 
   if (t === "SCADA_STATUS") {
     const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
@@ -4054,7 +4073,15 @@ socket.on("stock_update", (msg) => {
     if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
     return;
   }
+ 
+  if (t === "EVENT") {
+    const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
+    if (rid) window.__EVENT_STORE__[rid] = msg;
 
+    try { applyEvent(msg); } catch(e){}
+    if (typeof debugOn !== "undefined" && debugOn) { try { refreshDebugNow(); } catch(e){} }
+    return;
+  }
   if (t === "WATCH") {
     const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
     if (rid) window.__WATCH_STORE__[rid] = msg;
