@@ -373,6 +373,9 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
         if not isinstance(rec, dict):
             rec = {"_ts": {}}
 
+        if "_ts" not in rec or not isinstance(rec.get("_ts"), dict):
+            rec["_ts"] = {}
+
         # common convenience fields
         if data.get("ticker"):
             rec["ticker"] = str(data.get("ticker")).upper()
@@ -384,8 +387,12 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
                 "type": str(data.get("event_type") or "none").strip().lower(),
                 "state": str(data.get("event_state") or "none").strip().lower(),
                 "days": data.get("event_days"),
+                "event_ts": data.get("event_ts"),
                 "earnings_ts": data.get("earnings_ts"),
                 "div_ts": data.get("div_ts"),
+                "pre_days": data.get("event_pre_days"),
+                "post_days": data.get("event_post_days"),
+                "label": data.get("event_label"),
                 "_server_ts": now,
                 "time": data.get("time"),
                 "tf": data.get("tf"),
