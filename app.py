@@ -1291,7 +1291,65 @@ def _event_state_from_ts(event_ts_ms, now_ms, pre_days=5, post_days=5):
 
     return False, "none", days_since
 
+def _refresh_node_event_states() -> None:
+    """
+    Recompute latched node events against current server time.
+    This allows pre/today/post to progress even when Pine is silent.
+    """
+    try:
+        nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
+        if not isinstance(nodes, dict):
+            return
 
+        now_ms = int(time.time() * 1000)
+
+        for ref_key, rec in nodes.items():
+            if not isinstance(rec, dict):
+                continue
+
+            ev = rec.get("event")
+            if not isinstance(ev, dict):
+                continue
+
+            event_ts = _safe_int_or_none(ev.get("event_ts"))
+            if not event_ts:
+                continue
+
+            pre_days = _safe_int_or_none(ev.get("pre_days"))
+            post_days = _safe_int_or_none(ev.get("post_days"))
+            if pre_days is None:
+                pre_days = 5
+            if post_days is None:
+                post_days = 5
+
+            active, state, days = _event_state_from_ts(
+                event_ts, now_ms, pre_days, post_days
+            )
+
+            ev["active"] = bool(active)
+            ev["state"] = state
+            ev["days"] = days
+            ev["_server_ts"] = now_ms
+
+            ev_type = str(ev.get("type") or "event").strip().lower()
+            if ev_type == "earnings":
+                base_label = "EARNINGS"
+            elif ev_type == "dividend":
+                base_label = "DIVIDEND"
+            else:
+                base_label = "EVENT"
+
+            if state == "today":
+                ev["label"] = f"{base_label} • TODAY"
+            elif state == "pre" and days is not None:
+                ev["label"] = f"{base_label} • PRE • {days}D"
+            elif state == "post" and days is not None:
+                ev["label"] = f"{base_label} • POST • {days}D"
+            else:
+                ev["label"] = base_label
+
+    except Exception:
+        return
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
 # Adds: STOCK LANES (WATCH + SCADA_STATUS + EVENT) -> socket "stock_update"
@@ -1338,7 +1396,7 @@ def webhook():
         with STATE_LOCK:
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
-
+            _refresh_node_event_states()   # ✅ ADD THIS HERE
             typ = str(data.get("type") or "").strip().upper()
 
             # ----------------------------------------------------
@@ -1578,12 +1636,9 @@ def webhook():
                 # normalise incoming fields
                 # --------------------------------------------
                 incoming_event_type = str(out.get("event_type") or "none").strip().lower()
-                incoming_event_state = str(out.get("event_state") or "none").strip().lower()
-
                 incoming_earnings_ts = _safe_int_or_none(out.get("earnings_ts"))
                 incoming_div_ts = _safe_int_or_none(out.get("div_ts"))
 
-                # Pine may send these later; fallback to 5/5 for now
                 event_pre_days = _safe_int_or_none(out.get("event_pre_days"))
                 event_post_days = _safe_int_or_none(out.get("event_post_days"))
                 if event_pre_days is None:
@@ -1610,29 +1665,19 @@ def webhook():
 
                 # --------------------------------------------
                 # choose primary event timestamp
-                # For now prefer earnings, else dividend
+                # prefer earnings, else dividend
                 # --------------------------------------------
                 incoming_event_ts = incoming_earnings_ts or incoming_div_ts
 
                 latched_event_ts = _safe_int_or_none(existing_event.get("event_ts"))
                 latched_type = str(existing_event.get("type") or "none").strip().lower()
 
-                # --------------------------------------------
-                # LATCH RULE
-                # Only replace latched event if:
-                # - none exists
-                # - or old one is expired
-                # - or same timestamp arrives again
-                #
-                # This prevents TradingView rolling to the next
-                # quarter from destroying our post-event window.
-                # --------------------------------------------
                 if latched_event_ts:
-                    prev_active, prev_state, prev_days = _event_state_from_ts(
+                    _, prev_state, _ = _event_state_from_ts(
                         latched_event_ts, now_ms, event_pre_days, event_post_days
                     )
                 else:
-                    prev_active, prev_state, prev_days = False, "none", None
+                    prev_state = "none"
 
                 use_event_ts = latched_event_ts
                 use_event_type = latched_type if latched_type != "none" else incoming_event_type
@@ -1645,7 +1690,6 @@ def webhook():
                         use_event_ts = incoming_event_ts
                         use_event_type = incoming_event_type
                     elif prev_state == "none":
-                        # old tracked event has expired, safe to roll forward
                         use_event_ts = incoming_event_ts
                         use_event_type = incoming_event_type
                     else:
@@ -1659,9 +1703,13 @@ def webhook():
                     use_event_ts, now_ms, event_pre_days, event_post_days
                 )
 
-                # expire fully once outside post window
-                if server_event_state == "none" and use_event_ts and incoming_event_ts and incoming_event_ts != use_event_ts:
-                    # allow immediate rollover to newer future event once expired
+                # allow rollover once old event has expired
+                if (
+                    server_event_state == "none"
+                    and use_event_ts
+                    and incoming_event_ts
+                    and incoming_event_ts != use_event_ts
+                ):
                     use_event_ts = incoming_event_ts
                     use_event_type = incoming_event_type
                     event_active, server_event_state, server_event_days = _event_state_from_ts(
@@ -1677,12 +1725,10 @@ def webhook():
                 out["event_days"] = server_event_days
                 out["event_pre_days"] = event_pre_days
                 out["event_post_days"] = event_post_days
-
                 out["earnings_ts"] = incoming_earnings_ts
                 out["div_ts"] = incoming_div_ts
                 out["event_ts"] = use_event_ts
 
-                # tooltip-ready text
                 if out["event_type"] == "earnings":
                     base_label = "EARNINGS"
                 elif out["event_type"] == "dividend":
