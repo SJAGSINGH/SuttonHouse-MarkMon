@@ -3128,6 +3128,13 @@ function applyEvent(msg){
   if (!tag) return;
 
   tag.title = label || "EVENT";
+
+  tag.classList.remove("event-pre", "event-today", "event-post");
+
+  const evState = String(ev.event_state || ev.state || "").toLowerCase();
+  if (evState === "today") tag.classList.add("event-today");
+  else if (evState === "post") tag.classList.add("event-post");
+  else if (evState === "pre") tag.classList.add("event-pre");
 }
    
   function mkDualBars(level, palette){
