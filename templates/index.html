@@ -2951,6 +2951,8 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   if (node)  node.title  = tip;
   if (label) label.title = tip;
 }
+
+
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -3057,7 +3059,35 @@ function applyWatch(msg){
     }
     return bars;
   }
+function applyEvent(msg){
+  const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
+  if (!rid) return;
 
+  window.__EVENT_STORE__ = window.__EVENT_STORE__ || {};
+  window.__EVENT_STORE__[rid] = msg;
+
+  // Repaint using authoritative SCADA visual state
+  const sc = (window.__SCADA_STORE__ || {})[rid] || null;
+  if (sc) {
+    try { applyScadaStatus(sc); } catch(e){}
+  }
+
+  // Attach tooltip to the visible Event tag if present
+  const item =
+    document.querySelector(`.stock-item[data-slot="${rid}"]`) ||
+    document.querySelector(`.stock-item[data-slot="${Number(rid) - 1}"]`);
+
+  if (!item) return;
+
+  const tag = item.querySelector(".event-tag");
+  if (!tag) return;
+
+  const ev = window.__EVENT_STORE__[rid] || {};
+  const label = String(ev.event_label || ev.label || "").trim();
+
+  tag.title = label || "EVENT";
+}   
+   
   function mkDualBars(level, palette){
     const lv = clampLevel(level) || 0;
     let bars = '';
@@ -4819,11 +4849,10 @@ window.handleMacroUpdate = function(payload){
 });
     }
 
-  // ============================================================
+ // ============================================================
 // WARM START (HEALTH)
 // ============================================================
-// ============================================================
-// WARM START (HEALTH) — macro first, then deterministic node replay ✅
+// WARM START (HEALTH) — macro first, then deterministic node replay
 // ============================================================
 (async function warmStart(){
   try{
@@ -4845,7 +4874,7 @@ window.handleMacroUpdate = function(payload){
       window.applyAllFromState(state);
     }
 
-    // ---- Stock nodes (SCADA + WATCH replay) ----
+    // ---- Stock nodes (SCADA + WATCH + EVENT replay) ----
     const stocks = (state && state.stocks && typeof state.stocks === "object") ? state.stocks : {};
 
     // 1) SCADA first (defines halo + msa + ticker)
@@ -4875,6 +4904,39 @@ window.handleMacroUpdate = function(payload){
           if (msg.ref_id == null) msg.ref_id = Number(k);
 
           try { applyWatch(msg); } catch(e){ console.warn("warmstart applyWatch failed", e, msg); }
+        });
+    }
+
+    // 3) EVENT third (context only; does not own halo)
+    const byRef = (((state || {}).nodes || {}).by_ref || {});
+    if (byRef && typeof byRef === "object"){
+      Object.keys(byRef)
+        .sort((a,b) => (Number(a) - Number(b)))
+        .forEach((k) => {
+          const rec = byRef[k];
+          if (!rec || typeof rec !== "object") return;
+
+          const ev = rec.event;
+          if (!ev || typeof ev !== "object") return;
+
+          const msg = {
+            type: "EVENT",
+            ref_id: Number(k),
+            ticker: rec.ticker || null,
+            event_active: !!ev.active,
+            event_type: ev.type || "none",
+            event_state: ev.state || "none",
+            event_days: ev.days,
+            event_ts: ev.event_ts,
+            earnings_ts: ev.earnings_ts,
+            div_ts: ev.div_ts,
+            event_pre_days: ev.pre_days,
+            event_post_days: ev.post_days,
+            event_label: ev.label || "EVENT",
+            _server_ts: ev._server_ts
+          };
+
+          try { applyEvent(msg); } catch(e){ console.warn("warmstart applyEvent failed", e, msg); }
         });
     }
 
