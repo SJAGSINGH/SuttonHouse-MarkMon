@@ -3059,6 +3059,7 @@ function applyWatch(msg){
     }
     return bars;
   }
+   
 function applyEvent(msg){
   const rid = (msg && msg.ref_id != null) ? String(msg.ref_id) : null;
   if (!rid) return;
@@ -3072,21 +3073,21 @@ function applyEvent(msg){
     try { applyScadaStatus(sc); } catch(e){}
   }
 
-  // Attach tooltip to the visible Event tag if present
   const item =
     document.querySelector(`.stock-item[data-slot="${rid}"]`) ||
     document.querySelector(`.stock-item[data-slot="${Number(rid) - 1}"]`);
 
   if (!item) return;
 
-  const tag = item.querySelector(".event-tag");
-  if (!tag) return;
-
   const ev = window.__EVENT_STORE__[rid] || {};
   const label = String(ev.event_label || ev.label || "").trim();
 
+  // repaint may have just created/updated the tag
+  const tag = item.querySelector(".event-tag");
+  if (!tag) return;
+
   tag.title = label || "EVENT";
-}   
+}
    
   function mkDualBars(level, palette){
     const lv = clampLevel(level) || 0;
