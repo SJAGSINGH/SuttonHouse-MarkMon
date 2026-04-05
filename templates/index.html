@@ -964,6 +964,7 @@ body.war-room .scada-card{
   gap:8px;
   min-height:62px;              /* circle(44) + label space */
   position:relative;
+  pointer-events:auto;
 }
 
 /* row that holds [MSA][NODE][EVENT] */
@@ -1022,8 +1023,9 @@ body.war-room .scada-card{
   display:flex;
   align-items:center;
   justify-content:center;
+  pointer-events:auto;
 }
-
+ 
 /* logo */
 .stock-node img{
   width:100%;
@@ -1098,12 +1100,13 @@ body.war-room .scada-card{
   text-transform:uppercase;
   color:rgba(255,191,71,0.92);
 
-  pointer-events:none;
+  pointer-events:auto;
+  cursor:default;
   user-select:none;
 
   opacity:0;
   transition:opacity .18s ease;
-
+  padding:2px 1px;
   text-shadow:0 0 8px rgba(255,191,71,.12);
 }
 
@@ -1118,7 +1121,27 @@ body.war-room .scada-card{
 .event-tag.signal{
   color:rgba(255,210,110,0.98);
 }
+/* ============================
+   EVENT STATES
+============================ */
 
+/* PRE (existing amber) */
+.event-pre{
+  color:rgba(255,191,71,0.92);
+  text-shadow:0 0 8px rgba(255,191,71,.12);
+}
+
+/* TODAY (strong lime) */
+.event-today{
+  color:var(--lime);
+  text-shadow:0 0 10px rgba(92,255,157,.25);
+}
+
+/* POST (NEW — grey decay) */
+.event-post{
+  color:rgba(180,180,180,0.6);
+  text-shadow:none;
+}
 /* ============================
    TICKER LABEL (always visible)
 ============================ */
@@ -2921,7 +2944,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     else msa.classList.add("msa-na");
   }
 
-  // EVENT TAG
+   // EVENT TAG
   if (eventTag){
     const ev = (window.__EVENT_STORE__ || {})[String(refId)] || null;
     const eventActive = !!(ev && ev.event_active === true);
@@ -2929,12 +2952,30 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     // show only when event overlaps with setup or signal
     const showEvent = eventActive && (!!isSetup || !!isSignal);
 
-    eventTag.classList.remove("on", "setup", "signal");
+    eventTag.classList.remove(
+      "on",
+      "setup",
+      "signal",
+      "event-pre",
+      "event-today",
+      "event-post"
+    );
+
     eventTag.textContent = "Event";
 
     if (showEvent){
       eventTag.classList.add("on");
       eventTag.classList.add(isSignal ? "signal" : "setup");
+
+      const evState = String(ev?.event_state || "").toLowerCase();
+      if (evState === "today") eventTag.classList.add("event-today");
+      else if (evState === "post") eventTag.classList.add("event-post");
+      else eventTag.classList.add("event-pre");
+
+      const evLabel = String(ev?.event_label || ev?.label || "").trim();
+      eventTag.title = evLabel || "EVENT";
+    } else {
+      eventTag.title = "";
     }
   }
 
