@@ -1110,36 +1110,32 @@ body.war-room .scada-card{
   text-shadow:0 0 8px rgba(255,191,71,.12);
 }
 
-.event-tag.on{
+.event-tag.setup{
   opacity:1;
 }
 
-.event-tag.setup{
-  color:rgba(220,190,120,0.92);
-}
-
 .event-tag.signal{
-  color:rgba(255,210,110,0.98);
+  opacity:1;
 }
 /* ============================
-   EVENT STATES
+   EVENT STATES (FINAL)
 ============================ */
 
-/* PRE (existing amber) */
-.event-pre{
-  color:rgba(255,191,71,0.92);
+/* PRE */
+.event-tag.event-pre{
+  color:rgba(255,191,71,0.92) !important;
   text-shadow:0 0 8px rgba(255,191,71,.12);
 }
 
-/* TODAY (strong lime) */
-.event-today{
-  color:var(--lime);
+/* TODAY */
+.event-tag.event-today{
+  color:var(--lime) !important;
   text-shadow:0 0 10px rgba(92,255,157,.25);
 }
 
-/* POST (NEW — grey decay) */
-.event-post{
-  color:rgba(180,180,180,0.6);
+/* POST */
+.event-tag.event-post{
+  color:rgba(180,180,180,0.6) !important;
   text-shadow:none;
 }
 /* ============================
