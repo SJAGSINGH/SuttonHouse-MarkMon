@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, send_from_directory, abort, jsonify
 from flask_socketio import SocketIO, emit
+from functools import wraps
+from flask import request, redirect, session, url_for, render_template_string
 import os
 import re
 import time
@@ -12,6 +14,121 @@ from typing import Any, Dict, Optional
 from collections import deque
 from datetime import datetime
 
+# -----------------------------------------
+# Temp Protection for Site
+# -----------------------------------------
+app.secret_key = os.environ.get("WEBHOOK_SECRET", "dev-secret-key")
+SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("authenticated"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+
+        if password == SITE_PASSWORD:
+            session["authenticated"] = True
+            return redirect(url_for("index"))
+        else:
+            error = "Invalid password"
+
+    return render_template_string("""
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Sutton House Access</title>
+      <style>
+        body{
+          margin:0;
+          background:#0b0f14;
+          color:#e6edf3;
+          font-family:Arial,sans-serif;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          height:100vh;
+        }
+        .box{
+          width:320px;
+          padding:28px;
+          background:#111827;
+          border:1px solid #2a3441;
+          border-radius:10px;
+          text-align:center;
+          box-shadow:0 0 30px rgba(0,0,0,.35);
+        }
+        h2{
+          margin:0 0 8px 0;
+          font-weight:600;
+        }
+        p{
+          margin:0 0 18px 0;
+          color:#9ca3af;
+          font-size:14px;
+        }
+        input{
+          width:100%;
+          box-sizing:border-box;
+          padding:12px;
+          border-radius:8px;
+          border:1px solid #374151;
+          background:#0b0f14;
+          color:#fff;
+          outline:none;
+        }
+        button{
+          width:100%;
+          margin-top:12px;
+          padding:12px;
+          border:0;
+          border-radius:8px;
+          background:#22c55e;
+          color:#08110b;
+          font-weight:700;
+          cursor:pointer;
+        }
+        .error{
+          margin-top:12px;
+          color:#ef4444;
+          font-size:14px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h2>Sutton House</h2>
+        <p>Enter access code</p>
+        <form method="post">
+          <input type="password" name="password" placeholder="Password" required>
+          <button type="submit">Enter</button>
+        </form>
+        {% if error %}
+          <div class="error">{{ error }}</div>
+        {% endif %}
+      </div>
+    </body>
+    </html>
+    """, error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+# -----------------------------------------
 app = Flask(__name__, static_folder="static")
 
 # ✅ Threading mode (works with Gunicorn gthreads)
@@ -1069,8 +1186,10 @@ atexit.register(_save_state_to_disk)
 _load_state_from_disk()
 
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
+
 
 @app.route("/static/<path:filename>")
 def serve_static(filename):
