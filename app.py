@@ -1,7 +1,17 @@
-from flask import Flask, request, render_template, send_from_directory, abort, jsonify
+from flask import (
+    Flask,
+    request,
+    render_template,
+    send_from_directory,
+    abort,
+    jsonify,
+    redirect,
+    session,
+    url_for,
+    render_template_string,
+)
 from flask_socketio import SocketIO, emit
 from functools import wraps
-from flask import request, redirect, session, url_for, render_template_string
 import os
 import re
 import time
@@ -15,11 +25,18 @@ from collections import deque
 from datetime import datetime
 
 # -----------------------------------------
+# Flask app must exist BEFORE using app.secret_key or @app.route
+# -----------------------------------------
+app = Flask(__name__, static_folder="static")
+app.secret_key = os.environ.get("WEBHOOK_SECRET", "dev-secret-key")
+
+# ✅ Threading mode (works with Gunicorn gthreads)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# -----------------------------------------
 # Temp Protection for Site
 # -----------------------------------------
-app.secret_key = os.environ.get("WEBHOOK_SECRET", "dev-secret-key")
 SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
-
 
 def login_required(f):
     @wraps(f)
@@ -28,7 +45,6 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -122,25 +138,17 @@ def login():
     </html>
     """, error=error)
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# -----------------------------------------
-app = Flask(__name__, static_folder="static")
-
-# ✅ Threading mode (works with Gunicorn gthreads)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
-
-VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD")).strip()
+VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "").strip()
 
 ATTEMPTS: Dict[str, list] = {}
 ATTEMPT_WINDOW_SECS = 5 * 60
 ATTEMPT_MAX = 6
 STATE_LOCK = Lock()
-
 # -----------------------------------------
 # State save throttling (prevents disk spam)
 # -----------------------------------------
