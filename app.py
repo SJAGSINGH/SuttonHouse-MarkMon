@@ -23,7 +23,13 @@ from threading import Lock
 from typing import Any, Dict, Optional
 from collections import deque
 from datetime import datetime
-
+# ============================================================
+# SENTINEL LOGGING V1
+# append-only JSONL event journal
+# ============================================================
+SENTINEL_LOG_FILE = os.environ.get("SENTINEL_LOG_FILE", "/var/data/sentinel_log.jsonl")
+SENTINEL_LOG_FALLBACK = "/tmp/sentinel_log.jsonl"
+SENTINEL_LOG_MAX_TAIL = 50
 # -----------------------------------------
 # Flask app must exist BEFORE using app.secret_key or @app.route
 # -----------------------------------------
@@ -405,6 +411,599 @@ def _json_safe(x):
 # ----------------------------
 # Helpers
 # ----------------------------
+# ============================================================
+# SENTINEL LOGGING HELPERS
+# ============================================================
+def _safe_float(v, default=None):
+    try:
+        if v is None or v == "":
+            return default
+        return float(v)
+    except Exception:
+        return default
+
+
+def _safe_int(v, default=None):
+    try:
+        if v is None or v == "":
+            return default
+        return int(v)
+    except Exception:
+        return default
+
+
+def _now_ms():
+    return int(time.time() * 1000)
+
+
+def _append_jsonl(filepath, obj):
+    line = json.dumps(_json_safe(obj), separators=(",", ":"), ensure_ascii=False)
+    with open(filepath, "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+def _append_sentinel_log(entry):
+    """
+    Append one JSONL row to the sentinel log.
+    Falls back to /tmp if /var/data is unavailable.
+    Also keeps a recent in-memory tail in STATE for future UI use.
+    """
+    if not isinstance(entry, dict):
+        return
+
+    entry = dict(entry)
+    entry.setdefault("ts", _now_ms())
+    entry.setdefault("source", "sentinel")
+    entry.setdefault("ref_id", None)
+    entry.setdefault("ticker", None)
+    entry.setdefault("state", {})
+    entry.setdefault("context", {})
+
+    path = SENTINEL_LOG_FILE
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        _append_jsonl(path, entry)
+    except Exception:
+        try:
+            os.makedirs(os.path.dirname(SENTINEL_LOG_FALLBACK), exist_ok=True)
+            _append_jsonl(SENTINEL_LOG_FALLBACK, entry)
+            entry["context"] = dict(entry.get("context") or {})
+            entry["context"]["log_fallback"] = True
+        except Exception:
+            return
+
+    try:
+        tail = STATE.get("sentinel_log_tail")
+        if not isinstance(tail, list):
+            tail = []
+        tail.append(_json_safe(entry))
+        if len(tail) > SENTINEL_LOG_MAX_TAIL:
+            tail = tail[-SENTINEL_LOG_MAX_TAIL:]
+        STATE["sentinel_log_tail"] = tail
+    except Exception:
+        pass
+
+
+def _extract_secret_snapshot(data):
+    """
+    Pull the internal/secret panel values that matter for logging.
+    Supports either top-level or nested secret keys.
+    """
+    data = data or {}
+    secret = data.get("secret") if isinstance(data.get("secret"), dict) else {}
+
+    def pick(*keys):
+        for k in keys:
+            if k in secret and secret.get(k) not in (None, ""):
+                return secret.get(k)
+            if k in data and data.get(k) not in (None, ""):
+                return data.get(k)
+        return None
+
+    return {
+        "indicator_x": _safe_int(pick("indicator_x", "ix", "x"), default=None),
+        "indicator_y": _safe_int(pick("indicator_y", "iy", "y"), default=None),
+        "panic_buy_ratio": _safe_float(pick("panic_buy_ratio", "panic_buy", "pbr"), default=None),
+        "panic_sell_ratio": _safe_float(pick("panic_sell_ratio", "panic_sell", "psr"), default=None),
+    }
+
+
+def _extract_sentinel_macro_snapshot(data):
+    """
+    Canonical compact state snapshot for logging.
+    Only fields Sentinel truly cares about.
+    """
+    data = data or {}
+
+    secret_snap = _extract_secret_snapshot(data)
+
+    cycle = (
+        data.get("count")
+        if data.get("count") is not None
+        else data.get("cycle_count")
+        if data.get("cycle_count") is not None
+        else data.get("cycle")
+    )
+
+    phase = (
+        data.get("phase_name")
+        if data.get("phase_name") is not None
+        else data.get("phase")
+        if data.get("phase") is not None
+        else data.get("phase_id")
+    )
+
+    return {
+        "regime": data.get("regime"),
+        "vol": data.get("vol") if data.get("vol") is not None else data.get("vol_state"),
+        "flow": data.get("flow"),
+        "cycle": _safe_int(cycle, default=None),
+        "phase": phase,
+        "sahm": _safe_float(data.get("sahm"), default=None),
+        "s1_allowed": bool(data.get("s1_allowed")) if data.get("s1_allowed") is not None else None,
+        "s2_allowed": bool(data.get("s2_allowed")) if data.get("s2_allowed") is not None else None,
+        "s3_watch": bool(data.get("s3_watch")) if data.get("s3_watch") is not None else None,
+        "s3_armed": bool(data.get("s3_armed")) if data.get("s3_armed") is not None else None,
+        "s3_allowed": bool(data.get("s3_allowed")) if data.get("s3_allowed") is not None else None,
+        "indicator_x": secret_snap["indicator_x"],
+        "indicator_y": secret_snap["indicator_y"],
+        "panic_buy_ratio": secret_snap["panic_buy_ratio"],
+        "panic_sell_ratio": secret_snap["panic_sell_ratio"],
+    }
+
+
+def _extract_sentinel_node_snapshot(node):
+    node = node or {}
+    return {
+        "ref_id": _safe_int(node.get("ref_id"), default=None),
+        "ticker": (node.get("ticker") or "").upper() or None,
+        "setup": bool(node.get("pill_setup_any") or node.get("setup") or node.get("setup_D") or node.get("setup_4H")),
+        "signal": bool(
+            node.get("signal_any")
+            or node.get("trigger_any")
+            or node.get("signal")
+            or node.get("trigger")
+        ),
+        "event_active": bool(
+            node.get("event_active")
+            or node.get("event_window")
+            or node.get("earnings_window")
+            or node.get("dividend_window")
+        ),
+        "event_type": node.get("event_type"),
+        "engine_d": node.get("setup_engine_D"),
+        "engine_4h": node.get("setup_engine_4H"),
+        "strategy": node.get("strategy"),
+        "msa_ok": node.get("msa_ok"),
+        "weekly_up": node.get("weekly_up"),
+    }
+
+
+def _get_monitor_nodes():
+    """
+    Attempts to gather current node objects from STATE.
+    Adjust this if your canonical monitor structure differs.
+    """
+    out = []
+
+    monitor = STATE.get("monitor")
+    if isinstance(monitor, list):
+        for x in monitor:
+            if isinstance(x, dict):
+                out.append(x)
+
+    nodes = STATE.get("nodes")
+    if isinstance(nodes, list):
+        for x in nodes:
+            if isinstance(x, dict):
+                out.append(x)
+
+    if isinstance(nodes, dict):
+        for _, x in nodes.items():
+            if isinstance(x, dict):
+                out.append(x)
+
+    seen = set()
+    deduped = []
+    for n in out:
+        rid = _safe_int(n.get("ref_id"), default=None)
+        key = (rid, (n.get("ticker") or "").upper())
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(n)
+
+    return deduped
+
+
+def _compute_sentinel_cluster_flags():
+    """
+    Global operational summary for context logging.
+    """
+    any_setup = False
+    any_signal = False
+    active_setups = 0
+    active_signals = 0
+
+    for node in _get_monitor_nodes():
+        snap = _extract_sentinel_node_snapshot(node)
+        if snap["setup"]:
+            any_setup = True
+            active_setups += 1
+        if snap["signal"]:
+            any_signal = True
+            active_signals += 1
+
+    return {
+        "any_setup": any_setup,
+        "any_signal": any_signal,
+        "active_setups": active_setups,
+        "active_signals": active_signals,
+    }
+
+
+def _late_cycle_compression_on(state):
+    state = state or {}
+    cycle = _safe_int(state.get("cycle"), default=None)
+    vol = str(state.get("vol") or "").upper()
+    if cycle is None:
+        return False
+    return cycle >= 135 and vol == "COMPRESSION"
+
+# ============================================================
+# SENTINEL TRANSITION MEMORY
+# ============================================================
+_LAST_SENTINEL_MACRO = {}
+_LAST_SENTINEL_NODE_STATES = {}
+_LAST_SENTINEL_CLUSTER = {}
+_LAST_SENTINEL_MESSAGE = None
+
+def _log_macro_transition(code, message, severity="info", reason=None, state=None, extra_context=None):
+    cluster = _compute_sentinel_cluster_flags()
+    ctx = {
+        "reason": reason or [],
+        "any_setup": cluster["any_setup"],
+        "any_signal": cluster["any_signal"],
+        "active_setups": cluster["active_setups"],
+        "active_signals": cluster["active_signals"],
+    }
+    if isinstance(extra_context, dict):
+        ctx.update(extra_context)
+
+    _append_sentinel_log({
+        "kind": "MACRO_TRANSITION",
+        "code": code,
+        "severity": severity,
+        "message": message,
+        "state": state or {},
+        "context": ctx,
+    })
+
+
+def process_sentinel_macro_logging(data):
+    """
+    Compare current macro-relevant state against last known macro state.
+    Log only meaningful transitions.
+    """
+    global _LAST_SENTINEL_MACRO
+
+    current = _extract_sentinel_macro_snapshot(data)
+    prev = dict(_LAST_SENTINEL_MACRO or {})
+
+    if not prev:
+        _LAST_SENTINEL_MACRO = dict(current)
+        return
+
+    # regime
+    if prev.get("regime") != current.get("regime"):
+        _log_macro_transition(
+            "REGIME_CHANGED",
+            f"Macro regime changed: {prev.get('regime')} -> {current.get('regime')}",
+            severity="attention",
+            reason=["regime_changed"],
+            state=current,
+            extra_context={"from": prev.get("regime"), "to": current.get("regime")},
+        )
+
+    # vol
+    if prev.get("vol") != current.get("vol"):
+        _log_macro_transition(
+            "VOL_CHANGED",
+            f"Volatility state changed: {prev.get('vol')} -> {current.get('vol')}",
+            severity="observe",
+            reason=["vol_changed"],
+            state=current,
+            extra_context={"from": prev.get("vol"), "to": current.get("vol")},
+        )
+
+    # flow
+    if prev.get("flow") != current.get("flow"):
+        _log_macro_transition(
+            "FLOW_CHANGED",
+            f"Capital flow changed: {prev.get('flow')} -> {current.get('flow')}",
+            severity="observe",
+            reason=["flow_changed"],
+            state=current,
+            extra_context={"from": prev.get("flow"), "to": current.get("flow")},
+        )
+
+    # phase
+    if prev.get("phase") != current.get("phase"):
+        _log_macro_transition(
+            "CYCLE_PHASE_CHANGED",
+            f"Cycle phase changed: {prev.get('phase')} -> {current.get('phase')}",
+            severity="attention",
+            reason=["phase_changed"],
+            state=current,
+            extra_context={"from": prev.get("phase"), "to": current.get("phase")},
+        )
+
+    # s2
+    if prev.get("s2_allowed") != current.get("s2_allowed"):
+        _log_macro_transition(
+            "S2_ALLOWED_ON" if current.get("s2_allowed") else "S2_ALLOWED_OFF",
+            "Trend participation permitted. Conditions aligned with cycle phase."
+            if current.get("s2_allowed")
+            else "Trend participation no longer permitted under current macro conditions.",
+            severity="info" if current.get("s2_allowed") else "attention",
+            reason=["s2_permission_changed"],
+            state=current,
+        )
+
+    # s1
+    if prev.get("s1_allowed") != current.get("s1_allowed"):
+        _log_macro_transition(
+            "S1_ALLOWED_ON" if current.get("s1_allowed") else "S1_ALLOWED_OFF",
+            "Contrarian observation framework permitted."
+            if current.get("s1_allowed")
+            else "Contrarian observation framework no longer permitted.",
+            severity="observe",
+            reason=["s1_permission_changed"],
+            state=current,
+        )
+
+    # s3 watch
+    if prev.get("s3_watch") != current.get("s3_watch"):
+        _log_macro_transition(
+            "S3_WATCH_ON" if current.get("s3_watch") else "S3_WATCH_OFF",
+            "Recession watch status changed.",
+            severity="attention" if current.get("s3_watch") else "observe",
+            reason=["s3_watch_changed"],
+            state=current,
+        )
+
+    # s3 armed
+    if prev.get("s3_armed") != current.get("s3_armed"):
+        _log_macro_transition(
+            "S3_ARMED_ON" if current.get("s3_armed") else "S3_ARMED_OFF",
+            "Recession framework armed."
+            if current.get("s3_armed")
+            else "Recession framework disarmed.",
+            severity="critical" if current.get("s3_armed") else "attention",
+            reason=["s3_armed_changed"],
+            state=current,
+        )
+
+    # s3 allowed
+    if prev.get("s3_allowed") != current.get("s3_allowed"):
+        _log_macro_transition(
+            "S3_ALLOWED_ON" if current.get("s3_allowed") else "S3_ALLOWED_OFF",
+            "Recession participation permitted."
+            if current.get("s3_allowed")
+            else "Recession participation no longer permitted.",
+            severity="critical" if current.get("s3_allowed") else "attention",
+            reason=["s3_allowed_changed"],
+            state=current,
+        )
+
+    # late cycle compression state
+    prev_lcc = _late_cycle_compression_on(prev)
+    curr_lcc = _late_cycle_compression_on(current)
+    if prev_lcc != curr_lcc:
+        _log_macro_transition(
+            "LATE_CYCLE_COMPRESSION_ON" if curr_lcc else "LATE_CYCLE_COMPRESSION_OFF",
+            "Late-cycle compression detected. Historical regime transition risk elevated."
+            if curr_lcc
+            else "Late-cycle compression condition cleared.",
+            severity="critical" if curr_lcc else "observe",
+            reason=["late_cycle_compression_changed"],
+            state=current,
+        )
+
+    # secret pressure fields
+    for fld, code_base, label in [
+        ("indicator_x", "INDICATOR_X", "Indicator X"),
+        ("indicator_y", "INDICATOR_Y", "Indicator Y"),
+        ("panic_buy_ratio", "PANIC_BUY_RATIO", "Panic buy ratio"),
+        ("panic_sell_ratio", "PANIC_SELL_RATIO", "Panic sell ratio"),
+    ]:
+        if prev.get(fld) != current.get(fld):
+            _log_macro_transition(
+                f"{code_base}_CHANGED",
+                f"{label} changed: {prev.get(fld)} -> {current.get(fld)}",
+                severity="observe",
+                reason=[f"{fld}_changed"],
+                state=current,
+                extra_context={"from": prev.get(fld), "to": current.get(fld)},
+            )
+
+    _LAST_SENTINEL_MACRO = dict(current)
+
+def _log_node_transition(kind, code, message, node_snap, severity="observe", extra_context=None):
+    cluster = _compute_sentinel_cluster_flags()
+    ctx = {
+        "reason": [code.lower()],
+        "any_setup": cluster["any_setup"],
+        "any_signal": cluster["any_signal"],
+        "active_setups": cluster["active_setups"],
+        "active_signals": cluster["active_signals"],
+    }
+    if isinstance(extra_context, dict):
+        ctx.update(extra_context)
+
+    _append_sentinel_log({
+        "kind": kind,
+        "code": code,
+        "severity": severity,
+        "message": message,
+        "ref_id": node_snap.get("ref_id"),
+        "ticker": node_snap.get("ticker"),
+        "state": {
+            "setup": node_snap.get("setup"),
+            "signal": node_snap.get("signal"),
+            "event_active": node_snap.get("event_active"),
+            "event_type": node_snap.get("event_type"),
+            "engine_d": node_snap.get("engine_d"),
+            "engine_4h": node_snap.get("engine_4h"),
+            "strategy": node_snap.get("strategy"),
+            "msa_ok": node_snap.get("msa_ok"),
+            "weekly_up": node_snap.get("weekly_up"),
+        },
+        "context": ctx,
+    })
+
+
+def process_sentinel_node_logging(node):
+    """
+    Log node-level setup / signal / event transitions.
+    """
+    global _LAST_SENTINEL_NODE_STATES
+
+    snap = _extract_sentinel_node_snapshot(node)
+    ref_id = snap.get("ref_id")
+    ticker = snap.get("ticker")
+    if ref_id is None and not ticker:
+        return
+
+    key = f"{ref_id}:{ticker}"
+    prev = dict(_LAST_SENTINEL_NODE_STATES.get(key) or {})
+
+    if not prev:
+        _LAST_SENTINEL_NODE_STATES[key] = dict(snap)
+        return
+
+    if prev.get("setup") != snap.get("setup"):
+        _log_node_transition(
+            "NODE_SETUP_ON" if snap.get("setup") else "NODE_SETUP_OFF",
+            "SETUP_DETECTED" if snap.get("setup") else "SETUP_CLEARED",
+            f"{ticker or 'NODE'} setup detected." if snap.get("setup") else f"{ticker or 'NODE'} setup cleared.",
+            snap,
+            severity="observe",
+        )
+
+    if prev.get("signal") != snap.get("signal"):
+        _log_node_transition(
+            "NODE_SIGNAL_ON" if snap.get("signal") else "NODE_SIGNAL_OFF",
+            "SIGNAL_DETECTED" if snap.get("signal") else "SIGNAL_CLEARED",
+            f"{ticker or 'NODE'} signal detected." if snap.get("signal") else f"{ticker or 'NODE'} signal cleared.",
+            snap,
+            severity="attention" if snap.get("signal") else "observe",
+        )
+
+    if prev.get("event_active") != snap.get("event_active"):
+        evt = (snap.get("event_type") or "EVENT").upper()
+        _log_node_transition(
+            "EVENT_WINDOW_ON" if snap.get("event_active") else "EVENT_WINDOW_OFF",
+            f"{evt}_WINDOW_ON" if snap.get("event_active") else f"{evt}_WINDOW_OFF",
+            f"{ticker or 'NODE'} event window active ({evt})."
+            if snap.get("event_active")
+            else f"{ticker or 'NODE'} event window cleared ({evt}).",
+            snap,
+            severity="observe",
+        )
+
+    _LAST_SENTINEL_NODE_STATES[key] = dict(snap)
+
+def process_sentinel_cluster_logging():
+    global _LAST_SENTINEL_CLUSTER
+
+    current = _compute_sentinel_cluster_flags()
+    prev = dict(_LAST_SENTINEL_CLUSTER or {})
+
+    if not prev:
+        _LAST_SENTINEL_CLUSTER = dict(current)
+        return
+
+    if prev.get("any_setup") != current.get("any_setup"):
+        _append_sentinel_log({
+            "kind": "CLUSTER_CHANGE",
+            "code": "FIRST_SETUP_ACTIVE" if current.get("any_setup") else "NO_ACTIVE_SETUPS",
+            "severity": "observe",
+            "message": "At least one monitored setup is active."
+            if current.get("any_setup")
+            else "No monitored setups remain active.",
+            "state": _extract_sentinel_macro_snapshot(STATE),
+            "context": current,
+        })
+
+    if prev.get("any_signal") != current.get("any_signal"):
+        _append_sentinel_log({
+            "kind": "CLUSTER_CHANGE",
+            "code": "FIRST_SIGNAL_ACTIVE" if current.get("any_signal") else "NO_ACTIVE_SIGNALS",
+            "severity": "attention" if current.get("any_signal") else "observe",
+            "message": "At least one monitored signal is active."
+            if current.get("any_signal")
+            else "No monitored signals remain active.",
+            "state": _extract_sentinel_macro_snapshot(STATE),
+            "context": current,
+        })
+
+    if prev.get("active_setups") != current.get("active_setups") and current.get("active_setups", 0) >= 2:
+        _append_sentinel_log({
+            "kind": "CLUSTER_CHANGE",
+            "code": "MULTI_NODE_SETUP_CLUSTER",
+            "severity": "attention",
+            "message": f"Multiple monitored setups active ({current.get('active_setups')}).",
+            "state": _extract_sentinel_macro_snapshot(STATE),
+            "context": current,
+        })
+
+    if prev.get("active_signals") != current.get("active_signals") and current.get("active_signals", 0) >= 2:
+        _append_sentinel_log({
+            "kind": "CLUSTER_CHANGE",
+            "code": "MULTI_NODE_SIGNAL_CLUSTER",
+            "severity": "attention",
+            "message": f"Multiple monitored signals active ({current.get('active_signals')}).",
+            "state": _extract_sentinel_macro_snapshot(STATE),
+            "context": current,
+        })
+
+def log_sentinel_message(message_text, severity="info", reason=None, extra_context=None):
+    """
+    Log only when the actual emitted Sentinel message changes.
+    """
+    global _LAST_SENTINEL_MESSAGE
+
+    msg = (message_text or "").strip()
+    if not msg:
+        return
+    if msg == _LAST_SENTINEL_MESSAGE:
+        return
+
+    cluster = _compute_sentinel_cluster_flags()
+    ctx = {
+        "reason": reason or [],
+        "any_setup": cluster["any_setup"],
+        "any_signal": cluster["any_signal"],
+        "active_setups": cluster["active_setups"],
+        "active_signals": cluster["active_signals"],
+    }
+    if isinstance(extra_context, dict):
+        ctx.update(extra_context)
+
+    _append_sentinel_log({
+        "kind": "SENTINEL_MESSAGE",
+        "code": "MESSAGE_EMITTED",
+        "severity": severity,
+        "message": msg,
+        "state": _extract_sentinel_macro_snapshot(STATE),
+        "context": ctx,
+    })
+
+    _LAST_SENTINEL_MESSAGE = msg
+    
+    
+    _LAST_SENTINEL_CLUSTER = dict(current)
 
 def _phase_from_cycle(cycle_val: Optional[int]) -> Dict[str, Optional[Any]]:
     if cycle_val is None:
@@ -914,6 +1513,31 @@ def _recompute_war_from_secret() -> None:
         "reason": ", ".join(reasons)
     }
 
+def _bootstrap_sentinel_logging_memory_from_state():
+    global _LAST_SENTINEL_MACRO, _LAST_SENTINEL_NODE_STATES, _LAST_SENTINEL_CLUSTER
+
+    try:
+        _LAST_SENTINEL_MACRO = _extract_sentinel_macro_snapshot(STATE)
+    except Exception:
+        _LAST_SENTINEL_MACRO = {}
+
+    try:
+        _LAST_SENTINEL_NODE_STATES = {}
+        for node in _get_monitor_nodes():
+            snap = _extract_sentinel_node_snapshot(node)
+            key = f"{snap.get('ref_id')}:{snap.get('ticker')}"
+            _LAST_SENTINEL_NODE_STATES[key] = snap
+    except Exception:
+        _LAST_SENTINEL_NODE_STATES = {}
+
+    try:
+        _LAST_SENTINEL_CLUSTER = _compute_sentinel_cluster_flags()
+    except Exception:
+        _LAST_SENTINEL_CLUSTER = {}
+
+
+
+
 def _apply_macro_v2_normalisation() -> None:
     """
     Derives combined Macro V2 state from raw V2 lanes.
@@ -1192,6 +1816,7 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 # ----------------------------
 atexit.register(_save_state_to_disk)
 _load_state_from_disk()
+_bootstrap_sentinel_logging_memory_from_state()
 
 @app.route("/")
 @login_required
