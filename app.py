@@ -2994,6 +2994,25 @@ def node_debug(ref_id: int):
       </body>
     </html>
     """
+@app.route("/sentinel_log_pretty")
+@login_required
+def sentinel_log_pretty():
+    path = SENTINEL_LOG_FILE
+    if not os.path.exists(path):
+        path = SENTINEL_LOG_FALLBACK
+    if not os.path.exists(path):
+        return jsonify([])
+
+    rows = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                rows.append(json.loads(line))
+            except:
+                pass
+
+    return jsonify(rows[-100:])  # last 100 only
+
 
 @app.route("/verify_secret", methods=["POST"])
 def verify_secret():
