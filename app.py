@@ -554,62 +554,122 @@ def _extract_sentinel_macro_snapshot(data):
 
 def _extract_sentinel_node_snapshot(node):
     node = node or {}
+
+    # --------------------------------------------------------
+    # Support both:
+    # 1) flat live payloads (SCADA_STATUS / WATCH / EVENT)
+    # 2) wrapped stored node records in STATE["nodes"]["by_ref"]
+    # --------------------------------------------------------
+    src = (
+        node.get("last_scada_status")
+        or node.get("last_watch")
+        or node.get("last_setup")
+        or node
+    )
+
+    ev = node.get("event") if isinstance(node.get("event"), dict) else {}
+
+    ref_id = _safe_int(
+        src.get("ref_id", node.get("ref_id")),
+        default=None
+    )
+
+    ticker = (
+        src.get("ticker")
+        or node.get("ticker")
+        or ""
+    )
+    ticker = str(ticker).upper() if ticker else None
+
+    setup = bool(
+        src.get("pill_setup_any")
+        or src.get("setup_any")
+        or src.get("setup")
+        or src.get("setup_D")
+        or src.get("setup_4H")
+    )
+
+    signal = bool(
+        src.get("signal_any")
+        or src.get("trigger_any")
+        or src.get("signal")
+        or src.get("trigger")
+    )
+
+    event_active = bool(
+        src.get("event_active")
+        or src.get("event_window")
+        or src.get("earnings_window")
+        or src.get("dividend_window")
+        or ev.get("active")
+    )
+
+    event_type = (
+        src.get("event_type")
+        or ev.get("type")
+    )
+
     return {
-        "ref_id": _safe_int(node.get("ref_id"), default=None),
-        "ticker": (node.get("ticker") or "").upper() or None,
-        "setup": bool(node.get("pill_setup_any") or node.get("setup") or node.get("setup_D") or node.get("setup_4H")),
-        "signal": bool(
-            node.get("signal_any")
-            or node.get("trigger_any")
-            or node.get("signal")
-            or node.get("trigger")
-        ),
-        "event_active": bool(
-            node.get("event_active")
-            or node.get("event_window")
-            or node.get("earnings_window")
-            or node.get("dividend_window")
-        ),
-        "event_type": node.get("event_type"),
-        "engine_d": node.get("setup_engine_D"),
-        "engine_4h": node.get("setup_engine_4H"),
-        "strategy": node.get("strategy"),
-        "msa_ok": node.get("msa_ok"),
-        "weekly_up": node.get("weekly_up"),
+        "ref_id": ref_id,
+        "ticker": ticker,
+        "setup": setup,
+        "signal": signal,
+        "event_active": event_active,
+        "event_type": event_type,
+        "engine_d": src.get("setup_engine_D"),
+        "engine_4h": src.get("setup_engine_4H"),
+        "strategy": src.get("strategy"),
+        "msa_ok": src.get("msa_ok"),
+        "weekly_up": src.get("weekly_up"),
     }
 
 
 def _get_monitor_nodes():
     """
-    Attempts to gather current node objects from STATE.
-    Adjust this if your canonical monitor structure differs.
+    Canonical node extractor for Sutton House.
+
+    Supports:
+    - STATE["nodes"]["by_ref"]  ← PRIMARY (SCADA storage)
+    - STATE["monitor"]          ← legacy / UI list
+    - fallback safety paths
+
+    Returns de-duplicated node records.
     """
     out = []
 
+    # --- PRIMARY: SCADA node store ---
+    by_ref = ((STATE.get("nodes") or {}).get("by_ref") or {})
+    if isinstance(by_ref, dict):
+        for _, rec in by_ref.items():
+            if isinstance(rec, dict):
+                out.append(rec)
+
+    # --- LEGACY: monitor list (if still used anywhere) ---
     monitor = STATE.get("monitor")
     if isinstance(monitor, list):
         for x in monitor:
             if isinstance(x, dict):
                 out.append(x)
 
+    # --- FALLBACK: nodes as list (older formats) ---
     nodes = STATE.get("nodes")
     if isinstance(nodes, list):
         for x in nodes:
             if isinstance(x, dict):
                 out.append(x)
 
-    if isinstance(nodes, dict):
-        for _, x in nodes.items():
-            if isinstance(x, dict):
-                out.append(x)
-
+    # --- DE-DUPLICATION ---
     seen = set()
     deduped = []
+
     for n in out:
         rid = _safe_int(n.get("ref_id"), default=None)
-        key = (rid, (n.get("ticker") or "").upper())
+        ticker = (n.get("ticker") or "").upper()
+
+        key = (rid, ticker)
         if key in seen:
             continue
+
         seen.add(key)
         deduped.append(n)
 
@@ -967,6 +1027,8 @@ def process_sentinel_cluster_logging():
             "state": _extract_sentinel_macro_snapshot(STATE),
             "context": current,
         })
+
+    _LAST_SENTINEL_CLUSTER = dict(current)
 
 def log_sentinel_message(message_text, severity="info", reason=None, extra_context=None):
     """
@@ -2296,7 +2358,7 @@ def webhook():
         with STATE_LOCK:
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
-            _refresh_node_event_states()   # ✅ ADD THIS HERE
+            _refresh_node_event_states()
             typ = str(data.get("type") or "").strip().upper()
 
             # ----------------------------------------------------
@@ -2443,16 +2505,13 @@ def webhook():
                 walcl = mv2.setdefault("walcl", {})
                 fx = mv2.setdefault("fx", {"gbpcad": {}, "gbpaud": {}, "context": None})
 
-                # phase from cycle
                 mv2["phase"] = _phase_from_cycle(STATE.get("cycle"))
 
-                # combined commodity internal state
                 mv2["internal"] = _derive_internal_state(
                     gc.get("state"),
                     gs.get("state"),
                 )
 
-                # fx context
                 fx["context"] = _derive_fx_context(
                     (fx.get("gbpcad") or {}).get("state"),
                     (fx.get("gbpaud") or {}).get("state"),
@@ -2460,11 +2519,6 @@ def webhook():
 
             # ====================================================
             # MARKET ANCHOR FAST PATH
-            # ref_id transport ids:
-            # 101 = ASX master (XJO)
-            # 105 = LSE master
-            # 106 = TSX master
-            # 107 = NYSE master
             # ====================================================
             if typ == "ANCHOR_UPDATE":
                 try:
@@ -2506,10 +2560,6 @@ def webhook():
 
             # ====================================================
             # EVENT BATCH LANE
-            # Accepts:
-            #   {"type":"EVENT_BATCH","events":[{EVENT...},{EVENT...}]}
-            # Processes each child as a normal EVENT.
-            # Emits one stock_update per child so frontend stays unchanged.
             # ====================================================
             elif typ == "EVENT_BATCH":
                 events = data.get("events") or []
@@ -2535,6 +2585,16 @@ def webhook():
                         pass
 
                     try:
+                        process_sentinel_node_logging(out)
+                    except Exception:
+                        pass
+
+                    try:
+                        process_sentinel_cluster_logging()
+                    except Exception:
+                        pass
+
+                    try:
                         socketio.emit("stock_update", _json_safe(out))
                     except Exception:
                         pass
@@ -2556,16 +2616,22 @@ def webhook():
 
                 _update_monitor_lane(_extract_meta(out))
 
+                try:
+                    process_sentinel_node_logging(out)
+                except Exception:
+                    pass
+
+                try:
+                    process_sentinel_cluster_logging()
+                except Exception:
+                    pass
+
                 do_save = True
                 emit_event = "stock_update"
                 emit_payload = out
+
             # ====================================================
             # STOCK LANES (FAST PATH)
-            # Accepts:
-            #  {"type":"SCADA_STATUS", ...}
-            #  {"type":"WATCH", ...}
-            # Emits: socketio.emit("stock_update", msg)
-            # Persists into STATE["stocks"] for warm start
             # ====================================================
             elif typ in ("SCADA_STATUS", "WATCH"):
                 try:
@@ -2584,9 +2650,6 @@ def webhook():
                 if out.get("ticker") is not None:
                     out["ticker"] = str(out["ticker"]).upper()
 
-                # ----------------------------------------------------
-                # MARKET DETECTION (for anchor attachment)
-                # ----------------------------------------------------
                 ticker = str(out.get("ticker") or "").strip().upper()
                 market = None
 
@@ -2604,23 +2667,18 @@ def webhook():
 
                 out["_market"] = market
 
-                # Attach market anchor if available
                 if market and STATE["anchors"].get(market):
                     out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
-                # include server ts in this message too (helps comms/age)
                 out["_server_ts"] = int(time.time() * 1000)
 
-                # ----------------------------------------------------
-                # ENFORCE MASTER GOVERNANCE FIELDS IN SCADA_STATUS
-                # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
                     master_cycle_120 = STATE.get("cycle_120")
-                    master_cycle     = STATE.get("cycle")
+                    master_cycle = STATE.get("cycle")
 
                     if master_cycle_120 is not None or master_cycle is not None:
                         out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
-                        out["cycle"]     = master_cycle
+                        out["cycle"] = master_cycle
 
                         if STATE.get("regime") is not None:
                             out["regime"] = STATE.get("regime")
@@ -2644,9 +2702,6 @@ def webhook():
                         ):
                             out.pop(k, None)
 
-                    # ------------------------------------------------
-                    # MESSAGE SYSTEM BRIDGE (derive from SCADA truth)
-                    # ------------------------------------------------
                     def _truthy(v) -> bool:
                         if v is True:
                             return True
@@ -2680,7 +2735,6 @@ def webhook():
                         emit_event2 = "macro_update"
                         emit_payload2 = copy.deepcopy(STATE)
 
-                # persist warm-start lanes
                 if typ == "SCADA_STATUS":
                     STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
                 else:
@@ -2693,6 +2747,16 @@ def webhook():
 
                 _update_monitor_lane(_extract_meta(out))
 
+                try:
+                    process_sentinel_node_logging(out)
+                except Exception:
+                    pass
+
+                try:
+                    process_sentinel_cluster_logging()
+                except Exception:
+                    pass
+
                 do_save = True
                 emit_event = "stock_update"
                 emit_payload = out
@@ -2700,7 +2764,6 @@ def webhook():
             else:
                 # ------------------------------------------------
                 # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
-                # Cards 1 & 3 MUST come from Pine MACRO payload
                 # ------------------------------------------------
                 pine_allow = {}
                 for k in (
@@ -2721,7 +2784,6 @@ def webhook():
                     if k in data:
                         pine_allow[k] = data.get(k)
 
-                # ----- Card 1: Regime + Vol (Pine truth)
                 if "regime" in data:
                     try:
                         pine_allow["regime"] = str(data["regime"]).upper()
@@ -2740,7 +2802,6 @@ def webhook():
                     except Exception:
                         pass
 
-                # ----- Card 3: Cycle clock (0–120 canonical)
                 if "cycle" in data:
                     try:
                         c = int(float(data["cycle"]))
@@ -2758,14 +2819,12 @@ def webhook():
                     except Exception:
                         pass
 
-                # ----- Optional: flow / rotation direction (server-side legacy)
                 if "rot_dir" in data:
                     try:
                         pine_allow["flow"] = str(data["rot_dir"])
                     except Exception:
                         pass
 
-                # ----- Card 4: Recession pulse (Pine truth)
                 if "sahm" in data:
                     try:
                         pine_allow["sahm"] = float(data["sahm"])
@@ -2784,9 +2843,6 @@ def webhook():
                 if pine_allow:
                     STATE.update(pine_allow)
 
-                # ------------------------------------------------
-                # MACRO V2 LANES
-                # ------------------------------------------------
                 if "macro_v2" not in STATE or not isinstance(STATE.get("macro_v2"), dict):
                     STATE["macro_v2"] = {
                         "gc": {
@@ -2885,9 +2941,6 @@ def webhook():
                             "msa_pct": _safe_float(data.get("gbpaud_msa")),
                         }
 
-                # ------------------------------------------------
-                # CARD 2 — CANONICAL (nested)
-                # ------------------------------------------------
                 try:
                     if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
                         STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
@@ -2937,14 +2990,14 @@ def webhook():
                     except Exception:
                         pass
 
-                # ------------------------------------------------
-                # Recompute Macro V2 derived states
-                # ------------------------------------------------
                 _apply_macro_v2_normalisation()
-
                 _recompute_war_from_secret()
                 _update_monitor_lane(meta)
-                print("MACRO_V2_STATE =", STATE.get("macro_v2"))
+
+                try:
+                    process_sentinel_macro_logging(STATE)
+                except Exception:
+                    pass
 
                 payload = copy.deepcopy(STATE)
 
