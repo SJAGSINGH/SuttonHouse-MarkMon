@@ -555,11 +555,6 @@ def _extract_sentinel_macro_snapshot(data):
 def _extract_sentinel_node_snapshot(node):
     node = node or {}
 
-    # --------------------------------------------------------
-    # Support both:
-    # 1) flat live payloads (SCADA_STATUS / WATCH / EVENT)
-    # 2) wrapped stored node records in STATE["nodes"]["by_ref"]
-    # --------------------------------------------------------
     src = (
         node.get("last_scada_status")
         or node.get("last_watch")
@@ -569,16 +564,9 @@ def _extract_sentinel_node_snapshot(node):
 
     ev = node.get("event") if isinstance(node.get("event"), dict) else {}
 
-    ref_id = _safe_int(
-        src.get("ref_id", node.get("ref_id")),
-        default=None
-    )
+    ref_id = _safe_int(src.get("ref_id", node.get("ref_id")), default=None)
 
-    ticker = (
-        src.get("ticker")
-        or node.get("ticker")
-        or ""
-    )
+    ticker = src.get("ticker") or node.get("ticker") or ""
     ticker = str(ticker).upper() if ticker else None
 
     setup = bool(
@@ -604,10 +592,7 @@ def _extract_sentinel_node_snapshot(node):
         or ev.get("active")
     )
 
-    event_type = (
-        src.get("event_type")
-        or ev.get("type")
-    )
+    event_type = src.get("event_type") or ev.get("type")
 
     return {
         "ref_id": ref_id,
@@ -623,53 +608,36 @@ def _extract_sentinel_node_snapshot(node):
         "weekly_up": src.get("weekly_up"),
     }
 
-
 def _get_monitor_nodes():
-    """
-    Canonical node extractor for Sutton House.
-
-    Supports:
-    - STATE["nodes"]["by_ref"]  ← PRIMARY (SCADA storage)
-    - STATE["monitor"]          ← legacy / UI list
-    - fallback safety paths
-
-    Returns de-duplicated node records.
-    """
     out = []
 
-    # --- PRIMARY: SCADA node store ---
     by_ref = ((STATE.get("nodes") or {}).get("by_ref") or {})
     if isinstance(by_ref, dict):
         for _, rec in by_ref.items():
             if isinstance(rec, dict):
                 out.append(rec)
 
-    # --- LEGACY: monitor list (if still used anywhere) ---
     monitor = STATE.get("monitor")
     if isinstance(monitor, list):
         for x in monitor:
             if isinstance(x, dict):
                 out.append(x)
 
-    # --- FALLBACK: nodes as list (older formats) ---
     nodes = STATE.get("nodes")
     if isinstance(nodes, list):
         for x in nodes:
             if isinstance(x, dict):
                 out.append(x)
 
-    # --- DE-DUPLICATION ---
     seen = set()
     deduped = []
 
     for n in out:
         rid = _safe_int(n.get("ref_id"), default=None)
         ticker = (n.get("ticker") or "").upper()
-
         key = (rid, ticker)
         if key in seen:
             continue
-
         seen.add(key)
         deduped.append(n)
 
@@ -1260,22 +1228,7 @@ def _clamp_int(x: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, x))
 
 
-def _safe_float(v) -> Optional[float]:
-    try:
-        if v is None:
-            return None
-        return float(v)
-    except Exception:
-        return None
 
-
-def _safe_int(v) -> Optional[int]:
-    try:
-        if v is None:
-            return None
-        return int(float(v))
-    except Exception:
-        return None
 def _truthy(v) -> bool:
     if v is True:
         return True
