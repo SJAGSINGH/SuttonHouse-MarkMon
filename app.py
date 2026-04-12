@@ -712,6 +712,7 @@ def process_sentinel_macro_logging(data):
     """
     Compare current macro-relevant state against last known macro state.
     Log only meaningful transitions.
+    Suppresses startup noise from None -> OFF / None -> value initialisation.
     """
     global _LAST_SENTINEL_MACRO
 
@@ -723,7 +724,7 @@ def process_sentinel_macro_logging(data):
         return
 
     # regime
-    if prev.get("regime") != current.get("regime"):
+    if prev.get("regime") is not None and prev.get("regime") != current.get("regime"):
         _log_macro_transition(
             "REGIME_CHANGED",
             f"Macro regime changed: {prev.get('regime')} -> {current.get('regime')}",
@@ -734,7 +735,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # vol
-    if prev.get("vol") != current.get("vol"):
+    if prev.get("vol") is not None and prev.get("vol") != current.get("vol"):
         _log_macro_transition(
             "VOL_CHANGED",
             f"Volatility state changed: {prev.get('vol')} -> {current.get('vol')}",
@@ -745,7 +746,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # flow
-    if prev.get("flow") != current.get("flow"):
+    if prev.get("flow") is not None and prev.get("flow") != current.get("flow"):
         _log_macro_transition(
             "FLOW_CHANGED",
             f"Capital flow changed: {prev.get('flow')} -> {current.get('flow')}",
@@ -756,7 +757,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # phase
-    if prev.get("phase") != current.get("phase"):
+    if prev.get("phase") is not None and prev.get("phase") != current.get("phase"):
         _log_macro_transition(
             "CYCLE_PHASE_CHANGED",
             f"Cycle phase changed: {prev.get('phase')} -> {current.get('phase')}",
@@ -767,7 +768,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # s2
-    if prev.get("s2_allowed") != current.get("s2_allowed"):
+    if prev.get("s2_allowed") is not None and prev.get("s2_allowed") != current.get("s2_allowed"):
         _log_macro_transition(
             "S2_ALLOWED_ON" if current.get("s2_allowed") else "S2_ALLOWED_OFF",
             "Trend participation permitted. Conditions aligned with cycle phase."
@@ -779,7 +780,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # s1
-    if prev.get("s1_allowed") != current.get("s1_allowed"):
+    if prev.get("s1_allowed") is not None and prev.get("s1_allowed") != current.get("s1_allowed"):
         _log_macro_transition(
             "S1_ALLOWED_ON" if current.get("s1_allowed") else "S1_ALLOWED_OFF",
             "Contrarian observation framework permitted."
@@ -791,7 +792,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # s3 watch
-    if prev.get("s3_watch") != current.get("s3_watch"):
+    if prev.get("s3_watch") is not None and prev.get("s3_watch") != current.get("s3_watch"):
         _log_macro_transition(
             "S3_WATCH_ON" if current.get("s3_watch") else "S3_WATCH_OFF",
             "Recession watch status changed.",
@@ -801,7 +802,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # s3 armed
-    if prev.get("s3_armed") != current.get("s3_armed"):
+    if prev.get("s3_armed") is not None and prev.get("s3_armed") != current.get("s3_armed"):
         _log_macro_transition(
             "S3_ARMED_ON" if current.get("s3_armed") else "S3_ARMED_OFF",
             "Recession framework armed."
@@ -813,7 +814,7 @@ def process_sentinel_macro_logging(data):
         )
 
     # s3 allowed
-    if prev.get("s3_allowed") != current.get("s3_allowed"):
+    if prev.get("s3_allowed") is not None and prev.get("s3_allowed") != current.get("s3_allowed"):
         _log_macro_transition(
             "S3_ALLOWED_ON" if current.get("s3_allowed") else "S3_ALLOWED_OFF",
             "Recession participation permitted."
@@ -827,7 +828,7 @@ def process_sentinel_macro_logging(data):
     # late cycle compression state
     prev_lcc = _late_cycle_compression_on(prev)
     curr_lcc = _late_cycle_compression_on(current)
-    if prev_lcc != curr_lcc:
+    if prev.get("cycle") is not None and prev.get("vol") is not None and prev_lcc != curr_lcc:
         _log_macro_transition(
             "LATE_CYCLE_COMPRESSION_ON" if curr_lcc else "LATE_CYCLE_COMPRESSION_OFF",
             "Late-cycle compression detected. Historical regime transition risk elevated."
@@ -845,7 +846,7 @@ def process_sentinel_macro_logging(data):
         ("panic_buy_ratio", "PANIC_BUY_RATIO", "Panic buy ratio"),
         ("panic_sell_ratio", "PANIC_SELL_RATIO", "Panic sell ratio"),
     ]:
-        if prev.get(fld) != current.get(fld):
+        if prev.get(fld) is not None and prev.get(fld) != current.get(fld):
             _log_macro_transition(
                 f"{code_base}_CHANGED",
                 f"{label} changed: {prev.get(fld)} -> {current.get(fld)}",
@@ -858,14 +859,17 @@ def process_sentinel_macro_logging(data):
     _LAST_SENTINEL_MACRO = dict(current)
 
 def _log_node_transition(kind, code, message, node_snap, severity="observe", extra_context=None):
+    node_snap = node_snap or {}
+
     cluster = _compute_sentinel_cluster_flags()
     ctx = {
-        "reason": [code.lower()],
+        "reason": [str(code).lower()],
         "any_setup": cluster["any_setup"],
         "any_signal": cluster["any_signal"],
         "active_setups": cluster["active_setups"],
         "active_signals": cluster["active_signals"],
     }
+
     if isinstance(extra_context, dict):
         ctx.update(extra_context)
 
@@ -889,7 +893,6 @@ def _log_node_transition(kind, code, message, node_snap, severity="observe", ext
         },
         "context": ctx,
     })
-
 
 def process_sentinel_node_logging(node):
     """
@@ -976,7 +979,7 @@ def process_sentinel_cluster_logging():
             "context": current,
         })
 
-    if prev.get("active_setups") != current.get("active_setups") and current.get("active_setups", 0) >= 2:
+    if prev.get("active_setups", 0) < 2 and current.get("active_setups", 0) >= 2:
         _append_sentinel_log({
             "kind": "CLUSTER_CHANGE",
             "code": "MULTI_NODE_SETUP_CLUSTER",
@@ -986,7 +989,7 @@ def process_sentinel_cluster_logging():
             "context": current,
         })
 
-    if prev.get("active_signals") != current.get("active_signals") and current.get("active_signals", 0) >= 2:
+    if prev.get("active_signals", 0) < 2 and current.get("active_signals", 0) >= 2:
         _append_sentinel_log({
             "kind": "CLUSTER_CHANGE",
             "code": "MULTI_NODE_SIGNAL_CLUSTER",
