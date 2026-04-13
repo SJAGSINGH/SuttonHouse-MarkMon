@@ -1579,6 +1579,7 @@ main.grid > #cr-dump,
 main.grid > #cr-dump-full{
   display: none !important;
 }
+
 /* =========================================
    STRATEGY RAIL (SLIDE FROM RIGHT)
 ========================================= */
@@ -1709,6 +1710,118 @@ main.grid > #cr-dump-full{
   white-space: pre-wrap;
   word-break: break-word;
   color: rgba(255,255,255,0.88);
+}
+
+/* =========================================
+   MSA RAIL (SLIDE FROM LEFT, secondary)
+========================================= */
+#msa-rail{
+  position: fixed;
+  left: 760px;
+  bottom: 20px;
+  width: 560px;
+  max-width: 95vw;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(0,255,170,0.18), rgba(8,12,16,0.94));
+  border: 1px solid rgba(0,255,170,0.22);
+  border-radius: 16px;
+
+  box-shadow:
+    0 0 0 1px rgba(0,255,170,0.08) inset,
+    0 0 30px rgba(0,255,170,0.10),
+    0 25px 80px rgba(0,0,0,0.75);
+
+  transform: translateX(-110%);
+  opacity: 0;
+  transition: transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.6s ease;
+  z-index: 20002;
+}
+
+#msa-rail.open{
+  transform: translateX(0);
+  opacity: 1;
+}
+
+#msa-rail.hidden{
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.msa-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin: 12px 12px 14px 12px;
+}
+
+.msa-title{
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.90);
+}
+
+.msa-meta{
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.55);
+  flex:1;
+}
+
+.msa-close{
+  border:1px solid rgba(0,255,170,0.25);
+  background:rgba(255,255,255,0.06);
+  color:rgba(255,255,255,0.85);
+  padding:6px 10px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.msa-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:10px;
+  padding:0 12px 12px 12px;
+}
+
+.msa-box{
+  border:1px solid rgba(0,255,170,0.14);
+  border-radius:12px;
+  padding:10px;
+  background: rgba(0,0,0,0.15);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+
+.msa-box .k{
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: rgba(0,255,170,0.55);
+  margin-bottom:6px;
+}
+
+.msa-box .v{
+  font-size:12px;
+  color: rgba(255,255,255,0.92);
+  font-weight:600;
+}
+
+.msa-wide{
+  grid-column: 1 / -1;
+}
+
+/* make cr-msa look clickable */
+#cr-msa{
+  cursor:pointer;
+}
+#cr-msa:hover{
+  color: rgba(0,255,170,0.95);
+  text-shadow: 0 0 12px rgba(0,255,170,0.18);
 }
  
 </style>
@@ -1917,7 +2030,41 @@ main.grid > #cr-dump-full{
   <div class="cr-arrays" id="cr-arrays"></div>
   <pre id="cr-dump-full" class="cr-dump-full hidden"></pre>
 </div>
-    
+
+<!-- MSA Detail Rail (SLIDE FROM LEFT, secondary) -->
+<div id="msa-rail" class="hidden">
+  <div class="msa-head">
+    <div id="msa-title" class="msa-title">MSA —</div>
+    <div id="msa-meta" class="msa-meta"></div>
+    <button id="msa-close" class="msa-close" type="button">CLOSE</button>
+  </div>
+
+  <div class="msa-grid">
+    <div class="msa-box"><div class="k">D SOURCE</div><div id="msa-d-src" class="v">—</div></div>
+    <div class="msa-box"><div class="k">D VALID</div><div id="msa-d-valid" class="v">—</div></div>
+    <div class="msa-box"><div class="k">D CURRENT</div><div id="msa-d-current" class="v">—</div></div>
+
+    <div class="msa-box"><div class="k">D SOLID RED</div><div id="msa-d-solid-red" class="v">—</div></div>
+    <div class="msa-box"><div class="k">D DASH RED</div><div id="msa-d-dash-red" class="v">—</div></div>
+    <div class="msa-box"><div class="k">D DASH GREEN</div><div id="msa-d-dash-green" class="v">—</div></div>
+    <div class="msa-box"><div class="k">D SOLID GREEN</div><div id="msa-d-solid-green" class="v">—</div></div>
+
+    <div class="msa-box"><div class="k">4H SOURCE</div><div id="msa-h4-src" class="v">—</div></div>
+    <div class="msa-box"><div class="k">4H VALID</div><div id="msa-h4-valid" class="v">—</div></div>
+    <div class="msa-box"><div class="k">4H CURRENT</div><div id="msa-h4-current" class="v">—</div></div>
+
+    <div class="msa-box"><div class="k">4H SOLID RED</div><div id="msa-h4-solid-red" class="v">—</div></div>
+    <div class="msa-box"><div class="k">4H DASH RED</div><div id="msa-h4-dash-red" class="v">—</div></div>
+    <div class="msa-box"><div class="k">4H DASH GREEN</div><div id="msa-h4-dash-green" class="v">—</div></div>
+    <div class="msa-box"><div class="k">4H SOLID GREEN</div><div id="msa-h4-solid-green" class="v">—</div></div>
+
+    <div class="msa-box msa-wide">
+      <div class="k">LAST LOGGED</div>
+      <div id="msa-last-logged" class="v">—</div>
+    </div>
+  </div>
+</div> 
+   
 <!-- Strategy Detail Rail (SLIDE FROM RIGHT) -->
 <div id="strategy-rail" class="hidden">
   <div class="sr-head">
@@ -1996,6 +2143,77 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
+
+function fmtMsaVal(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(3) : "—";
+}
+
+function fmtMsaBool(v){
+  if (v === true || String(v).toLowerCase() === "true") return "YES";
+  if (v === false || String(v).toLowerCase() === "false") return "NO";
+  return "—";
+}
+
+function setMsaField(id, value){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = (value == null || value === "" ? "—" : String(value));
+}
+
+function openMsaRailForRef(ref){
+  const key = String(ref);
+  const sc = (window.__SCADA_STORE__ || {})[key] || null;
+  const wa = (window.__WATCH_STORE__ || {})[key] || null;
+  const msg = sc || wa;
+
+  if (!msg) return;
+
+  const rail = document.getElementById("msa-rail");
+  if (!rail) return;
+
+  const title = document.getElementById("msa-title");
+  const meta  = document.getElementById("msa-meta");
+
+  if (title){
+    title.textContent = `MSA — SLOT ${key} • ${(msg.ticker || "—").toUpperCase()}`;
+  }
+  if (meta){
+    meta.textContent = `${sc ? "SCADA_STATUS" : "WATCH"} • TF ${msg.tf || "—"}`;
+  }
+
+  // Daily
+  setMsaField("msa-d-src",         msg?.msa_src_D || "—");
+  setMsaField("msa-d-valid",       fmtMsaBool(msg?.msa_valid_D));
+  setMsaField("msa-d-current",     fmtMsaVal(msg?.msa_current_D));
+  setMsaField("msa-d-solid-red",   fmtMsaVal(msg?.msa_solid_red_D));
+  setMsaField("msa-d-dash-red",    fmtMsaVal(msg?.msa_dash_red_D));
+  setMsaField("msa-d-dash-green",  fmtMsaVal(msg?.msa_dash_green_D));
+  setMsaField("msa-d-solid-green", fmtMsaVal(msg?.msa_solid_green_D));
+
+  // H4
+  setMsaField("msa-h4-src",         msg?.msa_src_4H || "—");
+  setMsaField("msa-h4-valid",       fmtMsaBool(msg?.msa_valid_4H));
+  setMsaField("msa-h4-current",     fmtMsaVal(msg?.msa_current_4H));
+  setMsaField("msa-h4-solid-red",   fmtMsaVal(msg?.msa_solid_red_4H));
+  setMsaField("msa-h4-dash-red",    fmtMsaVal(msg?.msa_dash_red_4H));
+  setMsaField("msa-h4-dash-green",  fmtMsaVal(msg?.msa_dash_green_4H));
+  setMsaField("msa-h4-solid-green", fmtMsaVal(msg?.msa_solid_green_4H));
+
+  // placeholder until manual log lane is wired
+  setMsaField("msa-last-logged", "Awaiting SCADA MSA log");
+
+  rail.classList.remove("hidden");
+  requestAnimationFrame(() => rail.classList.add("open"));
+  rail.setAttribute("data-ref", key);
+}
+
+function closeMsaRail(){
+  const rail = document.getElementById("msa-rail");
+  if (!rail) return;
+  rail.classList.remove("open");
+  setTimeout(() => rail.classList.add("hidden"), 250);
+}   
    
 function setTooltip(el, text){
   if (!el) return;
@@ -2563,6 +2781,7 @@ function openRailForSlot(slot){
   const se = (window.__SETUP_STORE__ || {})[ref] || null;
 
   const msg = sc || wa || se;
+  if (!msg) return;
 
   // dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
@@ -2591,43 +2810,48 @@ function openRailForSlot(slot){
   setSnap("cr-sma10x-h4", smaH4);
 
   // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
-  setSnap("cr-setup2",   msg?.setup_any);      // true/false
-  setSnap("cr-trigger2", msg?.trigger_armed);  // true/false (or use trigger_any if you prefer)
+  setSnap("cr-setup2",   msg?.setup_any);
+  setSnap("cr-trigger2", msg?.trigger_armed);
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
   // header
-const tkr = msg?.ticker || "—";
-const tf  = msg?.tf || "—";
+  const tkr = msg?.ticker || "—";
+  const tf  = msg?.tf || "—";
 
-const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
-const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
+  const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
+  const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
 
-const title = document.getElementById("cr-title");
-const meta  = document.getElementById("cr-meta");
+  const title = document.getElementById("cr-title");
+  const meta  = document.getElementById("cr-meta");
 
-if (title){
-  let buildTxt = "";
-  if (buildVer || buildDate){
-    buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
+  if (title){
+    let buildTxt = "";
+    if (buildVer || buildDate){
+      buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
+    }
+
+    title.textContent =
+      `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}${buildTxt}`;
   }
 
-  title.textContent =
-    `SLOT ${ref} — ${String(tkr).toUpperCase()} • ${tf}${buildTxt}`;
-}
+  if (meta){
+    meta.textContent = sc
+      ? `SCADA_STATUS`
+      : (wa ? `WATCH` : `NO STATE`);
+  }
 
-if (meta){
-  meta.textContent = sc
-    ? `SCADA_STATUS`
-    : (wa ? `WATCH` : `NO STATE`);
-}
+  const stratBtn = document.getElementById("cr-strategy");
+  if (stratBtn){
+    stratBtn.onclick = () => toggleStrategyRail(ref);
+  }
 
-
-const stratBtn = document.getElementById("cr-strategy");
-if (stratBtn){
-  stratBtn.onclick = () => toggleStrategyRail(ref);
-}
+  const msaBtn = document.getElementById("cr-msa");
+  if (msaBtn){
+    msaBtn.title = "Click to inspect Daily and 4H MSA levels";
+    msaBtn.onclick = () => openMsaRailForRef(ref);
+  }
 
   // boxes helper
   const set = (id, v) => {
@@ -2635,16 +2859,17 @@ if (stratBtn){
     if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
 
-  set("cr-src",    sc ? "SCADA" : (wa ? "WATCH" : "—"));
-  set("cr-tf",     tf);
-  set("cr-msa",    formatMSA(msg?.msa_src, msg?.msa_ok));
+  set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
+  set("cr-tf",       tf);
+  set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
-  set("cr-setup",  String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
+  set("cr-setup",    String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
+
   const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
   const signalActive = setupActive ? !!msg?.signal : null;
+
   set("cr-signal", signalActive);
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
-
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
@@ -2660,7 +2885,6 @@ if (stratBtn){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
-
 
 function summariseDump(dump){
   const s = String(dump || "");
@@ -3070,7 +3294,6 @@ function applyWatch(msg){
     else msaEl.classList.add("msa-na");
   }
 }
-
 
 
   // ----------------------------
@@ -4801,7 +5024,23 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
+window.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("msa-close");
+  if (btn){
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeMsaRail();
+    });
+  }
 
+  document.addEventListener("keydown", (e) => {
+    const rail = document.getElementById("msa-rail");
+    if (e.key !== "Escape") return;
+    if (!rail || !rail.classList.contains("open")) return;
+    closeMsaRail();
+  });
+});
 
 
 // ============================================================
