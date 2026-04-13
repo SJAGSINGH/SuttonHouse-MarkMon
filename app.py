@@ -1138,6 +1138,35 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
             rec["ticker"] = str(data.get("ticker")).upper()
         rec["ref_id"] = ref_i
 
+        # ============================================================
+        # MSA STORAGE (D + 4H packs)
+        # ============================================================
+        if typ == "SCADA_STATUS":
+            try:
+                rec["msa"] = {
+                    "D": {
+                        "src": data.get("msa_src_D"),
+                        "valid": data.get("msa_valid_D"),
+                        "current": data.get("msa_current_D"),
+                        "solid_red": data.get("msa_solid_red_D"),
+                        "dash_red": data.get("msa_dash_red_D"),
+                        "dash_green": data.get("msa_dash_green_D"),
+                        "solid_green": data.get("msa_solid_green_D"),
+                    },
+                    "H4": {
+                        "src": data.get("msa_src_4H"),
+                        "valid": data.get("msa_valid_4H"),
+                        "current": data.get("msa_current_4H"),
+                        "solid_red": data.get("msa_solid_red_4H"),
+                        "dash_red": data.get("msa_dash_red_4H"),
+                        "dash_green": data.get("msa_dash_green_4H"),
+                        "solid_green": data.get("msa_solid_green_4H"),
+                    },
+                    "_server_ts": now,
+                }
+            except Exception:
+                pass
+        
         if typ == "EVENT":
             rec["event"] = {
                 "active": bool(data.get("event_active", False)),
