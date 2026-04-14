@@ -1823,6 +1823,47 @@ main.grid > #cr-dump-full{
   color: rgba(0,255,170,0.95);
   text-shadow: 0 0 12px rgba(0,255,170,0.18);
 }
+/* === MSA Visual Line Indicators === */
+.msa-line {
+  display: inline-block;
+  width: 28px;
+  height: 0;
+  border-top-width: 3px;
+  border-top-style: solid;
+  margin-right: 8px;
+  vertical-align: middle;
+  opacity: 0.9;
+}
+
+.msa-solid-red {
+  border-top-color: #ff4d4d;
+}
+
+.msa-dash-red {
+  border-top-color: #ff4d4d;
+  border-top-style: dashed;
+}
+
+.msa-solid-green {
+  border-top-color: #00ff9c;
+}
+
+.msa-dash-green {
+  border-top-color: #00ff9c;
+  border-top-style: dashed;
+} 
+
+.msa-line-text {
+  margin-right: 6px;
+  opacity: 0.85;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.msa-line-value {
+  font-weight: 600;
+  margin-left: 4px;
+}
  
 </style>
 
@@ -2160,7 +2201,26 @@ function setMsaField(id, value){
   if (!el) return;
   el.textContent = (value == null || value === "" ? "—" : String(value));
 }
+   
+function formatMSALine(label, value){
+  if (value == null || value === "") return "—";
 
+  let cls = "";
+
+  const l = String(label).toLowerCase();
+
+  if (l.includes("solid red"))   cls = "msa-solid-red";
+  else if (l.includes("dash red"))    cls = "msa-dash-red";
+  else if (l.includes("solid green")) cls = "msa-solid-green";
+  else if (l.includes("dash green"))  cls = "msa-dash-green";
+
+  return `
+    <span class="msa-line ${cls}"></span>
+    <span class="msa-line-text">${label.toUpperCase()}</span>
+    <span class="msa-line-value">${value}</span>
+  `;
+}
+   
 function openMsaRailForRef(ref){
   const key = String(ref);
   const sc = (window.__SCADA_STORE__ || {})[key] || null;
@@ -2182,24 +2242,39 @@ function openMsaRailForRef(ref){
     meta.textContent = `${sc ? "SCADA_STATUS" : "WATCH"} • TF ${msg.tf || "—"}`;
   }
 
-  // Daily
-  setMsaField("msa-d-src",         msg?.msa_src_D || "—");
-  setMsaField("msa-d-valid",       fmtMsaBool(msg?.msa_valid_D));
-  setMsaField("msa-d-current",     fmtMsaVal(msg?.msa_current_D));
-  setMsaField("msa-d-solid-red",   fmtMsaVal(msg?.msa_solid_red_D));
-  setMsaField("msa-d-dash-red",    fmtMsaVal(msg?.msa_dash_red_D));
-  setMsaField("msa-d-dash-green",  fmtMsaVal(msg?.msa_dash_green_D));
-  setMsaField("msa-d-solid-green", fmtMsaVal(msg?.msa_solid_green_D));
+   // Daily
+  setMsaField("msa-d-src",     msg?.msa_src_D || "—");
+  setMsaField("msa-d-valid",   fmtMsaBool(msg?.msa_valid_D));
+  setMsaField("msa-d-current", fmtMsaVal(msg?.msa_current_D));
+
+  document.getElementById("msa-d-solid-red").innerHTML =
+    formatMSALine("D Solid Red", fmtMsaVal(msg?.msa_solid_red_D));
+
+  document.getElementById("msa-d-dash-red").innerHTML =
+    formatMSALine("D Dash Red", fmtMsaVal(msg?.msa_dash_red_D));
+
+  document.getElementById("msa-d-dash-green").innerHTML =
+    formatMSALine("D Dash Green", fmtMsaVal(msg?.msa_dash_green_D));
+
+  document.getElementById("msa-d-solid-green").innerHTML =
+    formatMSALine("D Solid Green", fmtMsaVal(msg?.msa_solid_green_D));
 
   // H4
-  setMsaField("msa-h4-src",         msg?.msa_src_4H || "—");
-  setMsaField("msa-h4-valid",       fmtMsaBool(msg?.msa_valid_4H));
-  setMsaField("msa-h4-current",     fmtMsaVal(msg?.msa_current_4H));
-  setMsaField("msa-h4-solid-red",   fmtMsaVal(msg?.msa_solid_red_4H));
-  setMsaField("msa-h4-dash-red",    fmtMsaVal(msg?.msa_dash_red_4H));
-  setMsaField("msa-h4-dash-green",  fmtMsaVal(msg?.msa_dash_green_4H));
-  setMsaField("msa-h4-solid-green", fmtMsaVal(msg?.msa_solid_green_4H));
+  setMsaField("msa-h4-src",     msg?.msa_src_4H || "—");
+  setMsaField("msa-h4-valid",   fmtMsaBool(msg?.msa_valid_4H));
+  setMsaField("msa-h4-current", fmtMsaVal(msg?.msa_current_4H));
 
+  document.getElementById("msa-h4-solid-red").innerHTML =
+    formatMSALine("4H Solid Red", fmtMsaVal(msg?.msa_solid_red_4H));
+
+  document.getElementById("msa-h4-dash-red").innerHTML =
+    formatMSALine("4H Dash Red", fmtMsaVal(msg?.msa_dash_red_4H));
+
+  document.getElementById("msa-h4-dash-green").innerHTML =
+    formatMSALine("4H Dash Green", fmtMsaVal(msg?.msa_dash_green_4H));
+
+  document.getElementById("msa-h4-solid-green").innerHTML =
+    formatMSALine("4H Solid Green", fmtMsaVal(msg?.msa_solid_green_4H));
   // placeholder until manual log lane is wired
   setMsaField("msa-last-logged", "Awaiting SCADA MSA log");
 
