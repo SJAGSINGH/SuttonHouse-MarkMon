@@ -1823,18 +1823,26 @@ main.grid > #cr-dump-full{
   color: rgba(0,255,170,0.95);
   text-shadow: 0 0 12px rgba(0,255,170,0.18);
 }
-/* === MSA Visual Line Indicators === */
+/* === MSA Visual Line Indicators (refined) === */
+
+.msa-line-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* line */
 .msa-line {
-  display: inline-block;
-  width: 28px;
+  display: block;
+  width: 34px;
   height: 0;
   border-top-width: 3px;
   border-top-style: solid;
-  margin-right: 8px;
-  vertical-align: middle;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
+/* colour + type */
 .msa-solid-red {
   border-top-color: #ff4d4d;
 }
@@ -1851,18 +1859,13 @@ main.grid > #cr-dump-full{
 .msa-dash-green {
   border-top-color: #00ff9c;
   border-top-style: dashed;
-} 
-
-.msa-line-text {
-  margin-right: 6px;
-  opacity: 0.85;
-  font-size: 11px;
-  letter-spacing: 0.5px;
 }
 
+/* value */
 .msa-line-value {
   font-weight: 600;
-  margin-left: 4px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.92);
 }
  
 </style>
@@ -2206,18 +2209,18 @@ function formatMSALine(label, value){
   if (value == null || value === "") return "—";
 
   let cls = "";
-
   const l = String(label).toLowerCase();
 
-  if (l.includes("solid red"))   cls = "msa-solid-red";
-  else if (l.includes("dash red"))    cls = "msa-dash-red";
+  if (l.includes("solid red")) cls = "msa-solid-red";
+  else if (l.includes("dash red")) cls = "msa-dash-red";
   else if (l.includes("solid green")) cls = "msa-solid-green";
-  else if (l.includes("dash green"))  cls = "msa-dash-green";
+  else if (l.includes("dash green")) cls = "msa-dash-green";
 
   return `
-    <span class="msa-line ${cls}"></span>
-    <span class="msa-line-text">${label.toUpperCase()}</span>
-    <span class="msa-line-value">${value}</span>
+    <div class="msa-line-wrap">
+      <span class="msa-line ${cls}"></span>
+      <span class="msa-line-value">${value}</span>
+    </div>
   `;
 }
    
