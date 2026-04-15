@@ -1203,19 +1203,29 @@ body.war-room .scada-card{
   position:absolute;
   top:-16px;
   left:50%;
-  transform:translateX(-50%);
+  transform:translateX(-52%);   /* optical centering */
+  min-width:40px;               /* stabilises RS1 vs RS10 */
+  text-align:center;
+
   font-size:9px;
-  letter-spacing:1px;
-  color:rgba(255,255,255,0.45);
+  letter-spacing:0.8px;         /* tighter, cleaner */
+  color:rgba(255,255,255,0.5);  /* slightly lifted from 0.45 */
+  opacity:0.85;                 /* unify brightness */
+
   background:none;
   border:none;
   padding:0;
   height:auto;
   line-height:1;
+
   white-space:nowrap;
   pointer-events:none;
   display:none;
   z-index:6;
+}
+
+.node-screener-rail.dip{
+  color:rgba(255,255,255,0.85); /* subtle elevation, not shouting */
 }
 /* =========================================
    COMMISSION RAIL (SLIDE FROM LEFT) — CANONICAL
@@ -1885,9 +1895,7 @@ main.grid > #cr-dump-full{
   color: rgba(255,255,255,0.92);
 }
 
-.node-screener-rail.dip{
-  color:rgba(255,255,255,0.85);
-}
+
  
 </style>
 
