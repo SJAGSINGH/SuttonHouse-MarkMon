@@ -278,7 +278,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 /* SVG WRAPPER */
-.scada-man{
+..scada-man{
   width:118px;
   height:auto;
   display:block;
@@ -291,6 +291,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
     drop-shadow(0 0 28px rgba(31,166,122,.12));
 }
 
+
 .scada-svg-wrap{
   position:relative;
   display:block;
@@ -302,10 +303,10 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   display:block;
   width:100%;
   height:auto;
-  transform:scaleY(0.92);
+  transform:scaleY(0.96);
   transform-origin:bottom center;
 }
-
+ 
 /* Eye twinkle overlay */
 #scada-eye-twinkle{
   position:absolute;
@@ -327,10 +328,10 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 /* Floor beam overlay */
-#scada-floor-beam{
+scada-floor-beam{
   position:absolute;
   left:50%;
-  top:83%;
+  top:79%;
   width:48%;
   height:7%;
   transform:translateX(-50%);
@@ -1958,15 +1959,15 @@ main.grid > #cr-dump-full{
 
         <!-- SCADA MAN SVG -->
         <svg id="scada-svg" viewBox="0 0 800 1200" aria-hidden="true">
-          
+
           <!-- FLOOR -->
           <g id="floor-layer">
-            <ellipse cx="400" cy="855" rx="185" ry="30"
-                     fill="rgba(116,255,238,0.55)"
+            <ellipse cx="400" cy="846" rx="150" ry="20"
+                     fill="rgba(116,255,238,0.52)"
                      filter="url(#glowStrong)"/>
           </g>
 
-          <!-- MAIN STRUCTURE (condensed for embed) -->
+          <!-- MAIN STRUCTURE -->
           <g id="scada-body" stroke="#a8fff3" stroke-width="3" fill="none">
 
             <!-- TOP SPIRE -->
@@ -1985,9 +1986,20 @@ main.grid > #cr-dump-full{
             <!-- CORE FRAME -->
             <polygon points="400,400 470,439 470,518 400,557 330,518 330,439" />
 
+            <!-- CENTRAL LOWER BODY -->
+            <polygon points="360,592 400,612 440,592 440,860 360,860" />
+            <line x1="360" y1="621" x2="360" y2="860" />
+            <line x1="440" y1="621" x2="440" y2="860" />
+
           </g>
 
-          <!-- CORE GLOW (important for twinkle alignment) -->
+          <!-- INNER BODY LINES -->
+          <g id="scada-body-inner" stroke="#94fff0" stroke-width="1.35" fill="none" opacity="0.28">
+            <line x1="382" y1="624" x2="382" y2="850" />
+            <line x1="418" y1="624" x2="418" y2="850" />
+          </g>
+
+          <!-- CORE GLOW -->
           <g id="core-eye-svg">
             <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
                      fill="rgba(200,255,245,0.85)" />
@@ -1995,7 +2007,7 @@ main.grid > #cr-dump-full{
 
         </svg>
 
-        <!-- OVERLAYS (unchanged system) -->
+        <!-- OVERLAYS -->
         <div id="scada-eye-twinkle"></div>
 
         <div id="scada-floor-beam">
