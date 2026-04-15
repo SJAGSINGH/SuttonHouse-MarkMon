@@ -309,7 +309,26 @@ STATE: Dict[str, Any] = {
         "vold": None,
         "war": None,
     },
+    # ============================================================
+    # SCREENER — WEEKLY SNAPSHOT LAYER (RS + S2)
+    # ============================================================
+    "screener": {
+        # ------------------------
+        # Relative Strength (vs GOLD)
+        # ------------------------
+        "rs": {
+            "week_ts": None,     # weekly timestamp from Pine
+            "by_ref": {},        # {ref_id: {rk, sc, g, d, ro}}
+        },
 
+    # ------------------------
+    # S2 Pullback / Condition Layer
+    # ------------------------
+    "s2": {
+        "week_ts": None,     # weekly timestamp from Pine
+        "by_ref": {},        # {ref_id: {m, j, a, p, s, d}}
+    },
+},
     "_server_ts": None,
 }
 
@@ -2502,7 +2521,7 @@ def webhook():
                     (fx.get("gbpaud") or {}).get("state"),
                 )
 
-            # ====================================================
+                       # ====================================================
             # MARKET ANCHOR FAST PATH
             # ====================================================
             if typ == "ANCHOR_UPDATE":
@@ -2542,6 +2561,51 @@ def webhook():
 
                 else:
                     abort(400)
+
+                # ====================================================
+                # SCREENER BATCH FAST PATH (weekly snapshot layer)
+                # ====================================================
+            elif typ == "SCREENER_BATCH":
+                src = str(data.get("src") or "").upper()
+                rows = data.get("rows") or []
+                week_ts = data.get("ts")
+                now_ms = int(time.time() * 1000)
+
+                if src not in ("RS", "S2") or not isinstance(rows, list):
+                    abort(400)
+
+                lane = "rs" if src == "RS" else "s2"
+                STATE["screener"][lane]["week_ts"] = week_ts
+                STATE["_server_ts"] = now_ms
+
+                updated = 0
+
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+
+                    try:
+                        ref_id = row.get("r")
+                        ref_id = int(float(ref_id)) if ref_id is not None else None
+                    except Exception:
+                        ref_id = None
+
+                    if ref_id is None:
+                        continue
+
+                    row_out = dict(row)
+                    row_out["ref_id"] = ref_id
+                    row_out["_server_ts"] = now_ms
+
+                    STATE["screener"][lane]["by_ref"][ref_id] = row_out
+                    updated += 1
+
+                if updated == 0:
+                    abort(400)
+
+                do_save = True
+                emit_event = "macro_update"
+                emit_payload = copy.deepcopy(STATE)
 
             # ====================================================
             # EVENT BATCH LANE
