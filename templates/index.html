@@ -1981,7 +1981,7 @@ main.grid > #cr-dump-full{
 
           <!-- MAIN STRUCTURE -->
 <!-- MAIN STRUCTURE -->
-<g id="scada-body" stroke="#a8fff3" stroke-width="3" fill="none">
+<g id="scada-body" stroke="#b8fff7" stroke-width="3.2" fill="none">
 
   <!-- TOP SPIRE OUTER -->
   <polygon points="400,188 442,212 442,424 400,401 358,424 358,212" />
@@ -2032,7 +2032,8 @@ main.grid > #cr-dump-full{
   <polygon points="400,421 448,448 448,509 400,536 352,509 352,448" />
 
   <!-- CENTRAL LOWER BODY OUTER -->
-  <polygon points="360,592 400,612 440,592 440,860 360,860" />
+  <polygon points="360,592 400,612 440,592 440,860 360,860"
+           fill="url(#panelGlow)" />
 
   <!-- CENTRAL LOWER BODY INNER -->
   <polygon points="382,616 400,626 418,616 418,850 382,850" />
@@ -2089,7 +2090,7 @@ main.grid > #cr-dump-full{
 </g>
          
 <!-- INNER BODY LINES -->
-<g id="scada-body-inner" stroke="#94fff0" stroke-width="1.1" fill="none" opacity="0.30">
+<g id="scada-body-inner" stroke="#94fff0" stroke-width="1" fill="none" opacity="0.22">
   <line x1="390" y1="230" x2="390" y2="384" />
   <line x1="410" y1="230" x2="410" y2="384" />
 
@@ -2106,7 +2107,13 @@ main.grid > #cr-dump-full{
 <!-- CORE GLOW -->
 <g id="core-eye-svg">
   <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
-           fill="rgba(200,255,245,0.85)" />
+           fill="#dffffa" />
+
+  <polygon points="400,445 430,462 430,495 400,512 370,495 370,462"
+           fill="none"
+           stroke="#7effec"
+           stroke-width="2"
+           opacity="0.6"/>
 </g>
 
         </svg>
