@@ -3352,6 +3352,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   }
 
   // SCREENER RAIL (RS# | DIP)
+// SCREENER RAIL (RS only when reporting, DIP gated to active)
 if (screenerRail){
   const rsMap = window.__RSC_LAST?.screener?.rs?.by_ref || {};
   const s2Map = window.__RSC_LAST?.screener?.s2?.by_ref || {};
@@ -3366,12 +3367,15 @@ if (screenerRail){
     s2Map[Number(refId)] ??
     null;
 
+  const active = !!(isSetup || isSignal);
+  const isReporting = ticker && ticker !== "—";  // 🔥 key line
+
   let railTxt = "";
 
-  if (rs && rs.rk != null){
+  if (isReporting && rs && rs.rk != null){
     railTxt = `RS${rs.rk}`;
 
-    if (s2 && s2.d === true){
+    if (active && s2 && s2.d === true){
       railTxt += " | DIP";
       screenerRail.classList.add("dip");
     } else {
@@ -3384,6 +3388,10 @@ if (screenerRail){
   if (railTxt){
     screenerRail.textContent = railTxt;
     screenerRail.style.display = "block";
+
+    screenerRail.style.color = active
+      ? "rgba(255,255,255,0.95)"
+      : "rgba(255,255,255,0.45)";
   } else {
     screenerRail.textContent = "";
     screenerRail.style.display = "none";
