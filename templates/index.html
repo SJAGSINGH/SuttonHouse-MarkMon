@@ -259,7 +259,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   overflow:hidden;
 }
 
-/* INNER frame */
+/* INNER FRAME */
 .scada-man-wrap{
   width:142px;
   height:142px;
@@ -272,18 +272,18 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   display:flex;
   align-items:flex-end;
   justify-content:center;
-  padding-bottom:18px;
+  padding-bottom:10px;
   overflow:hidden;
   position:relative;
 }
 
-/* PNG wrapper */
+/* SVG WRAPPER */
 .scada-man{
   width:118px;
   height:auto;
   display:block;
   margin:0 auto;
-  transform:translateY(12px);
+  transform:translateY(20px);
   opacity:.96;
   position:relative;
   filter:
@@ -293,6 +293,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
 .scada-svg-wrap{
   position:relative;
+  display:block;
   width:100%;
   height:auto;
 }
@@ -380,7 +381,8 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   55%  { opacity:0.85; transform:translate(-50%, -50%) scale(0.98); }
   100% { opacity:0; transform:translate(-50%, -50%) scale(1); }
 }
-body.war-room .scada-card{
+ 
+ body.war-room .scada-card{
   box-shadow:
     0 0 30px rgba(31,166,122,.16),
     inset 0 0 20px rgba(31,166,122,.10);
@@ -1957,8 +1959,9 @@ main.grid > #cr-dump-full{
           
           <!-- FLOOR -->
           <g id="floor-layer">
-            <ellipse cx="400" cy="845" rx="175" ry="26"
-                     fill="rgba(116,255,238,0.35)" />
+            <ellipse cx="400" cy="855" rx="185" ry="30"
+                     fill="rgba(116,255,238,0.45)"
+                     filter="url(#glowStrong)"/>
           </g>
 
           <!-- MAIN STRUCTURE (condensed for embed) -->
