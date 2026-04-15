@@ -3351,8 +3351,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     }
   }
 
-  // SCREENER RAIL (RS# | DIP)
-// SCREENER RAIL (RS only when reporting, DIP gated to active)
+  // SCREENER RAIL (RS only when a real ticker is present; DIP gated to active)
 if (screenerRail){
   const rsMap = window.__RSC_LAST?.screener?.rs?.by_ref || {};
   const s2Map = window.__RSC_LAST?.screener?.s2?.by_ref || {};
@@ -3368,11 +3367,14 @@ if (screenerRail){
     null;
 
   const active = !!(isSetup || isSignal);
-  const isReporting = ticker && ticker !== "—";  // 🔥 key line
+
+  // 🔥 use DOM label (already cleaned) to determine if node is “real”
+  const labelEl = item.querySelector(".stock-label");
+  const hasTicker = !!(labelEl && labelEl.textContent && labelEl.textContent.trim() !== "—");
 
   let railTxt = "";
 
-  if (isReporting && rs && rs.rk != null){
+  if (hasTicker && rs && rs.rk != null){
     railTxt = `RS${rs.rk}`;
 
     if (active && s2 && s2.d === true){
@@ -3388,7 +3390,6 @@ if (screenerRail){
   if (railTxt){
     screenerRail.textContent = railTxt;
     screenerRail.style.display = "block";
-
     screenerRail.style.color = active
       ? "rgba(255,255,255,0.95)"
       : "rgba(255,255,255,0.45)";
