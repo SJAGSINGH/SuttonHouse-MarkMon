@@ -282,9 +282,8 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   width:118px;
   height:auto;
   display:block;
-  object-fit:contain;
   margin:0 auto;
-  transform:translateY(16px);
+  transform:translateY(12px);
   opacity:.96;
   position:relative;
   filter:
@@ -292,11 +291,13 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
     drop-shadow(0 0 28px rgba(31,166,122,.12));
 }
 
-.scada-png-wrap{
+.scada-svg-wrap{
   position:relative;
+  width:100%;
+  height:auto;
 }
 
-#scada-png{
+#scada-svg{
   display:block;
   width:100%;
   height:auto;
@@ -306,7 +307,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 #scada-eye-twinkle{
   position:absolute;
   left:50%;
-  top:39%;
+  top:38%;
   width:16%;
   aspect-ratio:1 / 1;
   transform:translate(-50%, -50%) scale(1);
@@ -326,7 +327,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 #scada-floor-beam{
   position:absolute;
   left:50%;
-  top:79%;
+  top:80%;
   width:48%;
   height:7%;
   transform:translateX(-50%);
@@ -1949,19 +1950,57 @@ main.grid > #cr-dump-full{
 <div class="scada-slot">
   <div class="scada-card" aria-hidden="true">
     <div class="scada-man-wrap">
-      <div id="scada-wrap" class="scada-man scada-png-wrap">
-        <img id="scada-png" src="/static/SCADA_Man.png" alt="" />
+      <div id="scada-wrap" class="scada-man scada-svg-wrap">
 
+        <!-- SCADA MAN SVG -->
+        <svg id="scada-svg" viewBox="0 0 800 1200" aria-hidden="true">
+          
+          <!-- FLOOR -->
+          <g id="floor-layer">
+            <ellipse cx="400" cy="845" rx="175" ry="26"
+                     fill="rgba(116,255,238,0.35)" />
+          </g>
+
+          <!-- MAIN STRUCTURE (condensed for embed) -->
+          <g id="scada-body" stroke="#a8fff3" stroke-width="3" fill="none">
+
+            <!-- TOP SPIRE -->
+            <polygon points="400,188 442,212 442,424 400,401 358,424 358,212" />
+
+            <!-- LEFT -->
+            <polygon points="296,302 332,281 332,574 296,554" />
+            <polygon points="233,432 287,401 287,706 233,671" />
+            <polygon points="202,677 288,731 288,840 202,840" />
+
+            <!-- RIGHT -->
+            <polygon points="468,281 504,302 504,554 468,574" />
+            <polygon points="513,401 567,432 567,671 513,706" />
+            <polygon points="512,731 598,677 598,840 512,840" />
+
+            <!-- CORE FRAME -->
+            <polygon points="400,400 470,439 470,518 400,557 330,518 330,439" />
+
+          </g>
+
+          <!-- CORE GLOW (important for twinkle alignment) -->
+          <g id="core-eye-svg">
+            <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
+                     fill="rgba(200,255,245,0.85)" />
+          </g>
+
+        </svg>
+
+        <!-- OVERLAYS (unchanged system) -->
         <div id="scada-eye-twinkle"></div>
 
         <div id="scada-floor-beam">
           <div id="scada-floor-scan-highlight"></div>
         </div>
+
       </div>
     </div>
   </div>
 </div>
-
 
 </header>
 
