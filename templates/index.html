@@ -1199,7 +1199,27 @@ body.war-room .scada-card{
   display:none !important;
 }
 
-
+.node-screener-rail{
+  position:absolute;
+  top:-18px;
+  left:50%;
+  transform:translateX(-50%);
+  min-width:58px;
+  height:16px;
+  padding:0 6px;
+  border:1px solid rgba(255,255,255,0.28);
+  background:rgba(0,0,0,0.72);
+  color:#d8e2dc;
+  font-size:10px;
+  line-height:14px;
+  text-align:center;
+  border-radius:3px;
+  letter-spacing:0.4px;
+  white-space:nowrap;
+  pointer-events:none;
+  display:none;
+  z-index:6;
+}
 /* =========================================
    COMMISSION RAIL (SLIDE FROM LEFT) — CANONICAL
    Replaces legacy #node-panel
@@ -2187,7 +2207,41 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
+   
+function applyScreenerRail(refId){
+  const item =
+    document.querySelector(`.stock-item[data-slot="${refId}"]`) ||
+    document.querySelector(`.stock-item[data-slot="${Number(refId) - 1}"]`);
 
+  if (!item) return;
+
+  const rail = item.querySelector(".node-screener-rail");
+  if (!rail) return;
+
+  const rs = window.__RSC_LAST?.screener?.rs?.by_ref?.[String(refId)] 
+          || window.__RSC_LAST?.screener?.rs?.by_ref?.[Number(refId)]
+          || null;
+
+  const s2 = window.__RSC_LAST?.screener?.s2?.by_ref?.[String(refId)] 
+          || window.__RSC_LAST?.screener?.s2?.by_ref?.[Number(refId)]
+          || null;
+
+  let txt = "";
+
+  if (rs && rs.rk != null){
+    txt = `RS${rs.rk}`;
+    if (s2 && s2.d === true) txt += " | DIP";
+  }
+
+  if (txt){
+    rail.textContent = txt;
+    rail.style.display = "block";
+  } else {
+    rail.textContent = "";
+    rail.style.display = "none";
+  }
+}
+   
 function fmtMsaVal(v){
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(3) : "—";
@@ -3181,6 +3235,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   const label    = item.querySelector(".stock-label");
   const msa      = item.querySelector(".msa-label");
   const eventTag = item.querySelector(".event-tag");
+  const screenerRail = item.querySelector(".node-screener-rail");
 
   // TICKER (compute once, reuse)
   const tkr = ticker ? String(ticker).toUpperCase() : "—";
@@ -3242,7 +3297,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     else msa.classList.add("msa-na");
   }
 
-   // EVENT TAG
+  // EVENT TAG
   if (eventTag){
     const ev = (window.__EVENT_STORE__ || {})[String(refId)] || null;
     const eventActive = !!(ev && ev.event_active === true);
@@ -3274,6 +3329,33 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
       eventTag.title = evLabel || "EVENT";
     } else {
       eventTag.title = "";
+    }
+  }
+
+  // SCREENER RAIL (RS# | DIP)
+  if (screenerRail){
+    const rs =
+      window.__RSC_LAST?.screener?.rs?.by_ref?.[String(refId)] ??
+      window.__RSC_LAST?.screener?.rs?.by_ref?.[Number(refId)] ??
+      null;
+
+    const s2 =
+      window.__RSC_LAST?.screener?.s2?.by_ref?.[String(refId)] ??
+      window.__RSC_LAST?.screener?.s2?.by_ref?.[Number(refId)] ??
+      null;
+
+    let railTxt = "";
+    if (rs && rs.rk != null){
+      railTxt = `RS${rs.rk}`;
+      if (s2 && s2.d === true) railTxt += " | DIP";
+    }
+
+    if (railTxt){
+      screenerRail.textContent = railTxt;
+      screenerRail.style.display = "block";
+    } else {
+      screenerRail.textContent = "";
+      screenerRail.style.display = "none";
     }
   }
 
@@ -4798,8 +4880,9 @@ function applyAllFromState(data) {
   }
  
   if (typeof applyScadaManState === "function") {
-  applyScadaManState(data);
+    applyScadaManState(data);
   }
+
   // ============================================================
   // CARD 2 — SHORT-TERM BIAS + GC PRESSURE GAUGE (PUBLIC ONLY)
   // ============================================================
@@ -5066,7 +5149,37 @@ function applyAllFromState(data) {
       }
     }
   })();
-}// ✅ CLOSE applyAllFromState()
+
+  // ============================================================
+  // SCREENER RAIL REFRESH (RS# | DIP)
+  // ============================================================
+  for (let ref = 1; ref <= 20; ref++) {
+    const item = document.querySelector(`.stock-item[data-slot="${ref}"]`);
+    if (!item) continue;
+
+    const rail = item.querySelector(".node-screener-rail");
+    if (!rail) continue;
+
+    const rs =
+      data?.screener?.rs?.by_ref?.[String(ref)] ??
+      data?.screener?.rs?.by_ref?.[Number(ref)] ??
+      null;
+
+    const s2 =
+      data?.screener?.s2?.by_ref?.[String(ref)] ??
+      data?.screener?.s2?.by_ref?.[Number(ref)] ??
+      null;
+
+    let txt = "";
+    if (rs && rs.rk != null) {
+      txt = `RS${rs.rk}`;
+      if (s2 && s2.d === true) txt += " | DIP";
+    }
+
+    rail.textContent = txt;
+    rail.style.display = txt ? "block" : "none";
+  }
+}
    
 window.applyAllFromState = applyAllFromState;
 
