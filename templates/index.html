@@ -3247,7 +3247,17 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   const screenerRail = item.querySelector(".node-screener-rail");
 
   // TICKER (compute once, reuse)
-  const tkr = ticker ? String(ticker).toUpperCase() : "—";
+  const tkrRaw = ticker ? String(ticker).toUpperCase() : "—";
+
+ let tkr = tkrRaw;
+
+ // remove exchange prefix
+ if (tkr.includes(":")) {
+   tkr = tkr.split(":")[1];
+ }
+
+// remove timeframe suffixes
+ tkr = tkr.replace(/_DLY|_4H|_1H|_W|_M/g, "");
   if (label) label.textContent = tkr;
 
   // NODE HALO + COLOUR + LOGO
