@@ -1948,8 +1948,6 @@ main.grid > #cr-dump-full{
 
     <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
   </div>
-
-  <!-- RIGHT: SCADA Man -->
 <!-- RIGHT: SCADA Man -->
 <div class="scada-slot">
   <div class="scada-card" aria-hidden="true">
@@ -1959,11 +1957,26 @@ main.grid > #cr-dump-full{
         <!-- SCADA MAN SVG -->
         <svg id="scada-svg" viewBox="0 0 800 1200" aria-hidden="true">
 
+          <!-- DEFINITIONS -->
+          <defs>
+            <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#bffff6" stop-opacity="1"/>
+              <stop offset="30%" stop-color="#7effec" stop-opacity="0.7"/>
+              <stop offset="70%" stop-color="#7effec" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
           <!-- FLOOR -->
           <g id="floor-layer">
-            <ellipse cx="400" cy="846" rx="230" ry="24"
-                     fill="rgba(116,255,238,0.52)"
+            <ellipse cx="400" cy="846" rx="220" ry="18"
+                     fill="url(#beamGlow)"
                      filter="url(#glowStrong)"/>
+
+            <ellipse cx="400" cy="848" rx="40" ry="6"
+                     fill="#eafffb"
+                     opacity="0.9"
+                     filter="url(#glowSoft)"/>
           </g>
 
           <!-- MAIN STRUCTURE -->
