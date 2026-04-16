@@ -393,9 +393,20 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
 @keyframes floorPulse{
   0%   { opacity:1; filter:brightness(1); }
-  22%  { opacity:1; filter:brightness(1.28); }
-  55%  { opacity:0.98; filter:brightness(1.14); }
+  22%  { opacity:1; filter:brightness(1.18); }
+  55%  { opacity:0.98; filter:brightness(1.08); }
   100% { opacity:1; filter:brightness(1); }
+}
+
+.scada-pulse #scada-up-emission{
+  animation:upEmissionPulse 0.9s ease-out 1;
+}
+
+@keyframes upEmissionPulse{
+  0%   { opacity:0.85; filter:blur(0px) brightness(1); }
+  22%  { opacity:1; filter:blur(2px) brightness(1.35); }
+  55%  { opacity:0.94; filter:blur(1px) brightness(1.15); }
+  100% { opacity:0.85; filter:blur(0px) brightness(1); }
 }
 
 .scada-pulse #scada-up-emission{
