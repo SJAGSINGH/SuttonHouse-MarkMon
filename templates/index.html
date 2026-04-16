@@ -5182,7 +5182,7 @@ function applySentinelFromState(data) {
 
   // Trigger SCADA floor scan only when the actual message changes
   if (__lastSentinelMsg && __lastSentinelMsg !== msg) {
-    triggerScadaScan();
+    triggerScadaPulse();
   }
   __lastSentinelMsg = msg;
 }
