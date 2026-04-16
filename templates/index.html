@@ -1965,10 +1965,10 @@ main.grid > #cr-dump-full{
 
   <!-- BEAM -->
   <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
-  <stop offset="0%" stop-color="#e9fffb" stop-opacity="1"/>
-  <stop offset="10%" stop-color="#cffff8" stop-opacity="0.95"/>
-  <stop offset="28%" stop-color="#7effec" stop-opacity="0.78"/>
-  <stop offset="70%" stop-color="#7effec" stop-opacity="0.24"/>
+  <stop offset="0%" stop-color="#effffb" stop-opacity="1"/>
+  <stop offset="12%" stop-color="#d8fff8" stop-opacity="0.92"/>
+  <stop offset="30%" stop-color="#7effec" stop-opacity="0.72"/>
+  <stop offset="72%" stop-color="#7effec" stop-opacity="0.18"/>
   <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
 </radialGradient>
 
@@ -2003,23 +2003,26 @@ main.grid > #cr-dump-full{
 
 </defs>
 <!-- FLOOR -->
+<!-- FLOOR -->
 <g id="floor-layer">
 
-  <!-- WIDE OUTER EMISSION -->
-  <ellipse cx="400" cy="848" rx="255" ry="22"
+  <!-- HORIZON GLOW -->
+  <ellipse cx="400" cy="852" rx="285" ry="16"
            fill="url(#beamGlow)"
-           filter="url(#glowStrong)"/>
+           filter="url(#glowStrong)"
+           opacity="0.95"/>
 
-  <!-- MID SPREAD -->
-  <ellipse cx="400" cy="848" rx="150" ry="14"
-           fill="rgba(126,255,236,0.30)"
-           filter="url(#glowSoft)"/>
-
-  <!-- CENTRE HOTSPOT -->
-  <ellipse cx="400" cy="848" rx="56" ry="8"
-           fill="#f4fffc"
+  <!-- RISING SUN CORE -->
+  <ellipse cx="400" cy="850" rx="78" ry="16"
+           fill="#f6fffd"
            opacity="0.98"
            filter="url(#glowSoft)"/>
+
+  <!-- UPWARD EMISSION -->
+  <ellipse cx="400" cy="836" rx="120" ry="34"
+           fill="rgba(180,255,247,0.26)"
+           filter="url(#glowSoft)"
+           opacity="0.85"/>
 
 </g>
 
