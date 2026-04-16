@@ -528,97 +528,111 @@
   </div>
 
 <script>
-  const lines = [
-    "Silence is a valid state.",
-    "Signals are observed, not followed.",
-    "Observation precedes action.",
-    "The system governs participation.",
-    "Discipline is required before deployment.",
-    "The system is working — now your job is not to interfere with it.",
-    "EXPECT TO BE GOVERNED"
-  ];
+  // HARD LOCK — prevents any duplicate execution (even on reload edge cases)
+  if (window.__LOAD_SCREEN_ACTIVE__) {
+    console.warn("Load screen already active — blocking duplicate run");
+  } else {
+    window.__LOAD_SCREEN_ACTIVE__ = true;
 
-  const statuses = [
-    "LINKING MACRO STATE",
-    "VERIFYING REGIME CONDITIONS",
-    "SYNCING NODE STRUCTURE",
-    "INITIALISING SENTINEL"
-  ];
+    const lines = [
+      "Silence is a valid state.",
+      "Signals are observed, not followed.",
+      "Observation precedes action.",
+      "The system governs participation.",
+      "Discipline is required before deployment.",
+      "The system is working — now your job is not to interfere with it.",
+      "EXPECT TO BE GOVERNED"
+    ];
 
-  let lineIndex = 0;
-  let statusIndex = 0;
-  let exiting = false;
-  let statusTimer = null;
-  let lineTimer = null;
+    const statuses = [
+      "LINKING MACRO STATE",
+      "VERIFYING REGIME CONDITIONS",
+      "SYNCING NODE STRUCTURE",
+      "INITIALISING SENTINEL"
+    ];
 
-  function cycleStatus() {
-    if (exiting) return;
-    const statusEl = document.getElementById("status");
-    if (!statusEl) return;
-    statusEl.textContent = statuses[statusIndex];
-    statusIndex = (statusIndex + 1) % statuses.length;
-  }
+    let lineIndex = 0;
+    let statusIndex = 0;
+    let exiting = false;
+    let statusTimer = null;
+    let lineTimer = null;
 
-  function nextLine() {
-    if (exiting) return;
-
-    const el = document.getElementById("text");
-    if (!el) return;
-
-    el.classList.remove("show", "final");
-
-    lineTimer = setTimeout(() => {
+    function cycleStatus() {
       if (exiting) return;
-
-      el.textContent = lines[lineIndex];
-
-      if (lineIndex === lines.length - 1) {
-        el.classList.add("final");
-      }
-
-      el.classList.add("show");
-      lineIndex += 1;
-
-      if (lineIndex < lines.length) {
-        lineTimer = setTimeout(nextLine, 4000);
-      } else {
-        lineTimer = setTimeout(exitLoad, 2500);
-      }
-    }, 400);
-  }
-
-  async function exitLoad() {
-    if (exiting) return;
-    exiting = true;
-
-    if (statusTimer) clearInterval(statusTimer);
-    if (lineTimer) clearTimeout(lineTimer);
-
-    const screen = document.getElementById("load-screen");
-    if (screen) screen.classList.add("is-exiting");
-
-    try {
-      const res = await fetch("/mark_conditioned", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store"
-      });
-
-      if (!res.ok) {
-        throw new Error("mark_conditioned failed");
-      }
-    } catch (err) {
-      console.error("Failed to mark conditioned:", err);
+      const statusEl = document.getElementById("status");
+      if (!statusEl) return;
+      statusEl.textContent = statuses[statusIndex];
+      statusIndex = (statusIndex + 1) % statuses.length;
     }
 
-    setTimeout(() => {
-      window.location.replace("/");
-    }, 1200);
-  }
+    function nextLine() {
+      if (exiting) return;
 
-  cycleStatus();
-  statusTimer = setInterval(cycleStatus, 3000);
-  nextLine();
+      const el = document.getElementById("text");
+      if (!el) return;
+
+      el.classList.remove("show", "final");
+
+      lineTimer = setTimeout(() => {
+        if (exiting) return;
+
+        el.textContent = lines[lineIndex];
+
+        if (lineIndex === lines.length - 1) {
+          el.classList.add("final");
+        }
+
+        el.classList.add("show");
+        lineIndex += 1;
+
+        if (lineIndex < lines.length) {
+          lineTimer = setTimeout(nextLine, 4000);
+        } else {
+          lineTimer = setTimeout(exitLoad, 2500);
+        }
+      }, 400);
+    }
+
+    async function exitLoad() {
+      if (exiting) return;
+      exiting = true;
+
+      console.log("EXIT LOAD TRIGGERED");
+
+      if (statusTimer) clearInterval(statusTimer);
+      if (lineTimer) clearTimeout(lineTimer);
+
+      const screen = document.getElementById("load-screen");
+      if (screen) screen.classList.add("is-exiting");
+
+      try {
+        const res = await fetch("/mark_conditioned", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+
+        console.log("mark_conditioned response:", res.status);
+
+        if (!res.ok) {
+          throw new Error("mark_conditioned failed");
+        }
+      } catch (err) {
+        console.error("Failed to mark conditioned:", err);
+        return; // DO NOT redirect if this fails
+      }
+
+      // small delay for session write + animation
+      setTimeout(() => {
+        window.location.replace("/");
+      }, 1200);
+    }
+
+    // START
+    cycleStatus();
+    statusTimer = setInterval(cycleStatus, 3000);
+    nextLine();
+  }
 </script>
 </body>
 </html>
