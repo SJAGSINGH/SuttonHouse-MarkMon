@@ -51,37 +51,36 @@
       pointer-events: none;
     }
 
-    /* faint rose behind SCADA */
-    .load-rose-wrap {
-      position: absolute;
-      left: 50%;
-      top: 49%;
-      transform: translate(-50%, -50%);
-      width: min(34vw, 340px);
-      height: min(34vw, 340px);
-      display: grid;
-      place-items: center;
-      pointer-events: none;
-      z-index: 1;
-    }
+   .load-rose-wrap {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  transform: translate(-50%, -50%);
+  width: min(60vw, 620px);
+  height: min(60vw, 620px);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
 
-    .load-rose {
-      width: 100%;
-      height: auto;
-      opacity: 0.065;
-      filter:
-        saturate(0.9)
-        brightness(0.82)
-        blur(0.2px)
-        drop-shadow(0 0 22px rgba(201,168,90,0.07));
-      animation: roseBreathe 8s ease-in-out infinite;
-    }
+.load-rose {
+  width: 100%;
+  height: auto;
+  opacity: 0.11;
+  filter:
+    saturate(0.92)
+    brightness(0.88)
+    blur(0.35px)
+    drop-shadow(0 0 34px rgba(201,168,90,0.11));
+  animation: roseBreathe 9s ease-in-out infinite;
+}
 
-    @keyframes roseBreathe {
-      0%, 100% { transform: scale(1); opacity: 0.06; }
-      50%      { transform: scale(1.018); opacity: 0.075; }
-    }
-
+@keyframes roseBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.10; }
+  50%      { transform: scale(1.03); opacity: 0.13; }
+}
+   
     /* header */
     .load-header {
       position: absolute;
@@ -125,11 +124,31 @@
   pointer-events: none;
 }
 
-.load-scada-svg-shell {
-  width: 100%;
-  height: auto;
-  display: grid;
-  place-items: center;
+.load-scada-energy {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  width: min(42vw, 420px);
+  height: min(42vw, 420px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      rgba(126,255,236,0.16) 0%,
+      rgba(126,255,236,0.07) 28%,
+      rgba(126,255,236,0.02) 52%,
+      rgba(126,255,236,0) 72%);
+  filter: blur(10px);
+  opacity: 0.75;
+  animation: scadaEnergyPulse 4.8s ease-in-out infinite;
+  z-index: 1;
+}
+
+.load-scada-svg-shell,
+.load-scada-svg-wrap,
+#load-scada-svg {
+  position: relative;
+  z-index: 2;
 }
 
 .load-scada-svg-wrap {
@@ -142,7 +161,6 @@
     drop-shadow(0 0 18px rgba(120,255,220,0.06))
     drop-shadow(0 0 42px rgba(120,255,220,0.03));
   transform-origin: 50% 86%;
-  animation: scadaIdleSway 6.5s ease-in-out infinite;
 }
 
 #load-scada-svg {
@@ -163,13 +181,37 @@
     drop-shadow(0 0 18px rgba(120,255,220,0.06))
     drop-shadow(0 0 42px rgba(120,255,220,0.03));
   transform-origin: 50% 86%;
-  animation: scadaIdleSway 6.5s ease-in-out infinite;
 }
 
-@keyframes scadaIdleSway {
-  0%, 100% { transform: rotate(-0.55deg) translateY(0); }
-  50%      { transform: rotate(0.55deg) translateY(-1px); }
+@keyframes scadaEnergyPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.58;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+    opacity: 0.92;
+  }
 }
+
+#load-scada-up-emission {
+  animation: loadUpEmission 4.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes loadUpEmission {
+  0%, 100% {
+    opacity: 0.38;
+    transform: scaleY(0.92);
+  }
+  50% {
+    opacity: 0.78;
+    transform: scaleY(1.08);
+  }
+}
+
+
+
     /* doctrine line */
     .load-conditioning {
       position: absolute;
@@ -250,6 +292,8 @@
 
    <div class="load-scada-wrap">
 
+  <div class="load-scada-energy"></div>
+
   <!-- PNG fallback kept disabled, not deleted -->
   <!-- <img src="/static/SCADA_Man.png" alt="SCADA Man" class="load-scada-man" /> -->
 
@@ -317,16 +361,20 @@
           <ellipse cx="400" cy="852" rx="285" ry="16"
                    fill="url(#loadBeamGlow)"
                    filter="url(#loadGlowStrong)"
-                   opacity="0.95"/>
+                   opacity="0.98"/>
 
           <ellipse cx="400" cy="850" rx="78" ry="16"
                    fill="#f6fffd"
-                   opacity="0.98"
+                   opacity="1"
                    filter="url(#loadGlowSoft)"/>
 
           <ellipse cx="400" cy="836" rx="120" ry="34"
-                   fill="rgba(180,255,247,0.18)"
-                   opacity="0.55"/>
+                   fill="rgba(180,255,247,0.20)"
+                   opacity="0.68"/>
+
+          <ellipse id="load-scada-up-emission" cx="400" cy="822" rx="96" ry="68"
+                   fill="rgba(180,255,247,0.12)"
+                   opacity="0.62"/>
         </g>
 
         <!-- MAIN STRUCTURE -->
