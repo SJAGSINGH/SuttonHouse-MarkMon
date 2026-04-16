@@ -125,9 +125,15 @@
   pointer-events: none;
 }
 
-.load-scada-svg {
+.load-scada-svg-shell {
   width: 100%;
   height: auto;
+  display: grid;
+  place-items: center;
+}
+
+.load-scada-svg-wrap {
+  width: 100%;
   opacity: 0.94;
   filter:
     brightness(0.9)
@@ -137,10 +143,15 @@
     drop-shadow(0 0 42px rgba(120,255,220,0.03));
   transform-origin: 50% 86%;
   animation: scadaIdleSway 6.5s ease-in-out infinite;
-  pointer-events: none;
 }
 
-/* PNG kept as disabled fallback, not deleted */
+#load-scada-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* PNG fallback kept disabled, not deleted */
 .load-scada-man {
   width: 100%;
   height: auto;
@@ -159,7 +170,6 @@
   0%, 100% { transform: rotate(-0.55deg) translateY(0); }
   50%      { transform: rotate(0.55deg) translateY(-1px); }
 }
-
     /* doctrine line */
     .load-conditioning {
       position: absolute;
@@ -238,18 +248,226 @@
       <div class="load-sub">SYSTEM INITIALISING</div>
     </div>
 
-    <div class="load-scada-wrap">
-      <!-- PNG fallback kept disabled, not deleted -->
-      <!-- <img src="/static/SCADA_Man.png" alt="SCADA Man" class="load-scada-man" /> -->
+   <div class="load-scada-wrap">
 
-      <object
-        id="load-scada-svg"
-        class="load-scada-svg"
-        data="/static/SCADA_Man.svg"
-        type="image/svg+xml"
-        aria-label="SCADA Man">
-    </object>
+  <!-- PNG fallback kept disabled, not deleted -->
+  <!-- <img src="/static/SCADA_Man.png" alt="SCADA Man" class="load-scada-man" /> -->
+
+  <div class="load-scada-svg-shell">
+    <div id="load-scada-wrap" class="load-scada-svg-wrap">
+
+      <!-- SCADA MAN SVG -->
+      <svg id="load-scada-svg" viewBox="0 0 800 1200" aria-hidden="true">
+
+        <!-- DEFINITIONS -->
+        <defs>
+          <radialGradient id="loadBeamGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#effffb" stop-opacity="1"/>
+            <stop offset="12%" stop-color="#d8fff8" stop-opacity="0.92"/>
+            <stop offset="30%" stop-color="#7effec" stop-opacity="0.72"/>
+            <stop offset="72%" stop-color="#7effec" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+          </radialGradient>
+
+          <linearGradient id="loadPanelGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#7effec" stop-opacity="0.32"/>
+            <stop offset="60%" stop-color="#7effec" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+          </linearGradient>
+
+          <linearGradient id="loadPanelFillSoft" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#8affee" stop-opacity="0.24"/>
+            <stop offset="40%" stop-color="#8affee" stop-opacity="0.12"/>
+            <stop offset="75%" stop-color="#8affee" stop-opacity="0.05"/>
+            <stop offset="100%" stop-color="#8affee" stop-opacity="0.02"/>
+          </linearGradient>
+
+          <linearGradient id="loadPanelFillDeep" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#8affee" stop-opacity="0.20"/>
+            <stop offset="65%" stop-color="#8affee" stop-opacity="0.07"/>
+            <stop offset="100%" stop-color="#8affee" stop-opacity="0.02"/>
+          </linearGradient>
+
+          <linearGradient id="loadSpireGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#bffff6" stop-opacity="0.45"/>
+            <stop offset="35%" stop-color="#7effec" stop-opacity="0.18"/>
+            <stop offset="70%" stop-color="#7effec" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+          </linearGradient>
+
+          <filter id="loadGlowSoft" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <filter id="loadGlowStrong" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="16" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- FLOOR -->
+        <g id="load-scada-floor-layer">
+          <ellipse cx="400" cy="852" rx="285" ry="16"
+                   fill="url(#loadBeamGlow)"
+                   filter="url(#loadGlowStrong)"
+                   opacity="0.95"/>
+
+          <ellipse cx="400" cy="850" rx="78" ry="16"
+                   fill="#f6fffd"
+                   opacity="0.98"
+                   filter="url(#loadGlowSoft)"/>
+
+          <ellipse cx="400" cy="836" rx="120" ry="34"
+                   fill="rgba(180,255,247,0.18)"
+                   opacity="0.55"/>
+        </g>
+
+        <!-- MAIN STRUCTURE -->
+        <g id="load-scada-body" stroke="#b8fff7" stroke-width="3.2" fill="none">
+
+          <polygon points="400,188 442,212 442,424 400,401 358,424 358,212"
+                   fill="url(#loadSpireGlow)" />
+
+          <polygon points="400,220 426,235 426,392 400,378 374,392 374,235"
+                   fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="296,302 332,281 332,574 296,554" />
+          <polygon points="308,318 322,309 322,557 308,548" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="233,432 287,401 287,706 233,671" />
+          <polygon points="248,450 270,437 270,687 248,673" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="202,677 288,731 288,840 202,840" />
+          <polygon points="236,698 287,730 287,840 236,840" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="468,281 504,302 504,554 468,574" />
+          <polygon points="478,309 492,318 492,548 478,557" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="513,401 567,432 567,671 513,706" />
+          <polygon points="530,437 552,450 552,673 530,687" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="512,731 598,677 598,840 512,840" />
+          <polygon points="513,730 564,698 564,840 513,840" fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="400,400 470,439 470,518 400,557 330,518 330,439" />
+          <polygon points="400,421 448,448 448,509 400,536 352,509 352,448"
+                   fill="url(#loadPanelFillSoft)" />
+
+          <polygon points="360,592 400,612 440,592 440,860 360,860"
+                   fill="url(#loadPanelGlow)" />
+
+          <polygon points="382,616 400,626 418,616 418,850 382,850"
+                   fill="url(#loadPanelFillDeep)" />
+
+          <line x1="360" y1="621" x2="360" y2="860" />
+          <line x1="440" y1="621" x2="440" y2="860" />
+        </g>
+
+        <g id="load-scada-core-connectors" stroke="#b8fff7" stroke-width="1.8" fill="none" opacity="0.6">
+          <polygon points="345,540 385,565 385,625 345,600" fill="url(#loadPanelFillSoft)" />
+          <line x1="365" y1="552" x2="365" y2="615" />
+
+          <polygon points="415,565 455,540 455,600 415,625" fill="url(#loadPanelFillSoft)" />
+          <line x1="435" y1="552" x2="435" y2="615" />
+        </g>
+
+        <g id="load-scada-depth" stroke="#8affee" stroke-width="1.2" fill="none" opacity="0.35">
+          <polygon points="305,310 320,300 320,560 305,550" />
+          <line x1="312" y1="305" x2="312" y2="555" />
+
+          <polygon points="480,300 495,310 495,550 480,560" />
+          <line x1="488" y1="305" x2="488" y2="555" />
+
+          <polygon points="245,440 270,425 270,680 245,665" />
+          <line x1="257" y1="432" x2="257" y2="672" />
+
+          <polygon points="530,425 555,440 555,665 530,680" />
+          <line x1="543" y1="432" x2="543" y2="672" />
+
+          <polygon points="330,360 350,350 350,860 330,860" />
+          <polygon points="450,350 470,360 470,860 450,860" />
+        </g>
+
+        <g id="load-scada-central-channels" opacity="0.42">
+          <polygon points="324,540 350,526 350,850 324,850"
+                   fill="url(#loadPanelFillDeep)"
+                   stroke="#b8fff7"
+                   stroke-width="1.6" />
+          <line x1="337" y1="538" x2="337" y2="842"
+                stroke="#94fff0"
+                stroke-width="1"
+                opacity="0.34" />
+
+          <polygon points="450,526 476,540 476,850 450,850"
+                   fill="url(#loadPanelFillDeep)"
+                   stroke="#b8fff7"
+                   stroke-width="1.6" />
+          <line x1="463" y1="538" x2="463" y2="842"
+                stroke="#94fff0"
+                stroke-width="1"
+                opacity="0.34" />
+        </g>
+
+        <g id="load-scada-mid-faces" opacity="0.44">
+          <polygon points="248,450 308,420 308,700 248,670"
+                   fill="url(#loadPanelFillSoft)"
+                   stroke="#a8fff3"
+                   stroke-width="1.6" />
+          <line x1="278" y1="438" x2="278" y2="682"
+                stroke="#94fff0"
+                stroke-width="1"
+                opacity="0.28" />
+
+          <polygon points="492,420 552,450 552,670 492,700"
+                   fill="url(#loadPanelFillSoft)"
+                   stroke="#a8fff3"
+                   stroke-width="1.6" />
+          <line x1="522" y1="438" x2="522" y2="682"
+                stroke="#94fff0"
+                stroke-width="1"
+                opacity="0.28" />
+        </g>
+
+        <g id="load-scada-body-inner" stroke="#94fff0" stroke-width="1" fill="none" opacity="0.22">
+          <line x1="390" y1="230" x2="390" y2="384" />
+          <line x1="410" y1="230" x2="410" y2="384" />
+          <line x1="315" y1="314" x2="315" y2="552" />
+          <line x1="485" y1="314" x2="485" y2="552" />
+          <line x1="259" y1="444" x2="259" y2="681" />
+          <line x1="541" y1="444" x2="541" y2="681" />
+          <line x1="382" y1="624" x2="382" y2="850" />
+          <line x1="418" y1="624" x2="418" y2="850" />
+        </g>
+
+        <g id="load-core-eye-svg">
+          <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
+                   fill="#ffffff" />
+
+          <polygon points="400,448 430,465 430,498 400,515 370,498 370,465"
+                   fill="none"
+                   stroke="#7effec"
+                   stroke-width="2.2"
+                   opacity="0.72"/>
+
+          <polygon points="400,450 426,464 426,494 400,510 374,494 374,464"
+                   fill="none"
+                   stroke="#aafff6"
+                   stroke-width="1"
+                   opacity="0.35"/>
+        </g>
+
+      </svg>
+
+    </div>
   </div>
+</div>
 
     <div class="load-conditioning">
       <div id="text" class="conditioning-line"></div>
