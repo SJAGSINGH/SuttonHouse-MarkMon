@@ -432,7 +432,18 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   55%  { opacity:0.30; }
   100% { opacity:0.22; }
 }
- 
+
+
+.scada-pulse #scada-up-pulse{
+  animation:upPulseOpacity 0.9s ease-out 1;
+}
+
+@keyframes upPulseOpacity{
+  0%   { opacity:0; }
+  18%  { opacity:0.55; }
+  45%  { opacity:0.28; }
+  100% { opacity:0; }
+} 
  body.war-room .scada-card{
   box-shadow:
     0 0 30px rgba(31,166,122,.16),
@@ -2051,14 +2062,7 @@ main.grid > #cr-dump-full{
 <!-- FLOOR -->
 <!-- FLOOR -->
 <g id="scada-floor-layer">
- 
- <ellipse id="scada-up-emission" cx="400" cy="836" rx="120" ry="34"
-         fill="rgba(180,255,247,0.26)"
-         opacity="0.75"/>
- <ellipse id="scada-up-emission-2" cx="400" cy="820" rx="95" ry="26"
-         fill="rgba(180,255,247,0.10)"
-         opacity="0.22"/>
- 
+
   <!-- HORIZON GLOW -->
   <ellipse cx="400" cy="852" rx="285" ry="16"
            fill="url(#beamGlow)"
@@ -2071,11 +2075,15 @@ main.grid > #cr-dump-full{
            opacity="0.98"
            filter="url(#glowSoft)"/>
 
-  <!-- UPWARD EMISSION -->
+  <!-- STATIC UPWARD EMISSION -->
   <ellipse cx="400" cy="836" rx="120" ry="34"
-           fill="rgba(180,255,247,0.26)"
-           filter="url(#glowSoft)"
-           opacity="0.85"/>
+           fill="rgba(180,255,247,0.18)"
+           opacity="0.55"/>
+
+  <!-- PULSE LAYER ONLY -->
+  <ellipse id="scada-up-pulse" cx="400" cy="836" rx="120" ry="34"
+           fill="rgba(180,255,247,0.28)"
+           opacity="0"/>
 
 </g>
 
