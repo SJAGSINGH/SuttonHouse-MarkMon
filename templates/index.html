@@ -1958,14 +1958,37 @@ main.grid > #cr-dump-full{
         <svg id="scada-svg" viewBox="0 0 800 1200" aria-hidden="true">
 
           <!-- DEFINITIONS -->
-          <defs>
-            <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#bffff6" stop-opacity="1"/>
-              <stop offset="30%" stop-color="#7effec" stop-opacity="0.7"/>
-              <stop offset="70%" stop-color="#7effec" stop-opacity="0.25"/>
-              <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
+<defs>
+
+  <!-- BEAM -->
+  <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#bffff6" stop-opacity="1"/>
+    <stop offset="30%" stop-color="#7effec" stop-opacity="0.7"/>
+    <stop offset="70%" stop-color="#7effec" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+  </radialGradient>
+
+  <!-- PANEL GLOW (used for centre body) -->
+  <linearGradient id="panelGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#7effec" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+  </linearGradient>
+
+  <!-- LIGHT PANEL FILL -->
+  <linearGradient id="panelFillSoft" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#8affee" stop-opacity="0.16"/>
+    <stop offset="55%" stop-color="#8affee" stop-opacity="0.07"/>
+    <stop offset="100%" stop-color="#8affee" stop-opacity="0.02"/>
+  </linearGradient>
+
+  <!-- DEEP PANEL FILL -->
+  <linearGradient id="panelFillDeep" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#8affee" stop-opacity="0.22"/>
+    <stop offset="70%" stop-color="#8affee" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#8affee" stop-opacity="0.03"/>
+  </linearGradient>
+
+</defs>
 
           <!-- FLOOR -->
           <g id="floor-layer">
