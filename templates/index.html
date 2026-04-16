@@ -3578,27 +3578,37 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   // ✅ persist true ref_id on the tile
   item.dataset.refId = String(refId);
 
-  const node     = item.querySelector(".stock-node");
-  const label    = item.querySelector(".stock-label");
-  const msa      = item.querySelector(".msa-label");
-  const eventTag = item.querySelector(".event-tag");
+  const node         = item.querySelector(".stock-node");
+  const label        = item.querySelector(".stock-label");
+  const msa          = item.querySelector(".msa-label");
+  const eventTag     = item.querySelector(".event-tag");
   const screenerRail = item.querySelector(".node-screener-rail");
 
-  // TICKER (compute once, reuse)
-  const tkrRaw = ticker ? String(ticker).toUpperCase() : "—";
+  // ============================================================
+  // TICKER (clean for display)
+  // ============================================================
+  const tkrRaw = ticker ? String(ticker).toUpperCase().trim() : "—";
 
- let tkr = tkrRaw;
+  let tkr = tkrRaw;
 
- // remove exchange prefix
- if (tkr.includes(":")) {
-   tkr = tkr.split(":")[1];
- }
+  // remove exchange prefix (LSE: / NYSE: / TSX:, etc.)
+  if (tkr.includes(":")) {
+    tkr = tkr.split(":").pop();
+  }
 
-// remove timeframe suffixes
- tkr = tkr.replace(/_DLY|_4H|_1H|_W|_M/g, "");
+  // remove timeframe suffixes
+  tkr = tkr.replace(/_DLY|_4H|_1H|_W|_M/g, "").trim();
+
+  // final guard
+  if (!tkr) tkr = "—";
+
   if (label) label.textContent = tkr;
 
+  const hasTicker = tkr !== "—";
+
+  // ============================================================
   // NODE HALO + COLOUR + LOGO
+  // ============================================================
   if (node){
     // Ensure base class never gets lost
     node.classList.add("stock-node");
@@ -3621,21 +3631,21 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     if (shouldShowLogo && logoUrl){
       if (!existingImg){
         const img = document.createElement("img");
-        img.alt = tkr !== "—" ? tkr : "";
+        img.alt = hasTicker ? tkr : "";
         img.src = logoUrl;
         img.onerror = () => { try { img.remove(); } catch(e) {} };
         node.appendChild(img);
-      } else {
-        if (existingImg.getAttribute("src") !== logoUrl) {
-          existingImg.setAttribute("src", logoUrl);
-        }
+      } else if (existingImg.getAttribute("src") !== logoUrl) {
+        existingImg.setAttribute("src", logoUrl);
       }
     } else {
       if (existingImg) existingImg.remove();
     }
   }
 
+  // ============================================================
   // MSA DISPLAY
+  // ============================================================
   const norm = String(msaText || "").toUpperCase();
   const display = norm || "NO STATE";
 
@@ -3654,7 +3664,9 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     else msa.classList.add("msa-na");
   }
 
+  // ============================================================
   // EVENT TAG
+  // ============================================================
   if (eventTag){
     const ev = (window.__EVENT_STORE__ || {})[String(refId)] || null;
     const eventActive = !!(ev && ev.event_active === true);
@@ -3689,55 +3701,57 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     }
   }
 
-  // SCREENER RAIL (RS only when a real ticker is present; DIP gated to active)
-if (screenerRail){
-  const rsMap = window.__RSC_LAST?.screener?.rs?.by_ref || {};
-  const s2Map = window.__RSC_LAST?.screener?.s2?.by_ref || {};
+  // ============================================================
+  // SCREENER RAIL
+  // RS always visible when ticker is real
+  // DIP only when setup or signal is active
+  // ============================================================
+  if (screenerRail){
+    const rsMap = window.__RSC_LAST?.screener?.rs?.by_ref || {};
+    const s2Map = window.__RSC_LAST?.screener?.s2?.by_ref || {};
 
-  const rs =
-    rsMap[String(refId)] ??
-    rsMap[Number(refId)] ??
-    null;
+    const rs =
+      rsMap[String(refId)] ??
+      rsMap[Number(refId)] ??
+      null;
 
-  const s2 =
-    s2Map[String(refId)] ??
-    s2Map[Number(refId)] ??
-    null;
+    const s2 =
+      s2Map[String(refId)] ??
+      s2Map[Number(refId)] ??
+      null;
 
-  const active = !!(isSetup || isSignal);
+    const active = !!(isSetup || isSignal);
 
-  // 🔥 use DOM label (already cleaned) to determine if node is “real”
-  const labelEl = item.querySelector(".stock-label");
-  const hasTicker = !!(labelEl && labelEl.textContent && labelEl.textContent.trim() !== "—");
+    let railTxt = "";
 
-  let railTxt = "";
+    if (hasTicker && rs && rs.rk != null){
+      railTxt = `RS${rs.rk}`;
 
-  if (hasTicker && rs && rs.rk != null){
-    railTxt = `RS${rs.rk}`;
-
-    if (active && s2 && s2.d === true){
-      railTxt += " | DIP";
-      screenerRail.classList.add("dip");
+      if (active && s2 && s2.d === true){
+        railTxt += " | DIP";
+        screenerRail.classList.add("dip");
+      } else {
+        screenerRail.classList.remove("dip");
+      }
     } else {
       screenerRail.classList.remove("dip");
     }
-  } else {
-    screenerRail.classList.remove("dip");
+
+    if (railTxt){
+      screenerRail.textContent = railTxt;
+      screenerRail.style.display = "block";
+      screenerRail.style.color = active
+        ? "rgba(255,255,255,0.95)"
+        : "rgba(255,255,255,0.45)";
+    } else {
+      screenerRail.textContent = "";
+      screenerRail.style.display = "none";
+    }
   }
 
-  if (railTxt){
-    screenerRail.textContent = railTxt;
-    screenerRail.style.display = "block";
-    screenerRail.style.color = active
-      ? "rgba(255,255,255,0.95)"
-      : "rgba(255,255,255,0.45)";
-  } else {
-    screenerRail.textContent = "";
-    screenerRail.style.display = "none";
-  }
-}
-
+  // ============================================================
   // TOOLTIP (commissioning only)
+  // ============================================================
   const reasonMap = (window.__NODE_REASON__ || {});
   const reason = reasonMap[String(refId)] || "";
 
@@ -5529,7 +5543,9 @@ function applyAllFromState(data) {
   })();
 
   // ============================================================
-  // SCREENER RAIL REFRESH (RS# | DIP)
+  // SCREENER RAIL REFRESH
+  // RS only when slot has a real ticker label
+  // DIP only when setup/signal is active
   // ============================================================
   for (let ref = 1; ref <= 20; ref++) {
     const item = document.querySelector(`.stock-item[data-slot="${ref}"]`);
@@ -5537,6 +5553,10 @@ function applyAllFromState(data) {
 
     const rail = item.querySelector(".node-screener-rail");
     if (!rail) continue;
+
+    const labelEl = item.querySelector(".stock-label");
+    const labelTxt = (labelEl?.textContent || "").trim();
+    const hasTicker = !!labelTxt && labelTxt !== "—";
 
     const rs =
       data?.screener?.rs?.by_ref?.[String(ref)] ??
@@ -5548,14 +5568,37 @@ function applyAllFromState(data) {
       data?.screener?.s2?.by_ref?.[Number(ref)] ??
       null;
 
+    const node =
+      (window.__SCADA_STORE__ || {})[String(ref)] ||
+      (window.__WATCH_STORE__ || {})[String(ref)] ||
+      null;
+
+    const isSetup =
+      !!(node?.setup_any || node?.setup_D || node?.setup_4H);
+
+    const isSignal =
+      !!(node?.signal);
+
     let txt = "";
-    if (rs && rs.rk != null) {
+
+    if (hasTicker && rs && rs.rk != null) {
       txt = `RS${rs.rk}`;
-      if (s2 && s2.d === true) txt += " | DIP";
+
+      if ((isSetup || isSignal) && s2 && s2.d === true) {
+        txt += " | DIP";
+        rail.classList.add("dip");
+      } else {
+        rail.classList.remove("dip");
+      }
+    } else {
+      rail.classList.remove("dip");
     }
 
     rail.textContent = txt;
     rail.style.display = txt ? "block" : "none";
+    rail.style.color = (isSetup || isSignal)
+      ? "rgba(255,255,255,0.95)"
+      : "rgba(255,255,255,0.45)";
   }
 }
    
