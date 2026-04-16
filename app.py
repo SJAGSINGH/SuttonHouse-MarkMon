@@ -1898,14 +1898,6 @@ def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
 
-@app.route("/")
-@login_required
-def index():
-    if not session.get("conditioned"):
-        return redirect(url_for("load_screen"))
-    return render_template("index.html")
-
-
 @app.route("/load")
 @login_required
 def load_screen():
