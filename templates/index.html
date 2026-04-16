@@ -1980,11 +1980,12 @@ main.grid > #cr-dump-full{
   </linearGradient>
 
   <!-- LIGHT PANEL FILL (side faces / mid panels) -->
-  <linearGradient id="panelFillSoft" x1="0%" y1="0%" x2="0%" y2="100%">
-    <stop offset="0%" stop-color="#8affee" stop-opacity="0.18"/>
-    <stop offset="50%" stop-color="#8affee" stop-opacity="0.08"/>
-    <stop offset="100%" stop-color="#8affee" stop-opacity="0.025"/>
-  </linearGradient>
+ <linearGradient id="panelFillSoft" x1="0%" y1="0%" x2="0%" y2="100%">
+  <stop offset="0%" stop-color="#8affee" stop-opacity="0.24"/>
+  <stop offset="40%" stop-color="#8affee" stop-opacity="0.12"/>
+  <stop offset="75%" stop-color="#8affee" stop-opacity="0.05"/>
+  <stop offset="100%" stop-color="#8affee" stop-opacity="0.02"/>
+</linearGradient>
 
   <!-- DEEP PANEL FILL (centre + inner faces) -->
   <linearGradient id="panelFillDeep" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1992,6 +1993,13 @@ main.grid > #cr-dump-full{
     <stop offset="65%" stop-color="#8affee" stop-opacity="0.07"/>
     <stop offset="100%" stop-color="#8affee" stop-opacity="0.02"/>
   </linearGradient>
+
+ <linearGradient id="spireGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+  <stop offset="0%" stop-color="#bffff6" stop-opacity="0.45"/>
+  <stop offset="35%" stop-color="#7effec" stop-opacity="0.18"/>
+  <stop offset="70%" stop-color="#7effec" stop-opacity="0.06"/>
+  <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+</linearGradient>
 
 </defs>
 
@@ -2012,7 +2020,8 @@ main.grid > #cr-dump-full{
 <g id="scada-body" stroke="#b8fff7" stroke-width="3.2" fill="none">
 
   <!-- TOP SPIRE OUTER -->
-  <polygon points="400,188 442,212 442,424 400,401 358,424 358,212" />
+  <polygon points="400,188 442,212 442,424 400,401 358,424 358,212"
+         fill="url(#spireGlow)" />
 
   <!-- TOP SPIRE INNER FACE -->
   <polygon points="400,220 426,235 426,392 400,378 374,392 374,235"
