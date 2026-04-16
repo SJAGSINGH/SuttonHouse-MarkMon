@@ -1898,23 +1898,29 @@ def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
 
-from flask import make_response
+@app.route("/")
+@login_required
+def index():
+    if not session.get("conditioned"):
+        return redirect(url_for("load_screen"))
+    return render_template("index.html")
+
 
 @app.route("/load")
 @login_required
 def load_screen():
-    # Prevent re-entering load if already conditioned
     if session.get("conditioned"):
         return redirect(url_for("index"))
-
     response = make_response(render_template("load.html"))
     response.headers["Cache-Control"] = "no-store"
     return response
+
 
 @app.route("/mark_conditioned", methods=["POST"])
 @login_required
 def mark_conditioned():
     session["conditioned"] = True
+    session.modified = True
     return ("", 204)
     
 @app.get("/health")
