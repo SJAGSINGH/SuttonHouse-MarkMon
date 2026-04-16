@@ -234,80 +234,88 @@
     </div>
   </div>
 
-  <script>
-    const lines = [
-      "Silence is a valid state.",
-      "Signals are observed, not followed.",
-      "Observation precedes action.",
-      "The system governs participation.",
-      "Discipline is required before deployment.",
-      "The system is working — now your job is not to interfere with it.",
-      "EXPECT TO BE GOVERNED"
-    ];
+<script>
+  const lines = [
+    "Silence is a valid state.",
+    "Signals are observed, not followed.",
+    "Observation precedes action.",
+    "The system governs participation.",
+    "Discipline is required before deployment.",
+    "The system is working — now your job is not to interfere with it.",
+    "EXPECT TO BE GOVERNED"
+  ];
 
-    const statuses = [
-      "LINKING MACRO STATE",
-      "VERIFYING REGIME CONDITIONS",
-      "SYNCING NODE STRUCTURE",
-      "INITIALISING SENTINEL"
-    ];
+  const statuses = [
+    "LINKING MACRO STATE",
+    "VERIFYING REGIME CONDITIONS",
+    "SYNCING NODE STRUCTURE",
+    "INITIALISING SENTINEL"
+  ];
 
-    let i = 0;
-    let s = 0;
-    let exiting = false;
+  let i = 0;
+  let s = 0;
+  let exiting = false;
+  let statusTimer = null;
 
-    function cycleStatus() {
-      if (exiting) return;
-      document.getElementById("status").textContent = statuses[s];
-      s = (s + 1) % statuses.length;
-    }
+  function cycleStatus() {
+    if (exiting) return;
+    document.getElementById("status").textContent = statuses[s];
+    s = (s + 1) % statuses.length;
+  }
 
-    function nextLine() {
-      const el = document.getElementById("text");
-      el.classList.remove("show", "final");
+  function nextLine() {
+    const el = document.getElementById("text");
+    el.classList.remove("show", "final");
 
-      setTimeout(() => {
-        const text = lines[i];
-        el.textContent = text;
+    setTimeout(() => {
+      const text = lines[i];
+      el.textContent = text;
 
-        if (i === lines.length - 1) {
-          el.classList.add("final");
-        }
-
-        el.classList.add("show");
-        i++;
-
-        if (i < lines.length) {
-          setTimeout(nextLine, 4000);
-        } else {
-          setTimeout(exitLoad, 2500);
-        }
-      }, 400);
-    }
-
-    async function exitLoad() {
-      if (exiting) return;
-      exiting = true;
-
-      document.getElementById("load-screen").classList.add("is-exiting");
-
-      try {
-        await fetch("/mark_conditioned", {
-          method: "POST",
-          credentials: "same-origin"
-        });
-      } catch (err) {
-        console.error("Failed to mark conditioned:", err);
+      if (i === lines.length - 1) {
+        el.classList.add("final");
       }
 
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1200);
+      el.classList.add("show");
+      i++;
+
+      if (i < lines.length) {
+        setTimeout(nextLine, 4000);
+      } else {
+        setTimeout(exitLoad, 2500);
+      }
+    }, 400);
+  }
+
+  async function exitLoad() {
+    if (exiting) return;
+    exiting = true;
+
+    if (statusTimer) clearInterval(statusTimer);
+
+    document.getElementById("load-screen").classList.add("is-exiting");
+
+    try {
+      const res = await fetch("/mark_conditioned", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+
+      if (!res.ok) {
+        throw new Error("mark_conditioned failed");
+      }
+    } catch (err) {
+      console.error(err);
     }
 
-    cycleStatus();
-    setInterval(cycleStatus, 3000);
-    nextLine();
-  </script>
+    setTimeout(() => {
+      window.location.replace("/");
+    }, 1200);
+  }
+
+  cycleStatus();
+  statusTimer = setInterval(cycleStatus, 3000);
+  nextLine();
+</script>
 </body>
 </html>
