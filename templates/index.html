@@ -1965,12 +1965,12 @@ main.grid > #cr-dump-full{
 
   <!-- BEAM -->
   <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="#dffffa" stop-opacity="1"/>
-    <stop offset="10%" stop-color="#bffff6" stop-opacity="0.9"/>
-    <stop offset="25%" stop-color="#7effec" stop-opacity="0.75"/>
-    <stop offset="65%" stop-color="#7effec" stop-opacity="0.28"/>
-    <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
- </radialGradient>
+  <stop offset="0%" stop-color="#e9fffb" stop-opacity="1"/>
+  <stop offset="10%" stop-color="#cffff8" stop-opacity="0.95"/>
+  <stop offset="28%" stop-color="#7effec" stop-opacity="0.78"/>
+  <stop offset="70%" stop-color="#7effec" stop-opacity="0.24"/>
+  <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
+</radialGradient>
 
   <!-- PANEL GLOW (centre pillar fade) -->
   <linearGradient id="panelGlow" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -2002,18 +2002,26 @@ main.grid > #cr-dump-full{
 </linearGradient>
 
 </defs>
+<!-- FLOOR -->
+<g id="floor-layer">
 
-          <!-- FLOOR -->
-          <g id="floor-layer">
-            <ellipse cx="400" cy="846" rx="220" ry="18"
-                     fill="url(#beamGlow)"
-                     filter="url(#glowStrong)"/>
+  <!-- WIDE OUTER EMISSION -->
+  <ellipse cx="400" cy="848" rx="255" ry="22"
+           fill="url(#beamGlow)"
+           filter="url(#glowStrong)"/>
 
-            <ellipse cx="400" cy="848" rx="40" ry="6"
-                     fill="#eafffb"
-                     opacity="0.9"
-                     filter="url(#glowSoft)"/>
-          </g>
+  <!-- MID SPREAD -->
+  <ellipse cx="400" cy="848" rx="150" ry="14"
+           fill="rgba(126,255,236,0.30)"
+           filter="url(#glowSoft)"/>
+
+  <!-- CENTRE HOTSPOT -->
+  <ellipse cx="400" cy="848" rx="56" ry="8"
+           fill="#f4fffc"
+           opacity="0.98"
+           filter="url(#glowSoft)"/>
+
+</g>
 
           <!-- MAIN STRUCTURE -->
 <!-- MAIN STRUCTURE -->
