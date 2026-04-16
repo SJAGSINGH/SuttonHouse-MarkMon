@@ -1,73 +1,250 @@
-<!-- =========================================================
-     SUTTON HOUSE — LOAD / CONDITIONING SCREEN
-========================================================= -->
-<div class="load-screen">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sutton House — System Initialising</title>
+
+  <style>
+  /* =========================================================
+     GLOBAL FIX (prevents black text issue)
+  ========================================================= */
+  body {
+    margin: 0;
+    background: #040607;
+    color: #e8efef;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  /* =========================================================
+     LOAD / CONDITIONING SCREEN
+  ========================================================= */
+  .load-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 78% 22%, rgba(0,255,170,0.08), transparent 28%),
+      radial-gradient(circle at 20% 18%, rgba(201,168,90,0.06), transparent 24%),
+      linear-gradient(180deg, #050708 0%, #040607 100%);
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 1100ms ease;
+  }
+
+  .load-screen.is-exiting {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .load-bg-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 68%, rgba(0,255,170,0.05), transparent 22%),
+      radial-gradient(circle at 50% 48%, rgba(255,255,255,0.02), transparent 30%);
+  }
+
+  /* rose */
+  .load-rose-wrap {
+    position: absolute;
+    left: 50%;
+    top: 49%;
+    transform: translate(-50%, -50%);
+    width: min(34vw, 340px);
+    z-index: 1;
+  }
+
+  .load-rose {
+    width: 100%;
+    opacity: 0.065;
+    filter:
+      brightness(0.82)
+      blur(0.2px)
+      drop-shadow(0 0 22px rgba(201,168,90,0.07));
+    animation: roseBreathe 8s ease-in-out infinite;
+  }
+
+  @keyframes roseBreathe {
+    0%,100% { transform: scale(1); opacity: 0.06; }
+    50% { transform: scale(1.018); opacity: 0.075; }
+  }
+
+  /* header */
+  .load-header {
+    position: absolute;
+    top: 8.5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 3;
+  }
+
+  .load-brand {
+    color: #d3b261;
+    font-size: clamp(26px, 3.1vw, 42px);
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .load-sub {
+    color: rgba(230,238,240,0.9);
+    font-size: 12px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+  }
+
+  /* SCADA */
+  .load-scada-wrap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(24vw, 250px);
+    z-index: 2;
+  }
+
+  .load-scada-man {
+    width: 100%;
+    opacity: 0.94;
+    animation: scadaIdleSway 6.5s ease-in-out infinite;
+  }
+
+  @keyframes scadaIdleSway {
+    0%,100% { transform: rotate(-0.5deg); }
+    50% { transform: rotate(0.5deg); }
+  }
+
+  /* text */
+  .load-conditioning {
+    position: absolute;
+    top: 68%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 3;
+  }
+
+  .conditioning-line {
+    color: rgba(220,235,232,0.94);
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity 0.8s;
+  }
+
+  .conditioning-line.show {
+    opacity: 1;
+  }
+
+  /* status */
+  .load-status-wrap {
+    position: absolute;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .load-status-line {
+    color: rgba(0,255,170,0.82);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    border-bottom: 1px solid rgba(0,255,170,0.2);
+    padding-bottom: 8px;
+  }
+
+  </style>
+</head>
+
+<body>
+
+<div class="load-screen" id="load-screen">
 
   <div class="load-bg-glow"></div>
 
-  <!-- faint system seal -->
-  <div class="load-rose-wrap" aria-hidden="true">
-    <img src="/static/logo.png" alt="" class="load-rose" />
+  <div class="load-rose-wrap">
+    <img src="/static/logo.png" class="load-rose"/>
   </div>
 
-  <!-- top heading -->
   <div class="load-header">
     <div class="load-brand">SUTTON HOUSE</div>
     <div class="load-sub">SYSTEM INITIALISING</div>
   </div>
 
-  <!-- centered SCADA -->
   <div class="load-scada-wrap">
-    <img src="/static/scada-man.png" alt="SCADA Man" class="load-scada-man" />
+    <img src="/static/scada-man.png" class="load-scada-man"/>
   </div>
 
-  <!-- rotating doctrine -->
   <div class="load-conditioning">
-    <div id="conditioning-line" class="conditioning-line">
-      Silence is a valid state.
-    </div>
+    <div id="text" class="conditioning-line"></div>
   </div>
 
-  <!-- restrained status line -->
   <div class="load-status-wrap">
-    <div id="load-status-line" class="load-status-line">
-      LINKING MACRO STATE
-    </div>
+    <div id="status" class="load-status-line"></div>
   </div>
 
 </div>
 
-<style>
-/* =========================================================
-   LOAD / CONDITIONING SCREEN
-========================================================= */
-.load-screen.is-exiting {
-  opacity: 0;
-  pointer-events: none;
+<script>
+const lines = [
+  "Silence is a valid state.",
+  "Signals are observed, not followed.",
+  "Observation precedes action.",
+  "The system governs participation.",
+  "Discipline is required before deployment.",
+  "The system is working — now your job is not to interfere with it.",
+  "EXPECT TO BE GOVERNED"
+];
+
+const status = [
+  "LINKING MACRO STATE",
+  "VERIFYING REGIME CONDITIONS",
+  "SYNCING NODE STRUCTURE",
+  "INITIALISING SENTINEL"
+];
+
+let i = 0;
+let s = 0;
+
+function nextLine() {
+  const el = document.getElementById("text");
+  el.classList.remove("show");
+
+  setTimeout(() => {
+    el.textContent = lines[i];
+    el.classList.add("show");
+    i++;
+
+    if (i < lines.length) {
+      setTimeout(nextLine, 4000);
+    } else {
+      setTimeout(exitLoad, 2500);
+    }
+  }, 400);
 }
 
-.load-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 78% 22%, rgba(0,255,170,0.08), transparent 28%),
-    radial-gradient(circle at 20% 18%, rgba(201,168,90,0.06), transparent 24%),
-    linear-gradient(180deg, #050708 0%, #040607 100%);
-  
-  /* Always visible on load page */
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-
-  transition: opacity 1100ms ease;
+function cycleStatus() {
+  document.getElementById("status").textContent = status[s];
+  s = (s + 1) % status.length;
 }
 
-.load-bg-glow {
-  position: absolute;
-  inset: 0;
-  background:
+function exitLoad() {
+  document.getElementById("load-screen").classList.add("is-exiting");
+
+  setTimeout(() => {
+    fetch("/mark_conditioned", { method: "POST" });
+    window.location.href = "/";
+  }, 1200);
+}
+
+setInterval(cycleStatus, 3000);
+nextLine();
+</script>
+
+</body>
+</html>  background:
     radial-gradient(circle at 50% 68%, rgba(0,255,170,0.05), transparent 22%),
     radial-gradient(circle at 50% 48%, rgba(255,255,255,0.02), transparent 30%);
   pointer-events: none;
