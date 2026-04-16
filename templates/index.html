@@ -2629,7 +2629,7 @@ function triggerScadaScan() {
 
   setTimeout(() => {
     el.classList.remove("scada-scan");
-  }, 3100);
+  }, 1500);
 }
 
 function triggerScadaTwinkle() {
@@ -2642,7 +2642,7 @@ function triggerScadaTwinkle() {
 
   setTimeout(() => {
     el.classList.remove("scada-twinkle");
-  }, 600);
+  }, 450);
 }
    
 let __lastSentinelMsg = "";
@@ -2663,7 +2663,7 @@ function applyScadaManState(data) {
 
   __lastScadaState = newState;
 }
-
+   
 function getScadaVisualState(data) {
   const sahm = Number(data?.sahm || 0);
 
