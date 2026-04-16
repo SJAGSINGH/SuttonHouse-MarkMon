@@ -1,7 +1,6 @@
 <!-- =========================================================
      SUTTON HOUSE — LOAD / CONDITIONING SCREEN
 ========================================================= -->
-<div id="load-screen" class="load-screen is-active" aria-hidden="false">
   <div class="load-bg-glow"></div>
 
   <!-- faint system seal -->
@@ -40,6 +39,10 @@
 /* =========================================================
    LOAD / CONDITIONING SCREEN
 ========================================================= */
+.load-screen.is-exiting {
+  opacity: 0;
+  pointer-events: none;
+}
 
 .load-screen {
   position: fixed;
@@ -95,8 +98,8 @@
 }
 
 @keyframes roseBreathe {
-  0%, 100% { transform: scale(1); opacity: 0.075; }
-  50%      { transform: scale(1.018); opacity: 0.095; }
+  0%, 100% { transform: scale(1); opacity: 0.06; }
+  50%      { transform: scale(1.018); opacity: 0.075; }
 }
 
 /* header */
@@ -165,7 +168,7 @@
 .load-conditioning {
   position: absolute;
   left: 50%;
-  top: 72%;
+  top: 68%;
   transform: translateX(-50%);
   width: min(78vw, 980px);
   z-index: 3;
@@ -218,7 +221,9 @@
   text-transform: uppercase;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(0,255,170,0.18);
-  min-width: min(60vw, 560px);
+  min-width: 320px;
+  max-width: 560px;
+  width: 100%;
 }
 
 /* optional subtle reveal of terminal underneath during exit */
