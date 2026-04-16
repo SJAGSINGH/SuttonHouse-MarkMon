@@ -392,10 +392,10 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 @keyframes floorPulse{
-  0%   { opacity:1; filter:brightness(1); }
-  22%  { opacity:1; filter:brightness(1.18); }
-  55%  { opacity:0.98; filter:brightness(1.08); }
-  100% { opacity:1; filter:brightness(1); }
+  0%   { opacity:1; }
+  22%  { opacity:1; }
+  55%  { opacity:0.96; }
+  100% { opacity:1; }
 }
 
 .scada-pulse #scada-up-emission{
@@ -403,10 +403,10 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 @keyframes upEmissionPulse{
-  0%   { opacity:0.85; filter:blur(0px) brightness(1); }
-  22%  { opacity:1; filter:blur(2px) brightness(1.35); }
-  55%  { opacity:0.94; filter:blur(1px) brightness(1.15); }
-  100% { opacity:0.85; filter:blur(0px) brightness(1); }
+  0%   { opacity:0.75; }
+  20%  { opacity:0.98; }
+  55%  { opacity:0.88; }
+  100% { opacity:0.75; }
 }
 
 .scada-pulse #scada-up-emission{
@@ -419,6 +419,18 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   22%  { opacity:1; transform:scale(1.08, 1.18); }
   55%  { opacity:0.92; transform:scale(1.04, 1.08); }
   100% { opacity:0.85; transform:scale(1); }
+}
+
+
+.scada-pulse #scada-up-emission-2{
+  animation:upEmissionPulse2 0.9s ease-out 1;
+}
+
+@keyframes upEmissionPulse2{
+  0%   { opacity:0.22; }
+  20%  { opacity:0.42; }
+  55%  { opacity:0.30; }
+  100% { opacity:0.22; }
 }
  
  body.war-room .scada-card{
@@ -2040,10 +2052,12 @@ main.grid > #cr-dump-full{
 <!-- FLOOR -->
 <g id="scada-floor-layer">
  
-  <ellipse id="scada-up-emission" cx="400" cy="836" rx="120" ry="34"
+ <ellipse id="scada-up-emission" cx="400" cy="836" rx="120" ry="34"
          fill="rgba(180,255,247,0.26)"
-         filter="url(#glowSoft)"
-         opacity="0.85"/>
+         opacity="0.75"/>
+ <ellipse id="scada-up-emission-2" cx="400" cy="820" rx="95" ry="26"
+         fill="rgba(180,255,247,0.10)"
+         opacity="0.22"/>
  
   <!-- HORIZON GLOW -->
   <ellipse cx="400" cy="852" rx="285" ry="16"
