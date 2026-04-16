@@ -252,36 +252,44 @@
     "INITIALISING SENTINEL"
   ];
 
-  let i = 0;
-  let s = 0;
+  let lineIndex = 0;
+  let statusIndex = 0;
   let exiting = false;
   let statusTimer = null;
+  let lineTimer = null;
 
   function cycleStatus() {
     if (exiting) return;
-    document.getElementById("status").textContent = statuses[s];
-    s = (s + 1) % statuses.length;
+    const statusEl = document.getElementById("status");
+    if (!statusEl) return;
+    statusEl.textContent = statuses[statusIndex];
+    statusIndex = (statusIndex + 1) % statuses.length;
   }
 
   function nextLine() {
+    if (exiting) return;
+
     const el = document.getElementById("text");
+    if (!el) return;
+
     el.classList.remove("show", "final");
 
-    setTimeout(() => {
-      const text = lines[i];
-      el.textContent = text;
+    lineTimer = setTimeout(() => {
+      if (exiting) return;
 
-      if (i === lines.length - 1) {
+      el.textContent = lines[lineIndex];
+
+      if (lineIndex === lines.length - 1) {
         el.classList.add("final");
       }
 
       el.classList.add("show");
-      i++;
+      lineIndex += 1;
 
-      if (i < lines.length) {
-        setTimeout(nextLine, 4000);
+      if (lineIndex < lines.length) {
+        lineTimer = setTimeout(nextLine, 4000);
       } else {
-        setTimeout(exitLoad, 2500);
+        lineTimer = setTimeout(exitLoad, 2500);
       }
     }, 400);
   }
@@ -291,8 +299,10 @@
     exiting = true;
 
     if (statusTimer) clearInterval(statusTimer);
+    if (lineTimer) clearTimeout(lineTimer);
 
-    document.getElementById("load-screen").classList.add("is-exiting");
+    const screen = document.getElementById("load-screen");
+    if (screen) screen.classList.add("is-exiting");
 
     try {
       const res = await fetch("/mark_conditioned", {
@@ -305,7 +315,7 @@
         throw new Error("mark_conditioned failed");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to mark conditioned:", err);
     }
 
     setTimeout(() => {
