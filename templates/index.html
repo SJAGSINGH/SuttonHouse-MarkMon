@@ -335,9 +335,9 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 #scada-floor-beam{
   position:absolute;
   left:50%;
-  top:79%;
-  width:48%;
-  height:7%;
+  top:83%;              /* push down to align with light source */
+  width:58%;            /* wider = matches horizon spread */
+  height:5.5%;          /* thinner = less “bar”, more “beam” */
   transform:translateX(-50%);
   border-radius:999px;
   pointer-events:none;
@@ -348,7 +348,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   position:absolute;
   left:50%;
   top:50%;
-  width:34%;
+  width:28%;
   height:100%;
   transform:translate(-50%, -50%);
   opacity:0;
@@ -369,7 +369,14 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 .scada-twinkle #scada-eye-twinkle{
-  animation:eyeTwinkleOverlay 0.5s ease-in-out 1;
+  animation:eyeTwinkleOverlay 0.26s linear 1;
+}
+
+@keyframes eyeTwinkleOverlay{
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(0.82); }
+  18%  { opacity:1; transform:translate(-50%, -50%) scale(1.22); }
+  55%  { opacity:0.28; transform:translate(-50%, -50%) scale(0.96); }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(1); }
 }
 
 @keyframes floorScanOverlay{
@@ -380,12 +387,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   100% { transform:translate(-50%, -50%) translateX(72%); opacity:0; }
 }
 
-@keyframes eyeTwinkleOverlay{
-  0%   { opacity:0; transform:translate(-50%, -50%) scale(0.88); }
-  18%  { opacity:1; transform:translate(-50%, -50%) scale(1.18); }
-  42%  { opacity:0.72; transform:translate(-50%, -50%) scale(0.98); }
-  100% { opacity:0; transform:translate(-50%, -50%) scale(1); }
-}
+
  
  body.war-room .scada-card{
   box-shadow:
@@ -2664,8 +2666,9 @@ function triggerScadaTwinkle() {
 
   setTimeout(() => {
     el.classList.remove("scada-twinkle");
-  }, 450);
+  }, 280);
 }
+
    
 let __lastSentinelMsg = "";
 let __lastScadaState = "";
