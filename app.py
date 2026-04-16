@@ -1885,6 +1885,8 @@ atexit.register(_save_state_to_disk)
 _load_state_from_disk()
 _bootstrap_sentinel_logging_memory_from_state()
 
+from flask import make_response
+
 @app.route("/")
 @login_required
 def index():
@@ -1899,7 +1901,8 @@ def load_screen():
     if session.get("conditioned"):
         return redirect(url_for("index"))
     response = make_response(render_template("load.html"))
-    response.headers["Cache-Control"] = "no-store"
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
     return response
 
 
