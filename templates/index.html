@@ -387,7 +387,16 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   100% { transform:translate(-50%, -50%) translateX(72%); opacity:0; }
 }
 
+.scada-pulse #scada-floor-layer{
+  animation:floorPulse 0.9s ease-out 1;
+}
 
+@keyframes floorPulse{
+  0%   { opacity:1; transform:scale(1); }
+  25%  { opacity:1; transform:scale(1.06); }
+  55%  { opacity:0.95; transform:scale(1.03); }
+  100% { opacity:1; transform:scale(1); }
+}
  
  body.war-room .scada-card{
   box-shadow:
@@ -2006,7 +2015,7 @@ main.grid > #cr-dump-full{
 </defs>
 <!-- FLOOR -->
 <!-- FLOOR -->
-<g id="floor-layer">
+<g id="scada-floor-layer">
 
   <!-- HORIZON GLOW -->
   <ellipse cx="400" cy="852" rx="285" ry="16"
@@ -2643,17 +2652,17 @@ function setTooltip(el, text){
   }
 }
 
-function triggerScadaScan() {
+function triggerScadaPulse() {
   const el = document.getElementById("scada-wrap");
   if (!el) return;
 
-  el.classList.remove("scada-scan");
+  el.classList.remove("scada-pulse");
   void el.offsetWidth;
-  el.classList.add("scada-scan");
+  el.classList.add("scada-pulse");
 
   setTimeout(() => {
-    el.classList.remove("scada-scan");
-  }, 1500);
+    el.classList.remove("scada-pulse");
+  }, 900);
 }
 
 function triggerScadaTwinkle() {
