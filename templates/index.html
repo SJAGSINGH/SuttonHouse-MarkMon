@@ -1987,73 +1987,82 @@ main.grid > #cr-dump-full{
   <polygon points="400,188 442,212 442,424 400,401 358,424 358,212" />
 
   <!-- TOP SPIRE INNER FACE -->
-  <polygon points="400,220 426,235 426,392 400,378 374,392 374,235" />
+  <polygon points="400,220 426,235 426,392 400,378 374,392 374,235"
+           fill="url(#panelFillSoft)" />
 
   <!-- LEFT TALL OUTER -->
   <polygon points="296,302 332,281 332,574 296,554" />
 
   <!-- LEFT TALL INNER -->
-  <polygon points="308,318 322,309 322,557 308,548" />
+  <polygon points="308,318 322,309 322,557 308,548"
+           fill="url(#panelFillSoft)" />
 
   <!-- LEFT MID OUTER -->
   <polygon points="233,432 287,401 287,706 233,671" />
 
   <!-- LEFT MID INNER -->
-  <polygon points="248,450 270,437 270,687 248,673" />
+  <polygon points="248,450 270,437 270,687 248,673"
+           fill="url(#panelFillSoft)" />
 
   <!-- LEFT BASE OUTER -->
   <polygon points="202,677 288,731 288,840 202,840" />
 
   <!-- LEFT BASE INNER -->
-  <polygon points="236,698 287,730 287,840 236,840" />
+  <polygon points="236,698 287,730 287,840 236,840"
+           fill="url(#panelFillSoft)" />
 
   <!-- RIGHT TALL OUTER -->
   <polygon points="468,281 504,302 504,554 468,574" />
 
   <!-- RIGHT TALL INNER -->
-  <polygon points="478,309 492,318 492,548 478,557" />
+  <polygon points="478,309 492,318 492,548 478,557"
+           fill="url(#panelFillSoft)" />
 
   <!-- RIGHT MID OUTER -->
   <polygon points="513,401 567,432 567,671 513,706" />
 
   <!-- RIGHT MID INNER -->
-  <polygon points="530,437 552,450 552,673 530,687" />
+  <polygon points="530,437 552,450 552,673 530,687"
+           fill="url(#panelFillSoft)" />
 
   <!-- RIGHT BASE OUTER -->
   <polygon points="512,731 598,677 598,840 512,840" />
 
   <!-- RIGHT BASE INNER -->
-  <polygon points="513,730 564,698 564,840 513,840" />
+  <polygon points="513,730 564,698 564,840 513,840"
+           fill="url(#panelFillSoft)" />
 
   <!-- CORE FRAME OUTER -->
   <polygon points="400,400 470,439 470,518 400,557 330,518 330,439" />
 
   <!-- CORE FRAME MID -->
-  <polygon points="400,421 448,448 448,509 400,536 352,509 352,448" />
+  <polygon points="400,421 448,448 448,509 400,536 352,509 352,448"
+           fill="url(#panelFillSoft)" />
 
-<!-- CORE TO BODY CONNECTORS (REFINED) -->
-<g id="scada-core-connectors" stroke="#b8fff7" stroke-width="1.8" fill="none" opacity="0.6">
-
-  <!-- LEFT CONNECTOR (larger + deeper) -->
-  <polygon points="345,540 385,565 385,625 345,600" />
-  <line x1="365" y1="552" x2="365" y2="615" />
-
-  <!-- RIGHT CONNECTOR -->
-  <polygon points="415,565 455,540 455,600 415,625" />
-  <line x1="435" y1="552" x2="435" y2="615" />
-
-</g>
- 
   <!-- CENTRAL LOWER BODY OUTER -->
   <polygon points="360,592 400,612 440,592 440,860 360,860"
            fill="url(#panelGlow)" />
 
   <!-- CENTRAL LOWER BODY INNER -->
-  <polygon points="382,616 400,626 418,616 418,850 382,850" />
+  <polygon points="382,616 400,626 418,616 418,850 382,850"
+           fill="url(#panelFillDeep)" />
 
   <line x1="360" y1="621" x2="360" y2="860" />
   <line x1="440" y1="621" x2="440" y2="860" />
+</g>
 
+<!-- CORE TO BODY CONNECTORS -->
+<g id="scada-core-connectors" stroke="#b8fff7" stroke-width="1.8" fill="none" opacity="0.6">
+
+  <!-- LEFT CONNECTOR -->
+  <polygon points="345,540 385,565 385,625 345,600"
+           fill="url(#panelFillSoft)" />
+  <line x1="365" y1="552" x2="365" y2="615" />
+
+  <!-- RIGHT CONNECTOR -->
+  <polygon points="415,565 455,540 455,600 415,625"
+           fill="url(#panelFillSoft)" />
+  <line x1="435" y1="552" x2="435" y2="615" />
 </g>
 
 <!-- DEPTH / SECONDARY PANEL LAYERS -->
@@ -2080,20 +2089,14 @@ main.grid > #cr-dump-full{
 
   <!-- RIGHT FULL-HEIGHT INNER PANEL -->
   <polygon points="450,350 470,360 470,860 450,860" />
-
-  <!-- LEFT ANGLED MID PANEL -->
-  <polygon points="250,450 310,420 310,700 250,670" />
-
-  <!-- RIGHT ANGLED MID PANEL -->
-  <polygon points="490,420 550,450 550,670 490,700" />
-
 </g>
+
 <!-- INNER CENTRAL SIDE FACES -->
 <g id="scada-central-channels" opacity="0.42">
 
   <!-- LEFT FACE -->
   <polygon points="324,540 350,526 350,850 324,850"
-           fill="url(#panelGlow)"
+           fill="url(#panelFillDeep)"
            stroke="#b8fff7"
            stroke-width="1.6" />
   <line x1="337" y1="538" x2="337" y2="842"
@@ -2103,14 +2106,13 @@ main.grid > #cr-dump-full{
 
   <!-- RIGHT FACE -->
   <polygon points="450,526 476,540 476,850 450,850"
-           fill="url(#panelGlow)"
+           fill="url(#panelFillDeep)"
            stroke="#b8fff7"
            stroke-width="1.6" />
   <line x1="463" y1="538" x2="463" y2="842"
         stroke="#94fff0"
         stroke-width="1"
         opacity="0.34" />
-
 </g>
 
 <!-- ANGLED MID FACES -->
@@ -2118,7 +2120,7 @@ main.grid > #cr-dump-full{
 
   <!-- LEFT -->
   <polygon points="248,450 308,420 308,700 248,670"
-           fill="url(#panelGlow)"
+           fill="url(#panelFillSoft)"
            stroke="#a8fff3"
            stroke-width="1.4" />
   <line x1="278" y1="438" x2="278" y2="682"
@@ -2128,16 +2130,15 @@ main.grid > #cr-dump-full{
 
   <!-- RIGHT -->
   <polygon points="492,420 552,450 552,670 492,700"
-           fill="url(#panelGlow)"
+           fill="url(#panelFillSoft)"
            stroke="#a8fff3"
            stroke-width="1.4" />
   <line x1="522" y1="438" x2="522" y2="682"
         stroke="#94fff0"
         stroke-width="1"
         opacity="0.28" />
-
 </g>
-         
+
 <!-- INNER BODY LINES -->
 <g id="scada-body-inner" stroke="#94fff0" stroke-width="1" fill="none" opacity="0.22">
   <line x1="390" y1="230" x2="390" y2="384" />
@@ -2153,12 +2154,10 @@ main.grid > #cr-dump-full{
   <line x1="418" y1="624" x2="418" y2="850" />
 </g>
 
-
-         
 <!-- CORE GLOW -->
 <g id="core-eye-svg">
   <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
-           fill="#dffffa" />
+           fill="#f0fffb" />
 
   <polygon points="400,448 430,465 430,498 400,515 370,498 370,465"
            fill="none"
