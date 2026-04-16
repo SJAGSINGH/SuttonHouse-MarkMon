@@ -1966,10 +1966,11 @@ main.grid > #cr-dump-full{
   <!-- BEAM -->
   <radialGradient id="beamGlow" cx="50%" cy="50%" r="50%">
     <stop offset="0%" stop-color="#dffffa" stop-opacity="1"/>
+    <stop offset="10%" stop-color="#bffff6" stop-opacity="0.9"/>
     <stop offset="25%" stop-color="#7effec" stop-opacity="0.75"/>
     <stop offset="65%" stop-color="#7effec" stop-opacity="0.28"/>
     <stop offset="100%" stop-color="#7effec" stop-opacity="0"/>
-  </radialGradient>
+ </radialGradient>
 
   <!-- PANEL GLOW (centre pillar fade) -->
   <linearGradient id="panelGlow" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -2143,13 +2144,13 @@ main.grid > #cr-dump-full{
 </g>
 
 <!-- ANGLED MID FACES -->
-<g id="scada-mid-faces" opacity="0.34">
+<g id="scada-mid-faces" opacity="0.44">
 
   <!-- LEFT -->
   <polygon points="248,450 308,420 308,700 248,670"
            fill="url(#panelFillSoft)"
            stroke="#a8fff3"
-           stroke-width="1.4" />
+           stroke-width="1.6" />
   <line x1="278" y1="438" x2="278" y2="682"
         stroke="#94fff0"
         stroke-width="1"
@@ -2159,7 +2160,7 @@ main.grid > #cr-dump-full{
   <polygon points="492,420 552,450 552,670 492,700"
            fill="url(#panelFillSoft)"
            stroke="#a8fff3"
-           stroke-width="1.4" />
+           stroke-width="1.6" />
   <line x1="522" y1="438" x2="522" y2="682"
         stroke="#94fff0"
         stroke-width="1"
@@ -2183,14 +2184,25 @@ main.grid > #cr-dump-full{
 
 <!-- CORE GLOW -->
 <g id="core-eye-svg">
-  <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
-           fill="#f0fffb" />
 
+  <!-- INNER CORE -->
+  <polygon points="400,452 423,465 423,491 400,504 377,491 377,465"
+           fill="#ffffff" />
+
+  <!-- OUTER ENERGY RING -->
   <polygon points="400,448 430,465 430,498 400,515 370,498 370,465"
            fill="none"
            stroke="#7effec"
-           stroke-width="2"
-           opacity="0.6"/>
+           stroke-width="2.2"
+           opacity="0.72"/>
+
+  <!-- SUBTLE INNER GLOW RING -->
+  <polygon points="400,450 426,464 426,494 400,510 374,494 374,464"
+           fill="none"
+           stroke="#aafff6"
+           stroke-width="1"
+           opacity="0.35"/>
+
 </g>
 
         </svg>
