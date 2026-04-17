@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sutton House</title>
 
   <style>
@@ -10,12 +10,16 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       margin: 0;
-      min-height: 100vh;
+      padding: 0;
+      min-height: 100%;
       background: #050607;
       color: #d4d7db;
-      font-family: "Inter", sans-serif;
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    body {
       display: flex;
       justify-content: center;
     }
@@ -32,25 +36,25 @@
     }
 
     .hero h1 {
+      margin: 0 0 20px 0;
       font-size: 28px;
       font-weight: 500;
       letter-spacing: 0.5px;
-      margin: 0 0 20px;
     }
 
     .hero p {
-      font-size: 14px;
-      color: #8b929a;
       max-width: 600px;
-      margin: 0 auto 30px;
+      margin: 0 auto 30px auto;
+      font-size: 14px;
       line-height: 1.6;
+      color: #8b929a;
     }
 
     .doctrine {
-      font-size: 12px;
-      color: #6f7680;
       margin-bottom: 40px;
+      font-size: 12px;
       line-height: 1.8;
+      color: #6f7680;
     }
 
     .enter-btn {
@@ -83,42 +87,42 @@
     }
 
     .panel h2 {
+      margin: 0 0 20px 0;
       font-size: 12px;
       letter-spacing: 1px;
       color: #8b929a;
-      margin: 0 0 20px;
     }
 
     .panel p {
+      margin: 0 0 16px 0;
       font-size: 13px;
       line-height: 1.7;
       color: #c2c7cc;
-      margin: 0 0 16px;
     }
 
     .panel .sub {
       margin-top: 20px;
-      color: #7a828a;
       font-size: 12px;
+      color: #7a828a;
     }
 
     .video-placeholder {
       min-height: 260px;
+      padding: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-align: center;
       border: 1px dashed #1c2126;
       color: #6f7680;
       font-size: 12px;
-      text-align: center;
-      padding: 20px;
     }
 
     .footer-line {
       text-align: center;
       font-size: 11px;
-      color: #5f666f;
       letter-spacing: 1px;
+      color: #5f666f;
     }
 
     .fade-out {
@@ -150,9 +154,8 @@
 
 <body>
   <div class="container" id="page">
-
     <section class="hero">
-      <h1>Sutton House — A Market Operating System</h1>
+      <h1>Sutton House - A Market Operating System</h1>
 
       <p>
         Sutton House is a structured market monitoring system designed to govern behaviour,
@@ -160,8 +163,8 @@
       </p>
 
       <div class="doctrine">
-        Signals are observed, not followed.<br />
-        Silence is a valid state.<br />
+        Signals are observed, not followed.<br>
+        Silence is a valid state.<br>
         Access is limited.
       </div>
 
@@ -189,7 +192,7 @@
         </p>
 
         <p class="sub">
-          Signals are observed, not followed.<br />
+          Signals are observed, not followed.<br>
           Silence is a valid state.
         </p>
       </div>
@@ -198,7 +201,7 @@
         <h2>SYSTEM BRIEFING VISUAL</h2>
 
         <div class="video-placeholder">
-          System briefing visual will be available.<br />
+          System briefing visual will be available.<br>
           Controlled access required.
         </div>
       </div>
@@ -207,19 +210,19 @@
     <div class="footer-line">
       Access is limited.
     </div>
-
   </div>
 
   <script>
     function enterSystem() {
-      const page = document.getElementById("page");
-      if (page) page.classList.add("fade-out");
+      var page = document.getElementById("page");
+      if (page) {
+        page.classList.add("fade-out");
+      }
 
-      setTimeout(() => {
+      setTimeout(function () {
         window.location.href = "/load";
       }, 600);
     }
   </script>
-
 </body>
 </html>
