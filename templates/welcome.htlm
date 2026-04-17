@@ -6,8 +6,13 @@
   <title>Sutton House</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
+      min-height: 100vh;
       background: #050607;
       color: #d4d7db;
       font-family: "Inter", sans-serif;
@@ -30,7 +35,7 @@
       font-size: 28px;
       font-weight: 500;
       letter-spacing: 0.5px;
-      margin-bottom: 20px;
+      margin: 0 0 20px;
     }
 
     .hero p {
@@ -74,21 +79,21 @@
     .panel {
       border: 1px solid #14181c;
       padding: 30px;
-      background: rgba(255,255,255,0.01);
+      background: rgba(255, 255, 255, 0.01);
     }
 
     .panel h2 {
       font-size: 12px;
       letter-spacing: 1px;
       color: #8b929a;
-      margin-bottom: 20px;
+      margin: 0 0 20px;
     }
 
     .panel p {
       font-size: 13px;
       line-height: 1.7;
       color: #c2c7cc;
-      margin-bottom: 16px;
+      margin: 0 0 16px;
     }
 
     .panel .sub {
@@ -98,7 +103,7 @@
     }
 
     .video-placeholder {
-      height: 260px;
+      min-height: 260px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -106,6 +111,7 @@
       color: #6f7680;
       font-size: 12px;
       text-align: center;
+      padding: 20px;
     }
 
     .footer-line {
@@ -121,8 +127,22 @@
     }
 
     @media (max-width: 800px) {
+      .container {
+        padding: 40px 16px;
+      }
+
+      .hero {
+        margin-bottom: 50px;
+      }
+
+      .hero h1 {
+        font-size: 24px;
+      }
+
       .briefing {
         grid-template-columns: 1fr;
+        gap: 24px;
+        margin-bottom: 50px;
       }
     }
   </style>
@@ -140,8 +160,8 @@
       </p>
 
       <div class="doctrine">
-        Signals are observed, not followed.<br/>
-        Silence is a valid state.<br/>
+        Signals are observed, not followed.<br />
+        Silence is a valid state.<br />
         Access is limited.
       </div>
 
@@ -169,7 +189,7 @@
         </p>
 
         <p class="sub">
-          Signals are observed, not followed.<br/>
+          Signals are observed, not followed.<br />
           Silence is a valid state.
         </p>
       </div>
@@ -178,7 +198,7 @@
         <h2>SYSTEM BRIEFING VISUAL</h2>
 
         <div class="video-placeholder">
-          System briefing visual will be available.<br/>
+          System briefing visual will be available.<br />
           Controlled access required.
         </div>
       </div>
