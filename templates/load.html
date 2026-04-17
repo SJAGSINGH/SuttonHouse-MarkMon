@@ -275,6 +275,17 @@
       max-width: 560px;
       width: 100%;
     }
+
+    .conditioning-line.final {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #e6f7f3;
+}
+  body.load-final-phase .load-scada-energy {
+  opacity: 0.95;
+  transform: translate(-50%, -50%) scale(1.08);
+}
+    
   </style>
 </head>
 
@@ -566,32 +577,33 @@
     }
 
     function nextLine() {
-      if (exiting) return;
+  if (exiting) return;
 
-      const el = document.getElementById("text");
-      if (!el) return;
+  const el = document.getElementById("text");
+  if (!el) return;
 
-      el.classList.remove("show", "final");
+  el.classList.remove("show", "final");
 
-      lineTimer = setTimeout(() => {
-        if (exiting) return;
+  lineTimer = setTimeout(() => {
+    if (exiting) return;
 
-        el.textContent = lines[lineIndex];
+    el.textContent = lines[lineIndex];
 
-        if (lineIndex === lines.length - 1) {
-          el.classList.add("final");
-        }
-
-        el.classList.add("show");
-        lineIndex += 1;
-
-        if (lineIndex < lines.length) {
-          lineTimer = setTimeout(nextLine, 4000);
-        } else {
-          lineTimer = setTimeout(exitLoad, 2500);
-        }
-      }, 400);
+    if (lineIndex === lines.length - 1) {
+      el.classList.add("final");
+      document.body.classList.add("load-final-phase");
     }
+
+    el.classList.add("show");
+    lineIndex += 1;
+
+    if (lineIndex < lines.length) {
+      lineTimer = setTimeout(nextLine, 4000);
+    } else {
+      lineTimer = setTimeout(exitLoad, 2500);
+    }
+  }, 400);
+}
 
     async function exitLoad() {
       if (exiting) return;
