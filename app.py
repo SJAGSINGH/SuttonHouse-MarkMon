@@ -1878,20 +1878,10 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         _recompute_war_from_secret()
 
 
-# ----------------------------
-# Flask routes
-# ----------------------------
-atexit.register(_save_state_to_disk)
-_load_state_from_disk()
-_bootstrap_sentinel_logging_memory_from_state()
-
-from flask import make_response
-
 @app.route("/")
 @login_required
 def welcome_page():
     return render_template("welcome.html")
-
 
 @app.route("/terminal")
 @login_required
@@ -1899,7 +1889,6 @@ def terminal():
     if not session.get("conditioned"):
         return redirect(url_for("load_screen"))
     return render_template("index.html")
-
 
 @app.route("/load")
 @login_required
@@ -1911,7 +1900,6 @@ def load_screen():
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
-
 
 @app.route("/mark_conditioned", methods=["POST"])
 @login_required
