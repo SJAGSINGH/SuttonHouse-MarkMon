@@ -1889,6 +1889,12 @@ from flask import make_response
 
 @app.route("/")
 @login_required
+def welcome():
+    return render_template("welcome.html")
+
+
+@app.route("/terminal")
+@login_required
 def index():
     if not session.get("conditioned"):
         return redirect(url_for("load_screen"))
@@ -1898,8 +1904,6 @@ def index():
 @app.route("/load")
 @login_required
 def load_screen():
-    if session.get("conditioned"):
-        return redirect(url_for("index"))
     response = make_response(render_template("load.html"))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
