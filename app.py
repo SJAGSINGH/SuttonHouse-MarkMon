@@ -48,10 +48,7 @@ SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
 
 
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+
 
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "").strip()
 
