@@ -1878,6 +1878,18 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         _recompute_war_from_secret()
 
 
+# ----------------------------
+# Ensure session defaults (FIXES first-load 500)
+# ----------------------------
+@app.before_request
+def ensure_session_defaults():
+    session.setdefault("conditioned", False)
+
+
+# ----------------------------
+# Routes
+# ----------------------------
+
 @app.route("/")
 @login_required
 def welcome_page():
@@ -1885,12 +1897,14 @@ def welcome_page():
         return redirect(url_for("terminal"))
     return render_template("welcome.html")
 
+
 @app.route("/terminal")
 @login_required
 def terminal():
     if not session.get("conditioned"):
         return redirect(url_for("load_screen"))
     return render_template("index.html")
+
 
 @app.route("/load")
 @login_required
@@ -1902,6 +1916,7 @@ def load_screen():
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
+
 
 @app.route("/mark_conditioned", methods=["POST"])
 @login_required
