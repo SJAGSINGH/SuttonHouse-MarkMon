@@ -52,6 +52,8 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -61,11 +63,10 @@ def login():
 
         if password == SITE_PASSWORD:
             session["authenticated"] = True
+            session.setdefault("conditioned", False)
             return redirect(url_for("welcome_page"))
         else:
             error = "Invalid password"
-
-    return render_template("login.html", error=error)
 
     return render_template_string("""
     <!doctype html>
@@ -76,8 +77,8 @@ def login():
       <style>
         body{
           margin:0;
-          background:#0b0f14;
-          color:#e6edf3;
+          background:#050607;
+          color:#d4d7db;
           font-family:Arial,sans-serif;
           display:flex;
           align-items:center;
@@ -87,11 +88,9 @@ def login():
         .box{
           width:320px;
           padding:28px;
-          background:#111827;
-          border:1px solid #2a3441;
-          border-radius:10px;
+          background:#0b0f14;
+          border:1px solid #1c2126;
           text-align:center;
-          box-shadow:0 0 30px rgba(0,0,0,.35);
         }
         h2{
           margin:0 0 8px 0;
@@ -99,16 +98,14 @@ def login():
         }
         p{
           margin:0 0 18px 0;
-          color:#9ca3af;
+          color:#8b929a;
           font-size:14px;
         }
         input{
           width:100%;
-          box-sizing:border-box;
           padding:12px;
-          border-radius:8px;
-          border:1px solid #374151;
-          background:#0b0f14;
+          border:1px solid #1c2126;
+          background:#050607;
           color:#fff;
           outline:none;
         }
@@ -116,12 +113,15 @@ def login():
           width:100%;
           margin-top:12px;
           padding:12px;
-          border:0;
-          border-radius:8px;
-          background:#22c55e;
-          color:#08110b;
-          font-weight:700;
+          border:1px solid #2a3238;
+          background:transparent;
+          color:#cfd4da;
           cursor:pointer;
+          letter-spacing:1px;
+        }
+        button:hover{
+          border-color:#3a444c;
+          color:#fff;
         }
         .error{
           margin-top:12px;
@@ -133,10 +133,10 @@ def login():
     <body>
       <div class="box">
         <h2>Sutton House</h2>
-        <p>Enter access code</p>
+        <p>Controlled access required</p>
         <form method="post">
           <input type="password" name="password" placeholder="Password" required>
-          <button type="submit">Enter</button>
+          <button type="submit">ENTER</button>
         </form>
         {% if error %}
           <div class="error">{{ error }}</div>
@@ -145,6 +145,7 @@ def login():
     </body>
     </html>
     """, error=error)
+
 
 @app.route("/logout")
 def logout():
