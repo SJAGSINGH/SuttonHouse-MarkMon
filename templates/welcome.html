@@ -213,16 +213,16 @@
   </div>
 
   <script>
-    function enterSystem() {
-      var page = document.getElementById("page");
-      if (page) {
-        page.classList.add("fade-out");
-      }
-
-      setTimeout(function () {
-        window.location.href = "/load";
-      }, 600);
+  function enterSystem() {
+    var page = document.getElementById("page");
+    if (page) {
+      page.classList.add("fade-out");
     }
-  </script>
+
+    setTimeout(function () {
+      window.location.href = "/login";
+    }, 600);
+  }
+</script>
 </body>
 </html>
