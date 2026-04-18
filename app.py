@@ -45,106 +45,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 # -----------------------------------------
 SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get("authenticated"):
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
 
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-
-    if request.method == "POST":
-        password = request.form.get("password", "")
-
-        if password == SITE_PASSWORD:
-            session["authenticated"] = True
-            session.setdefault("conditioned", False)
-            return redirect(url_for("welcome_page"))
-        else:
-            error = "Invalid password"
-
-    return render_template_string("""
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Sutton House Access</title>
-      <style>
-        body{
-          margin:0;
-          background:#050607;
-          color:#d4d7db;
-          font-family:Arial,sans-serif;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          height:100vh;
-        }
-        .box{
-          width:320px;
-          padding:28px;
-          background:#0b0f14;
-          border:1px solid #1c2126;
-          text-align:center;
-        }
-        h2{
-          margin:0 0 8px 0;
-          font-weight:600;
-        }
-        p{
-          margin:0 0 18px 0;
-          color:#8b929a;
-          font-size:14px;
-        }
-        input{
-          width:100%;
-          padding:12px;
-          border:1px solid #1c2126;
-          background:#050607;
-          color:#fff;
-          outline:none;
-        }
-        button{
-          width:100%;
-          margin-top:12px;
-          padding:12px;
-          border:1px solid #2a3238;
-          background:transparent;
-          color:#cfd4da;
-          cursor:pointer;
-          letter-spacing:1px;
-        }
-        button:hover{
-          border-color:#3a444c;
-          color:#fff;
-        }
-        .error{
-          margin-top:12px;
-          color:#ef4444;
-          font-size:14px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="box">
-        <h2>Sutton House</h2>
-        <p>Controlled access required</p>
-        <form method="post">
-          <input type="password" name="password" placeholder="Password" required>
-          <button type="submit">ENTER</button>
-        </form>
-        {% if error %}
-          <div class="error">{{ error }}</div>
-        {% endif %}
-      </div>
-    </body>
-    </html>
-    """, error=error)
 
 
 @app.route("/logout")
@@ -1880,26 +1781,151 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         _recompute_war_from_secret()
 
 
+# -----------------------------------------
+# Temp Protection for Site
+# -----------------------------------------
+SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
+
+
 # ----------------------------
-# Ensure session defaults (FIXES first-load 500)
+# Ensure session defaults
 # ----------------------------
 @app.before_request
 def ensure_session_defaults():
     session.setdefault("conditioned", False)
 
 
-# ----------------------------
-# Routes
-# ----------------------------
+# -----------------------------------------
+# Auth helper
+# -----------------------------------------
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("authenticated"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
+
+# -----------------------------------------
+# Login / Logout
+# -----------------------------------------
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+
+        if password == SITE_PASSWORD:
+            session["authenticated"] = True
+            session.setdefault("conditioned", False)
+            return redirect(url_for("welcome_page"))
+        else:
+            error = "Invalid password"
+
+    return render_template_string("""
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Sutton House Access</title>
+      <style>
+        body{
+          margin:0;
+          background:#050607;
+          color:#d4d7db;
+          font-family:Arial,sans-serif;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          height:100vh;
+        }
+        .box{
+          width:320px;
+          padding:28px;
+          background:#0b0f14;
+          border:1px solid #1c2126;
+          text-align:center;
+        }
+        h2{
+          margin:0 0 8px 0;
+          font-weight:600;
+        }
+        p{
+          margin:0 0 18px 0;
+          color:#8b929a;
+          font-size:14px;
+        }
+        input{
+          width:100%;
+          box-sizing:border-box;
+          padding:12px;
+          border:1px solid #1c2126;
+          background:#050607;
+          color:#fff;
+          outline:none;
+        }
+        button{
+          width:100%;
+          margin-top:12px;
+          padding:12px;
+          border:1px solid #2a3238;
+          background:transparent;
+          color:#cfd4da;
+          cursor:pointer;
+          letter-spacing:1px;
+        }
+        button:hover{
+          border-color:#3a444c;
+          color:#fff;
+        }
+        .error{
+          margin-top:12px;
+          color:#ef4444;
+          font-size:14px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h2>Sutton House</h2>
+        <p>Controlled access required</p>
+        <form method="post">
+          <input type="password" name="password" placeholder="Password" required>
+          <button type="submit">ENTER</button>
+        </form>
+        {% if error %}
+          <div class="error">{{ error }}</div>
+        {% endif %}
+      </div>
+    </body>
+    </html>
+    """, error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("welcome_page"))
+
+
+# ----------------------------
+# Public welcome
+# ----------------------------
 @app.route("/")
-@login_required
 def welcome_page():
-    if session.get("conditioned"):
+    if session.get("authenticated") and session.get("conditioned"):
         return redirect(url_for("terminal"))
+    if session.get("authenticated"):
+        return redirect(url_for("load_screen"))
     return render_template("welcome.html")
 
 
+# ----------------------------
+# Protected routes
+# ----------------------------
 @app.route("/terminal")
 @login_required
 def terminal():
@@ -1926,6 +1952,7 @@ def mark_conditioned():
     session["conditioned"] = True
     session.modified = True
     return ("", 204)
+
 
 @app.get("/health")
 def health():
