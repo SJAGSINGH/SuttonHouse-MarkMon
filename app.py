@@ -1881,6 +1881,8 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
 @app.route("/")
 @login_required
 def welcome_page():
+    if session.get("conditioned"):
+        return redirect(url_for("terminal"))
     return render_template("welcome.html")
 
 @app.route("/terminal")
@@ -1907,10 +1909,9 @@ def mark_conditioned():
     session["conditioned"] = True
     session.modified = True
     return ("", 204)
-    
+
 @app.get("/health")
 def health():
-    # Must be constant-time and never block
     return jsonify({"ok": True}), 200
 
 @app.get("/health/snapshot")
