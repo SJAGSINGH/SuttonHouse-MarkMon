@@ -1790,6 +1790,7 @@ SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
 @app.before_request
 def ensure_session_defaults():
     session.setdefault("conditioned", False)
+    session.setdefault("authenticated", False)
 
 
 # -----------------------------------------
@@ -1805,7 +1806,17 @@ def login_required(f):
 
 
 # -----------------------------------------
-# Login / Logout
+# Public welcome
+# Always first page
+# -----------------------------------------
+@app.route("/")
+def welcome_page():
+    return render_template("welcome.html")
+
+
+# -----------------------------------------
+# Login
+# Always after welcome, before load
 # -----------------------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -1816,8 +1827,9 @@ def login():
 
         if password == SITE_PASSWORD:
             session["authenticated"] = True
-            session.setdefault("conditioned", False)
-            return redirect(url_for("welcome_page"))
+            session["conditioned"] = False
+            session.modified = True
+            return redirect(url_for("load_screen"))
         else:
             error = "Invalid password"
 
@@ -1909,28 +1921,8 @@ def logout():
 
 
 # ----------------------------
-# Public welcome
-# ----------------------------
-@app.route("/")
-def welcome_page():
-    if session.get("authenticated") and session.get("conditioned"):
-        return redirect(url_for("terminal"))
-    if session.get("authenticated"):
-        return redirect(url_for("load_screen"))
-    return render_template("welcome.html")
-
-
-# ----------------------------
 # Protected routes
 # ----------------------------
-@app.route("/terminal")
-@login_required
-def terminal():
-    if not session.get("conditioned"):
-        return redirect(url_for("load_screen"))
-    return render_template("index.html")
-
-
 @app.route("/load")
 @login_required
 def load_screen():
@@ -1941,6 +1933,14 @@ def load_screen():
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
+
+
+@app.route("/terminal")
+@login_required
+def terminal():
+    if not session.get("conditioned"):
+        return redirect(url_for("load_screen"))
+    return render_template("index.html")
 
 
 @app.route("/mark_conditioned", methods=["POST"])
@@ -1954,7 +1954,6 @@ def mark_conditioned():
 @app.get("/health")
 def health():
     return jsonify({"ok": True}), 200
-
 @app.get("/health/snapshot")
 def health_snapshot():
     with STATE_LOCK:
