@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+   <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -35,10 +36,19 @@
       margin-bottom: 80px;
     }
 
+    .rose-img {
+      width: 72px;
+      height: auto;
+      margin: 0 auto 20px;
+      display: block;
+      opacity: 0.85;
+      filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.08));
+    }
+
     .hero h1 {
       margin: 0 0 20px 0;
       font-size: 28px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.5px;
     }
 
@@ -47,19 +57,27 @@
       margin: 0 auto 30px auto;
       font-size: 14px;
       line-height: 1.6;
-      color: #8b929a;
+      color: #9aa2ab;
     }
 
     .doctrine {
-      margin-bottom: 40px;
+      margin-bottom: 16px;
       font-size: 12px;
       line-height: 1.8;
       color: #6f7680;
     }
 
+    .authority-line {
+      margin-bottom: 40px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #7a828a;
+      letter-spacing: 0.4px;
+    }
+
     .enter-btn {
       padding: 10px 24px;
-      border: 1px solid #1c2126;
+      border: 1px solid #2a3238;
       background: transparent;
       color: #cfd4da;
       cursor: pointer;
@@ -69,7 +87,7 @@
     }
 
     .enter-btn:hover {
-      border-color: #2c343b;
+      border-color: #3a444c;
       color: #ffffff;
     }
 
@@ -84,6 +102,7 @@
       border: 1px solid #14181c;
       padding: 30px;
       background: rgba(255, 255, 255, 0.01);
+      box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.02);
     }
 
     .panel h2 {
@@ -97,7 +116,7 @@
       margin: 0 0 16px 0;
       font-size: 13px;
       line-height: 1.7;
-      color: #c2c7cc;
+      color: #cfd4da;
     }
 
     .panel .sub {
@@ -139,6 +158,11 @@
         margin-bottom: 50px;
       }
 
+      .rose-img {
+        width: 60px;
+        margin-bottom: 16px;
+      }
+
       .hero h1 {
         font-size: 24px;
       }
@@ -155,17 +179,22 @@
 <body>
   <div class="container" id="page">
     <section class="hero">
-      <h1>Sutton House - A Market Operating System</h1>
+      <img src="{{ url_for('static', filename='img/logo.png') }}" class="rose-img" alt="Sutton House Rose">
+
+      <h1>Sutton House — A Market Operating System</h1>
 
       <p>
-        Sutton House is a structured market monitoring system designed to govern behaviour,
-        not generate activity.
+        A structured system designed to govern behaviour, not generate activity.
       </p>
 
       <div class="doctrine">
         Signals are observed, not followed.<br>
         Silence is a valid state.<br>
         Access is limited.
+      </div>
+
+      <div class="authority-line">
+        The system determines when participation is permitted.
       </div>
 
       <button class="enter-btn" onclick="enterSystem()">ENTER SYSTEM</button>
@@ -176,24 +205,22 @@
         <h2>SYSTEM BRIEFING</h2>
 
         <p>
-          Sutton House is a structured market monitoring system built to reduce
-          unnecessary decision-making.
+          Sutton House is a structured market monitoring system.
         </p>
 
         <p>
-          It defines macro conditions, tracks cycle progression, and interprets
-          market behaviour to determine when participation is permitted.
+          It defines macro conditions, tracks cycle progression, and determines
+          when participation is permitted.
         </p>
 
         <p>
-          The system is designed to govern behaviour rather than encourage activity.
-          It does not exist to produce constant signals. It exists to define conditions,
-          enforce discipline, and preserve decision quality.
+          It does not exist to generate constant signals.
+          It exists to remove unnecessary decision-making and enforce discipline.
         </p>
 
         <p class="sub">
-          Signals are observed, not followed.<br>
-          Silence is a valid state.
+          Silence is not inactivity.<br>
+          It is a controlled state.
         </p>
       </div>
 
@@ -201,8 +228,8 @@
         <h2>SYSTEM BRIEFING VISUAL</h2>
 
         <div class="video-placeholder">
-          System briefing visual will be available.<br>
-          Controlled access required.
+          System briefing available.<br>
+          Access controlled.
         </div>
       </div>
     </section>
@@ -213,16 +240,16 @@
   </div>
 
   <script>
-  function enterSystem() {
-    var page = document.getElementById("page");
-    if (page) {
-      page.classList.add("fade-out");
-    }
+    function enterSystem() {
+      var page = document.getElementById("page");
+      if (page) {
+        page.classList.add("fade-out");
+      }
 
-    setTimeout(function () {
-      window.location.href = "/login";
-    }, 600);
-  }
-</script>
+      setTimeout(function () {
+        window.location.href = "/login";
+      }, 600);
+    }
+  </script>
 </body>
 </html>
