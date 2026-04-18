@@ -52,7 +52,6 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -62,9 +61,11 @@ def login():
 
         if password == SITE_PASSWORD:
             session["authenticated"] = True
-            return redirect(url_for("index"))
+            return redirect(url_for("welcome_page"))
         else:
             error = "Invalid password"
+
+    return render_template("login.html", error=error)
 
     return render_template_string("""
     <!doctype html>
