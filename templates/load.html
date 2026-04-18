@@ -633,15 +633,14 @@
       } catch (err) {
         console.error("Failed to mark conditioned:", err);
 
-        // fallback: still attempt terminal handoff after delay
         setTimeout(() => {
-          window.location.replace("/");
+          window.location.replace("/terminal");
         }, 1500);
         return;
       }
 
       setTimeout(() => {
-        window.location.replace("/");
+        window.location.replace("/terminal");
       }, 1200);
     }
 
