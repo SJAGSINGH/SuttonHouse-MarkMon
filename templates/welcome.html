@@ -254,53 +254,58 @@
 </head>
 
 <body>
-  <div class="container" id="page">
-    <section class="hero">
-      <img src="{{ url_for('static', filename='logo.png') }}" class="rose-img" alt="Sutton House Rose">
+ <div class="container" id="page">
+  <section class="hero">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="rose-img" alt="Sutton House Rose">
 
-      <h1>Sutton House — A Market Operating System</h1>
+    <h1>Sutton House — A Market Operating System</h1>
+
+    <p>
+      A structured system designed to govern behaviour, not generate activity.
+    </p>
+
+    <div class="doctrine">
+      Signals are observed, not followed.<br>
+      Silence is a valid state.<br>
+      Access is limited.
+    </div>
+
+    <div class="authority-line">
+      The system determines when participation is permitted.
+    </div>
+
+    <button class="enter-btn" onclick="enterSystem()">ENTER SYSTEM</button>
+  </section>
+
+  <section class="briefing">
+    <div class="panel">
+      <h2>SYSTEM BRIEFING</h2>
 
       <p>
-        A structured system designed to govern behaviour, not generate activity.
+        Sutton House is a structured market monitoring system.
       </p>
 
-      <div class="doctrine">
-        Signals are observed, not followed.<br>
-        Silence is a valid state.<br>
-        Access is limited.
-      </div>
+      <p>
+        Designed with principles borrowed from industrial monitoring
+        environments where clarity, discipline, and controlled responses
+        are essential.
+      </p>
 
-      <div class="authority-line">
-        The system determines when participation is permitted.
-      </div>
+      <p>
+        It defines macro conditions, tracks cycle progression, and determines
+        when participation is permitted.
+      </p>
 
-      <button class="enter-btn" onclick="enterSystem()">ENTER SYSTEM</button>
-    </section>
+      <p>
+        It does not exist to generate constant signals.
+        It exists to remove unnecessary decision-making and enforce discipline.
+      </p>
 
-    <section class="briefing">
-      <div class="panel">
-        <h2>SYSTEM BRIEFING</h2>
-
-        <p>
-          Sutton House is a structured market monitoring system.
-        </p>
-
-        <p>
-          It defines macro conditions, tracks cycle progression, and determines
-          when participation is permitted.
-        </p>
-
-        <p>
-          It does not exist to generate constant signals.
-          It exists to remove unnecessary decision-making and enforce discipline.
-        </p>
-
-        <p class="sub">
-          Silence is not inactivity.<br>
-          It is a controlled state.
-        </p>
-      </div>
-
+      <p class="sub">
+        Silence is not inactivity.<br>
+        It is a controlled state.
+      </p>
+    </div>
     <div class="panel video-panel">
   <h2>SYSTEM BRIEFING VISUAL</h2>
 
