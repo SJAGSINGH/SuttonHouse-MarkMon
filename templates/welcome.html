@@ -153,18 +153,31 @@
       color: var(--muted-2);
     }
 
-    .video-placeholder {
-      min-height: 260px;
-      padding: var(--space-5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      border: 1px dashed var(--border-2);
-      color: #6f7680;
-      font-size: 12px;
-      line-height: 1.7;
-    }
+   .video-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.briefing-video {
+  width: 100%;
+  display: block;
+  border: 1px solid var(--border-2);
+  background: #000;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.briefing-video:hover {
+  border-color: var(--border-3);
+}
+
+.video-caption {
+  margin-top: var(--space-3);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted-3);
+  text-align: center;
+}
 
     .disclaimer {
       margin-top: var(--space-6);
@@ -288,14 +301,19 @@
         </p>
       </div>
 
-      <div class="panel">
-        <h2>SYSTEM BRIEFING VISUAL</h2>
+    <div class="panel video-panel">
+  <h2>SYSTEM BRIEFING VISUAL</h2>
 
-        <div class="video-placeholder">
-          System briefing available.<br>
-          Access controlled.
-        </div>
-      </div>
+  <video class="briefing-video" controls muted preload="metadata">
+    <source src="{{ url_for('static', filename='video/video2.mp4') }}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <div class="video-caption">
+    Operational reference briefing.<br>
+    Controlled access environment.
+  </div>
+</div>
     </section>
 
     <div class="disclaimer">
