@@ -1130,10 +1130,7 @@ def _clean_msa_symbol(ticker: str) -> str:
     """
     Canonical MSA registry key:
     exchange:symbol only, no timeframe markers.
-    Examples:
-    LSE_DLY:GGP   -> LSE:GGP
-    TSX_4H:AYA    -> TSX:AYA
-    CAPITALCOMSB:SILVER -> CAPITALCOMSB:SILVER
+    If Pine sends a bare LSE symbol, restore known exchange prefix.
     """
     t = str(ticker or "").upper().strip()
 
@@ -1147,7 +1144,17 @@ def _clean_msa_symbol(ticker: str) -> str:
     t = t.replace("_4H", "")
     t = t.replace("_240", "")
 
-    return t
+    # restore known bare-symbol mappings
+    alias = {
+        "GGP": "LSE:GGP",
+        "FRES": "LSE:FRES",
+        "HOC": "LSE:HOC",
+        "WPM": "LSE:WPM",
+        "SVML": "LSE:SVML",
+        "ECOR": "LSE:ECOR",
+    }
+
+    return alias.get(t, t)
 
 
 def _valid_msa_pack(msa: dict) -> bool:
