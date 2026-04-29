@@ -1055,9 +1055,21 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
 
         # common convenience fields
         if data.get("ticker"):
-            rec["ticker"] = str(data.get("ticker")).upper()
-        rec["ref_id"] = ref_i
+            incoming_ticker = str(data.get("ticker")).upper()
 
+            # SCADA_STATUS carries canonical exchange:symbol identity.
+            # WATCH may intentionally carry short ticker for display only.
+            if typ == "SCADA_STATUS":
+                rec["ticker"] = incoming_ticker
+                rec["ticker_id"] = _clean_msa_symbol(incoming_ticker)
+
+            elif typ == "WATCH":
+                rec["display_ticker"] = incoming_ticker
+
+                if not rec.get("ticker"):
+                    rec["ticker"] = incoming_ticker
+
+        rec["ref_id"] = ref_i
         # ============================================================
         # MSA STORAGE (D + 4H packs)
         # ============================================================
@@ -1235,7 +1247,7 @@ def _build_msa_registry_from_nodes():
         if not isinstance(rec, dict):
             continue
 
-        ticker = _clean_msa_symbol(rec.get("ticker"))
+        ticker = _clean_msa_symbol(rec.get("ticker_id") or rec.get("ticker"))
         msa = rec.get("msa")
 
         if not ticker or not _valid_msa_pack(msa):
