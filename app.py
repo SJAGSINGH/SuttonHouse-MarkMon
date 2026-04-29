@@ -1130,31 +1130,60 @@ def _clean_msa_symbol(ticker: str) -> str:
     """
     Canonical MSA registry key:
     exchange:symbol only, no timeframe markers.
-    If Pine sends a bare LSE symbol, restore known exchange prefix.
+
+    Examples:
+    LSE_DLY:GGP        -> LSE:GGP
+    TSX_DLY:AYA        -> TSX:AYA
+    TSXV_DLY:CDPR      -> TSXV:CDPR
+    CAPITALCOMSB:SILVER -> CAPITALCOMSB:SILVER
     """
     t = str(ticker or "").upper().strip()
 
-    # remove timeframe suffixes before colon
-    t = t.replace("_DLY:", ":")
-    t = t.replace("_4H:", ":")
-    t = t.replace("_240:", ":")
+    if not t:
+        return ""
 
-    # fallback cleanup if suffix exists elsewhere
+    # Normalise timeframe-marked exchange prefixes
+    prefix_map = {
+        "ASX_DLY:": "ASX:",
+        "ASX_4H:": "ASX:",
+        "ASX_240:": "ASX:",
+
+        "LSE_DLY:": "LSE:",
+        "LSE_4H:": "LSE:",
+        "LSE_240:": "LSE:",
+
+        "TSX_DLY:": "TSX:",
+        "TSX_4H:": "TSX:",
+        "TSX_240:": "TSX:",
+
+        "TSXV_DLY:": "TSXV:",
+        "TSXV_4H:": "TSXV:",
+        "TSXV_240:": "TSXV:",
+
+        "NYSE_DLY:": "NYSE:",
+        "NYSE_4H:": "NYSE:",
+        "NYSE_240:": "NYSE:",
+
+        "NASDAQ_DLY:": "NASDAQ:",
+        "NASDAQ_4H:": "NASDAQ:",
+        "NASDAQ_240:": "NASDAQ:",
+
+        "CAPITALCOMSB_DLY:": "CAPITALCOMSB:",
+        "CAPITALCOMSB_4H:": "CAPITALCOMSB:",
+        "CAPITALCOMSB_240:": "CAPITALCOMSB:",
+    }
+
+    for bad, good in prefix_map.items():
+        if t.startswith(bad):
+            t = good + t.split(":", 1)[1]
+            break
+
+    # Clean suffixes if they appear after symbol instead
     t = t.replace("_DLY", "")
     t = t.replace("_4H", "")
     t = t.replace("_240", "")
 
-    # restore known bare-symbol mappings
-    alias = {
-        "GGP": "LSE:GGP",
-        "FRES": "LSE:FRES",
-        "HOC": "LSE:HOC",
-        "WPM": "LSE:WPM",
-        "SVML": "LSE:SVML",
-        "ECOR": "LSE:ECOR",
-    }
-
-    return alias.get(t, t)
+    return t
 
 
 def _valid_msa_pack(msa: dict) -> bool:
@@ -1249,6 +1278,10 @@ def _generate_msa_pine_arrays():
             "    " + ", ".join(_fmt_pine_float(v) for v in vals) + f",  // {s}"
         )
 
+    # Remove final trailing comma from last value row
+    if val_lines:
+        val_lines[-1] = val_lines[-1].replace(",  //", "  //")
+
     pine = (
         "// ============================================================\n"
         "// Sutton House MSA Manual Fallback Store\n"
@@ -1261,7 +1294,7 @@ def _generate_msa_pine_arrays():
         + ",\n".join(sym_lines) +
         "\n)\n\n"
         "ArrayMSAStore = array.from(\n"
-        + ",\n".join(val_lines) +
+        + "\n".join(val_lines) +
         "\n)\n\n"
         "MSAPackSize = 8\n"
     )
