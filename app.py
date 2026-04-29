@@ -1130,11 +1130,23 @@ def _clean_msa_symbol(ticker: str) -> str:
     """
     Canonical MSA registry key:
     exchange:symbol only, no timeframe markers.
+    Examples:
+    LSE_DLY:GGP   -> LSE:GGP
+    TSX_4H:AYA    -> TSX:AYA
+    CAPITALCOMSB:SILVER -> CAPITALCOMSB:SILVER
     """
     t = str(ticker or "").upper().strip()
+
+    # remove timeframe suffixes before colon
+    t = t.replace("_DLY:", ":")
+    t = t.replace("_4H:", ":")
+    t = t.replace("_240:", ":")
+
+    # fallback cleanup if suffix exists elsewhere
     t = t.replace("_DLY", "")
     t = t.replace("_4H", "")
     t = t.replace("_240", "")
+
     return t
 
 
@@ -1227,7 +1239,7 @@ def _generate_msa_pine_arrays():
 
         vals = registry[s]
         val_lines.append(
-            "    " + ", ".join(_fmt_pine_float(v) for v in vals) + f"  // {s}"
+            "    " + ", ".join(_fmt_pine_float(v) for v in vals) + f",  // {s}"
         )
 
     pine = (
