@@ -610,26 +610,35 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
     margin-bottom:20px; outline:none; font-family:monospace; letter-spacing:4px;
   }
 
-  #vault-exit{
-    display:none;
-    margin-top:18px;
-    padding:10px 14px;
-    background:rgba(0,0,0,.25);
-    border:1px solid rgba(31,166,122,.55);
-    color:var(--secret);
-    font-size:10px;
-    letter-spacing:2px;
-    text-transform:uppercase;
-    cursor:pointer;
-    border-radius:6px;
-    width:fit-content;
-    align-self:flex-start;
-    transition:all .25s ease;
-  }
-  #vault-exit:hover{
-    background:rgba(31,166,122,.08);
-    box-shadow:0 0 18px rgba(31,166,122,.18);
-  }
+  #vault-exit,
+#msa-export-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  min-width:210px;
+  height:38px;
+  padding:0 14px;
+
+  border-radius:10px;
+  border:1px solid rgba(0,255,170,0.28);
+
+  background:rgba(0,0,0,0.22);
+  color:rgba(0,255,170,0.92);
+
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+
+  cursor:pointer;
+  transition:all 0.18s ease;
+}
+
+#vault-exit:hover,
+#msa-export-btn:hover{
+  background:rgba(0,255,170,0.10);
+  box-shadow:0 0 14px rgba(0,255,170,0.18);
+}
 
   /* Gauges */
   .gauge{
