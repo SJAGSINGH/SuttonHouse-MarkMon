@@ -615,6 +615,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
   #vault-exit,
 #msa-export-btn{
+  display:none;                 /* hidden until JS enables */
   align-items:center;
   justify-content:center;
 
@@ -631,17 +632,28 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   font-size:11px;
   letter-spacing:2px;
   text-transform:uppercase;
+  white-space:nowrap;
 
   cursor:pointer;
-  transition:all 0.18s ease;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 #vault-exit:hover,
 #msa-export-btn:hover{
   background:rgba(0,255,170,0.10);
+  border-color:rgba(0,255,170,0.42);
   box-shadow:0 0 14px rgba(0,255,170,0.18);
+  transform:translateY(-1px);
 }
 
+#vault-exit:active,
+#msa-export-btn:active{
+  transform:translateY(0);
+}
  
   /* Gauges */
   .gauge{
@@ -2339,13 +2351,15 @@ main.grid > #cr-dump-full{
 
 
   <div class="macro-header">
-    <div>Macro Analysis</div>
-     <div style="display:flex;align-items:center;gap:10px;">
-      <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
-     <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
-   </div>
-    <div id="war-badge">Institutional Participation Detected</div>
+  <div>Macro Analysis</div>
+
+  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+    <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
   </div>
+
+  <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
+</div>
 
  
   <main class="grid">
