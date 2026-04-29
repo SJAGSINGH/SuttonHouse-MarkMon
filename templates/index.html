@@ -2726,7 +2726,10 @@ function setTooltip(el, text){
 function updateFounderTools(){
   const btn = document.getElementById("msa-export-btn");
   if (!btn) return;
-  btn.style.display = (window.founderMode || window.secretMode) ? "inline-flex" : "none";
+
+  btn.style.display = (founderMode || secretMode)
+    ? "inline-flex"
+    : "none";
 }
 
 async function exportMsaLibTxt(){
