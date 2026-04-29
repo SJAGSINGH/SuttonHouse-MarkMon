@@ -615,7 +615,6 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
   #vault-exit,
 #msa-export-btn{
-  display:inline-flex;
   align-items:center;
   justify-content:center;
 
@@ -643,6 +642,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   box-shadow:0 0 14px rgba(0,255,170,0.18);
 }
 
+ 
   /* Gauges */
   .gauge{
     margin-top:14px;
@@ -1991,7 +1991,10 @@ main.grid > #cr-dump-full{
   box-shadow:0 0 12px rgba(0,255,170,0.20);
 } 
 
- 
+ #vault-exit,
+#msa-export-btn{
+  display:none;
+}
 </style>
 
 </head>
