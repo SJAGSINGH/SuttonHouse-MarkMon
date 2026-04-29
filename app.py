@@ -2212,6 +2212,18 @@ def debug_page():
 """, mimetype="text/html")
 
 # ============================================================
+# MSA Build
+# ============================================================
+@app.route("/api/export_msa_lib", methods=["GET"])
+def export_msa_lib():
+    try:
+        return jsonify(_generate_msa_pine_arrays())
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+        }), 500
+# ============================================================
 # INGEST MACRO (Python feeder endpoint)
 # ============================================================
 @app.route("/ingest_macro", methods=["POST"])
