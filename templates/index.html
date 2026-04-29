@@ -1960,6 +1960,24 @@ main.grid > #cr-dump-full{
   color: rgba(255,255,255,0.92);
 }
 
+#msa-export-btn{
+  display:none;
+  margin-left:12px;
+  padding:7px 11px;
+  border-radius:8px;
+  border:1px solid rgba(0,255,170,0.25);
+  background:rgba(0,0,0,0.25);
+  color:rgba(0,255,170,0.85);
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+
+#msa-export-btn:hover{
+  background:rgba(0,255,170,0.12);
+  box-shadow:0 0 12px rgba(0,255,170,0.20);
+} 
 
  
 </style>
@@ -2307,7 +2325,10 @@ main.grid > #cr-dump-full{
 
   <div class="macro-header">
     <div>Macro Analysis</div>
-     <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+     <div style="display:flex;align-items:center;gap:10px;">
+      <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+     <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
+   </div>
     <div id="war-badge">Institutional Participation Detected</div>
   </div>
 
@@ -2702,6 +2723,45 @@ function setTooltip(el, text){
   }
 }
 
+function updateFounderTools(){
+  const btn = document.getElementById("msa-export-btn");
+  if (!btn) return;
+  btn.style.display = (window.founderMode || window.secretMode) ? "inline-flex" : "none";
+}
+
+async function exportMsaLibTxt(){
+  try{
+    const r = await fetch("/api/export_msa_lib", { cache: "no-store" });
+    if (!r.ok) throw new Error("Export route failed");
+
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "MSA export failed");
+
+    const txt = j.pine || "";
+    const stamp = new Date().toISOString().slice(0,10);
+    const filename = `suttonhouse_msa_lib_${stamp}.txt`;
+
+    const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 500);
+
+    setSentinel(`Sentinel: MSA fallback library export generated. ${j.count || 0} instruments included.`);
+  } catch(e){
+    console.error("[MSA EXPORT FAILED]", e);
+    setSentinel("Sentinel: MSA fallback library export failed. Founder review required.", true);
+  }
+}
+   
 function triggerScadaPulse() {
   const el = document.getElementById("scada-wrap");
   if (!el) return;
@@ -3474,6 +3534,8 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
+ 
   // ESC closes macro rail
   document.addEventListener("keydown", (e) => {
     const rail = document.getElementById("macro-rail");
@@ -4290,6 +4352,7 @@ function _updateDebugBtn() {
   if (t3) t3.style.display = 'none';
 
   if (lastState) applySecretFromState(lastState);
+  updateFounderTools();   // ✅ ADD HERE
 }
 
  function closeVault(){
@@ -4315,6 +4378,7 @@ function _updateDebugBtn() {
   setTimeout(() => applyAllFromState(window.__RSC_LAST || lastState || {}), 0);
 
   _updateDebugBtn();
+  updateFounderTools();   // ✅ ADD HERE
 }
 
   
@@ -5635,7 +5699,19 @@ window.addEventListener("DOMContentLoaded", () => {
   _updateDebugBtn();
 });
 
+window.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("msa-export-btn");
+  if (btn){
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      exportMsaLibTxt();
+    });
+  }
 
+  updateFounderTools();
+});
+   
 window.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("msa-close");
   if (btn){
