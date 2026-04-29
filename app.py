@@ -1114,6 +1114,147 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
     except Exception:
         return
 
+def _num(v):
+    try:
+        if v is None:
+            return None
+        n = float(v)
+        if n != n:
+            return None
+        return n
+    except Exception:
+        return None
+
+
+def _clean_msa_symbol(ticker: str) -> str:
+    """
+    Canonical MSA registry key:
+    exchange:symbol only, no timeframe markers.
+    """
+    t = str(ticker or "").upper().strip()
+    t = t.replace("_DLY", "")
+    t = t.replace("_4H", "")
+    t = t.replace("_240", "")
+    return t
+
+
+def _valid_msa_pack(msa: dict) -> bool:
+    if not isinstance(msa, dict):
+        return False
+
+    d = msa.get("D") or {}
+    h4 = msa.get("H4") or {}
+
+    vals = [
+        d.get("solid_red"),
+        d.get("dash_red"),
+        d.get("dash_green"),
+        d.get("solid_green"),
+        h4.get("solid_red"),
+        h4.get("dash_red"),
+        h4.get("dash_green"),
+        h4.get("solid_green"),
+    ]
+
+    nums = [_num(v) for v in vals]
+    if any(v is None for v in nums):
+        return False
+
+    d_sr, d_dr, d_dg, d_sg, h_sr, h_dr, h_dg, h_sg = nums
+
+    # Order validation:
+    # solid red < dash red < dash green < solid green
+    return (
+        d_sr < d_dr < d_dg < d_sg and
+        h_sr < h_dr < h_dg < h_sg
+    )
+
+
+def _build_msa_registry_from_nodes():
+    """
+    Builds export-ready MSA packs from current SCADA node state.
+    Pack order:
+    D solid red, D dash red, D dash green, D solid green,
+    H4 solid red, H4 dash red, H4 dash green, H4 solid green
+    """
+    out = {}
+
+    nodes = (((STATE or {}).get("nodes") or {}).get("by_ref") or {})
+    if not isinstance(nodes, dict):
+        return out
+
+    for ref_key, rec in nodes.items():
+        if not isinstance(rec, dict):
+            continue
+
+        ticker = _clean_msa_symbol(rec.get("ticker"))
+        msa = rec.get("msa")
+
+        if not ticker or not _valid_msa_pack(msa):
+            continue
+
+        d = msa.get("D") or {}
+        h4 = msa.get("H4") or {}
+
+        out[ticker] = [
+            _num(d.get("solid_red")),
+            _num(d.get("dash_red")),
+            _num(d.get("dash_green")),
+            _num(d.get("solid_green")),
+            _num(h4.get("solid_red")),
+            _num(h4.get("dash_red")),
+            _num(h4.get("dash_green")),
+            _num(h4.get("solid_green")),
+        ]
+
+    return out
+
+
+def _fmt_pine_float(v):
+    return f"{float(v):.3f}"
+
+
+def _generate_msa_pine_arrays():
+    registry = _build_msa_registry_from_nodes()
+
+    symbols = sorted(registry.keys())
+
+    sym_lines = []
+    val_lines = []
+
+    for s in symbols:
+        sym_lines.append(f'    "{s}"')
+
+        vals = registry[s]
+        val_lines.append(
+            "    " + ", ".join(_fmt_pine_float(v) for v in vals) + f"  // {s}"
+        )
+
+    pine = (
+        "// ============================================================\n"
+        "// Sutton House MSA Manual Fallback Store\n"
+        "// Auto priority. Manual fallback only when AUTO fails validation.\n"
+        "// Pack order:\n"
+        "// D solid red, D dash red, D dash green, D solid green,\n"
+        "// H4 solid red, H4 dash red, H4 dash green, H4 solid green\n"
+        "// ============================================================\n\n"
+        "ArrayMSASym = array.from(\n"
+        + ",\n".join(sym_lines) +
+        "\n)\n\n"
+        "ArrayMSAStore = array.from(\n"
+        + ",\n".join(val_lines) +
+        "\n)\n\n"
+        "MSAPackSize = 8\n"
+    )
+
+    return {
+        "ok": True,
+        "count": len(symbols),
+        "symbols": symbols,
+        "pine": pine,
+    }
+
+
 def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Normalise + store a STOCK lane payload.
