@@ -1229,6 +1229,23 @@ def _valid_msa_pack(msa: dict) -> bool:
         h_sr < h_dr < h_dg < h_sg
     )
 
+
+def _pack_from_msa(msa: dict):
+    d = msa.get("D") or {}
+    h4 = msa.get("H4") or {}
+
+    return [
+        _num(d.get("solid_red")),
+        _num(d.get("dash_red")),
+        _num(d.get("dash_green")),
+        _num(d.get("solid_green")),
+        _num(h4.get("solid_red")),
+        _num(h4.get("dash_red")),
+        _num(h4.get("dash_green")),
+        _num(h4.get("solid_green")),
+    ]
+
+
 def _build_msa_registry_all():
     """
     Builds export-ready MSA packs from every known SCADA MSA source.
