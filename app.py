@@ -1229,6 +1229,66 @@ def _valid_msa_pack(msa: dict) -> bool:
         h_sr < h_dr < h_dg < h_sg
     )
 
+def _build_msa_registry_all():
+    """
+    Builds export-ready MSA packs from every known SCADA MSA source.
+
+    Includes:
+    - node instruments from STATE["nodes"]["by_ref"]
+    - future/global instruments from STATE["msa_registry"] if present
+
+    One symbol = one 8-value pack.
+    """
+    out = {}
+
+    # ============================================================
+    # 1. NODE-LINKED MSA PACKS
+    # ============================================================
+    nodes = (((STATE or {}).get("nodes") or {}).get("by_ref") or {})
+
+    if isinstance(nodes, dict):
+        for ref_key, rec in nodes.items():
+            if not isinstance(rec, dict):
+                continue
+
+            ticker = _clean_msa_symbol(
+                rec.get("ticker_id") or rec.get("ticker")
+            )
+
+            msa = rec.get("msa")
+
+            if not ticker or not _valid_msa_pack(msa):
+                continue
+
+            out[ticker] = _pack_from_msa(msa)
+
+    # ============================================================
+    # 2. GLOBAL / NON-NODE MSA PACKS
+    # Optional future bucket:
+    # STATE["msa_registry"]["OANDA:SPX500USD"] = {"msa": {...}}
+    # or STATE["msa_registry"]["OANDA:SPX500USD"] = {...msa...}
+    # ============================================================
+    global_reg = (STATE or {}).get("msa_registry") or {}
+
+    if isinstance(global_reg, dict):
+        for raw_ticker, rec in global_reg.items():
+            ticker = _clean_msa_symbol(raw_ticker)
+
+            if not ticker:
+                continue
+
+            if isinstance(rec, dict) and "msa" in rec:
+                msa = rec.get("msa")
+            else:
+                msa = rec
+
+            if not _valid_msa_pack(msa):
+                continue
+
+            out[ticker] = _pack_from_msa(msa)
+
+    return out
+
 
 def _build_msa_registry_from_nodes():
     """
@@ -1275,7 +1335,7 @@ def _fmt_pine_float(v):
 
 
 def _generate_msa_pine_arrays():
-    registry = _build_msa_registry_from_nodes()
+    registry = _build_msa_registry_all()
 
     symbols = sorted(registry.keys())
 
