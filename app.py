@@ -2661,7 +2661,74 @@ def _process_event_payload(data: Dict[str, Any]) -> Dict[str, Any] | None:
 
     STATE["nodes"]["by_ref"][ref_key] = node_rec
     return out
-    
+def _refresh_node_event_states() -> list[dict]:
+    changed = []
+
+    try:
+        nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
+        if not isinstance(nodes, dict):
+            return changed
+
+        now_ms = int(time.time() * 1000)
+
+        for ref_key, rec in nodes.items():
+            if not isinstance(rec, dict):
+                continue
+
+            ev = rec.get("event")
+            if not isinstance(ev, dict):
+                continue
+
+            event_ts = _safe_int_or_none(ev.get("event_ts"))
+            if not event_ts:
+                continue
+
+            old_state = ev.get("state")
+            old_days  = ev.get("days")
+            old_active = ev.get("active")
+
+            pre_days = _safe_int_or_none(ev.get("pre_days")) or 5
+            post_days = _safe_int_or_none(ev.get("post_days")) or 5
+
+            active, state, days = _event_state_from_ts(event_ts, now_ms, pre_days, post_days)
+
+            ev["active"] = bool(active)
+            ev["state"] = state
+            ev["days"] = days
+            ev["_server_ts"] = now_ms
+
+            ev_type = str(ev.get("type") or "event").lower()
+            base = "EARNINGS" if ev_type == "earnings" else "DIVIDEND" if ev_type == "dividend" else "EVENT"
+
+            if state == "today":
+                ev["label"] = f"{base} • TODAY"
+            elif state == "pre" and days is not None:
+                ev["label"] = f"{base} • PRE • {days}D"
+            elif state == "post" and days is not None:
+                ev["label"] = f"{base} • POST • {days}D"
+            else:
+                ev["label"] = base
+
+            if old_state != state or old_days != days or old_active != active:
+                changed.append({
+                    "type": "EVENT",
+                    "ref_id": int(ref_key),
+                    "ticker": rec.get("ticker"),
+                    "event_active": bool(active),
+                    "event_type": ev_type,
+                    "event_state": state,
+                    "event_days": days,
+                    "event_ts": event_ts,
+                    "event_label": ev["label"],
+                    "event_pre_days": pre_days,
+                    "event_post_days": post_days,
+                    "_server_ts": now_ms,
+                })
+
+        return changed
+
+    except Exception:
+        return changed    
 # ============================================================
 # WEBHOOK (TradingView direct)  ✅ KEEP ONE COPY ONLY
 # Adds: STOCK LANES (WATCH + SCADA_STATUS + EVENT) -> socket "stock_update"
@@ -2708,7 +2775,9 @@ def webhook():
         with STATE_LOCK:
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
-            _refresh_node_event_states()
+             # Refresh latched event lifecycle and capture UI updates
+            event_refresh_updates = _refresh_node_event_states()
+
             typ = str(data.get("type") or "").strip().upper()
 
             # ----------------------------------------------------
@@ -3411,6 +3480,9 @@ def webhook():
 
         if emit_event2 and emit_payload2 is not None:
             socketio.emit(emit_event2, _json_safe(emit_payload2))
+
+        for ev_msg in (event_refresh_updates or []):
+            socketio.emit("stock_update", _json_safe(ev_msg))
 
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
