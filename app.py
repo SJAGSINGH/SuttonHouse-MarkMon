@@ -620,9 +620,7 @@ def _extract_sentinel_node_snapshot(node):
     }
 
 
-@app.post("/founder/msa-audit/ack")
-@login_required
-def founder_msa_audit_ack():
+
 
     now_ms = int(time.time() * 1000)
 
@@ -2213,7 +2211,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.post("/founder/msa-audit/ack")
+@login_required
+def founder_msa_audit_ack():
 
+    
 # -----------------------------------------
 # Public welcome
 # Always first page
