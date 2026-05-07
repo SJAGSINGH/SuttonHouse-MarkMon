@@ -5860,8 +5860,8 @@ window.handleMacroUpdate = function(payload){
 // ============================================================
 (async function warmStart(){
   try{
-    const r = await fetch('/health', { cache:'no-store' });
-    debugSource = "warmstart /health";
+    const r = await fetch('/health/snapshot', { cache:'no-store' });
+    debugSource = "warmstart /health/snapshot";
     if (!r.ok) return;
 
     const j = await r.json();
