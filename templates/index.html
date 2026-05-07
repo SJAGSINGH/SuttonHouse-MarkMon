@@ -457,7 +457,38 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   display:none;
 }
 
+.msa-audit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: rgba(0, 224, 164, 0.85);
+}
+
+#msa-audit-status {
+  white-space: nowrap;
+}
+
+#msa-audit-btn {
+  border: 1px solid rgba(0, 224, 164, 0.35);
+  background: transparent;
+  color: rgba(0, 224, 164, 0.95);
+
+  padding: 6px 10px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+}
+
+#msa-audit-btn:hover {
+  opacity: 0.85;
+}
 
 /* kill old rail classes if still present */
 .right-rail,
@@ -2351,13 +2382,27 @@ main.grid > #cr-dump-full{
 
 
   <div class="macro-header">
+
   <div>Macro Analysis</div>
+
+  <div id="msa-audit-wrap" class="msa-audit-wrap">
+    <span id="msa-audit-status">MSA AUDIT CLEAR</span>
+
+    <button
+      id="msa-audit-btn"
+      onclick="ackMsaAudit()"
+      style="display:none;"
+    >
+      ACK
+    </button>
+  </div>
 
   <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
     <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
     <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
   </div>
 
+</div>
   <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
 </div>
 
@@ -2672,6 +2717,33 @@ function formatMSALine(label, value){
       <span class="msa-line-value">${value}</span>
     </div>
   `;
+}
+
+async function ackMsaAudit() {
+  await fetch("/founder/msa-audit/ack", {
+    method: "POST"
+  });
+}
+
+
+function updateMsaAudit(state) {
+
+  const wrap = document.getElementById("msa-audit-wrap");
+  const status = document.getElementById("msa-audit-status");
+  const btn = document.getElementById("msa-audit-btn");
+
+  if (!wrap || !status || !btn) return;
+
+  const audit = state?.msa_audit || {};
+  const required = audit.required === true;
+
+  status.textContent = required
+    ? "FOUNDER MSA AUDIT REQUIRED"
+    : "MSA AUDIT CLEAR";
+
+  btn.style.display = required
+    ? "inline-block"
+    : "none";
 }
    
 function openMsaRailForRef(ref){
@@ -5835,23 +5907,31 @@ window.handleMacroUpdate = function(payload){
 
 
   // ============================================================
-  // ROUTE ALL LIVE DATA THROUGH ENTRY POINT
-  // ============================================================
-  if (socket){
-   socket.on('macro_update', (data) => {
-  triggerPulse();
+// ROUTE ALL LIVE DATA THROUGH ENTRY POINT
+// ============================================================
+if (socket) {
+  socket.on("macro_update", (data) => {
+    triggerPulse();
 
-  // Let the canonical handler normalize + paint
-  if (typeof window.handleMacroUpdate === "function") window.handleMacroUpdate(data);
-  else applyAllFromState(data);
-
-  // Use the normalized last payload if available
-  const p = window.__RSC_LAST || data;
-  rscSetComms("socket.io macro_update", p);
-
-  if (debugOn) refreshDebugNow();
-});
+    // Let the canonical handler normalize + paint
+    if (typeof window.handleMacroUpdate === "function") {
+      window.handleMacroUpdate(data);
+    } else {
+      applyAllFromState(data);
     }
+
+    // Founder 14-day MSA audit display
+    if (typeof updateMsaAudit === "function") {
+      updateMsaAudit(data);
+    }
+
+    // Use the normalized last payload if available
+    const p = window.__RSC_LAST || data;
+    rscSetComms("socket.io macro_update", p);
+
+    if (debugOn) refreshDebugNow();
+  });
+}
 
  // ============================================================
 // WARM START (HEALTH)
