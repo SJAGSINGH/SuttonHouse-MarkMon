@@ -24,6 +24,8 @@ from threading import Lock
 from typing import Any, Dict, Optional
 from collections import deque
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
 # ============================================================
 # SENTINEL LOGGING V1
 # append-only JSONL event journal
@@ -47,7 +49,7 @@ SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
 
 
 
-
+MSA_AUDIT_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000
 
 
 VAULT_PASSWORD = (os.environ.get("VAULT_PASSWORD") or "").strip()
@@ -82,7 +84,17 @@ STATE: Dict[str, Any] = {
     "flow": None,
     "count": None,
     "sahm": None,
-
+    # ============================================================
+    # MSA Audit Alarm
+    # ============================================================
+    "msa_audit": {
+        "required": False,
+        "status": "OK",
+        "reason": "",
+        "last_ack_ts": None,
+        "last_alarm_ts": None,
+        "source": "system"
+    },
     # ============================================================
     # MACRO V2 — EXTENDED LAYER (NON-DESTRUCTIVE TO V1)
     # ============================================================
@@ -239,10 +251,41 @@ DEBUG_MAX = 250
 DEBUG_LOG = deque(maxlen=DEBUG_MAX)
 DEBUG_LOCK = Lock()
 
+UK_TZ = ZoneInfo("Europe/London")
+
+
 def _iso(ts_ms):
     if not ts_ms:
         return ""
-    return datetime.utcfromtimestamp(ts_ms / 1000).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    dt = datetime.fromtimestamp(
+        ts_ms / 1000,
+        tz=ZoneInfo("UTC")
+    ).astimezone(UK_TZ)
+
+    return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+def _msa_audit_alarm(required: bool, reason: str = "", source: str = "system"):
+    with STATE_LOCK:
+        STATE["msa_audit"] = {
+            "required": bool(required),
+            "status": "ALARM" if required else "OK",
+            "reason": reason if required else "",
+            "last_ack_ts": STATE.get("msa_audit", {}).get("last_ack_ts"),
+            "last_alarm_ts": _now_iso() if required else STATE.get("msa_audit", {}).get("last_alarm_ts"),
+            "source": source
+        }
+
+        save_state()
+
+        socketio.emit("stock_update", {
+            "type": "MSA_AUDIT",
+            "required": bool(required),
+            "status": "ALARM" if required else "OK",
+            "reason": reason if required else "",
+            "source": source,
+            "_server_ts": _now_iso()
+        })
 
 def _safe_short_json(obj, limit=2000):
     try:
@@ -328,9 +371,57 @@ def _json_safe(x):
 
     return x
 
+
+def _refresh_msa_audit():
+    now_ms = int(time.time() * 1000)
+
+    audit = STATE.setdefault("msa_audit", {})
+
+    last_ack = audit.get("last_ack_ts")
+
+    if not last_ack:
+        last_ack = now_ms
+        audit["last_ack_ts"] = now_ms
+
+    overdue = (now_ms - last_ack) >= MSA_AUDIT_INTERVAL_MS
+
+    audit["required"] = overdue
+    audit["status"] = "ALARM" if overdue else "OK"
+
+    if overdue:
+        audit["reason"] = "14-day founder MSA audit required"
+        audit["last_alarm_ts"] = now_ms
+    else:
+        audit["reason"] = ""
+
+    audit["source"] = "system"
+    
 # ----------------------------
 # Helpers
 # ----------------------------
+def _refresh_msa_audit():
+    now_ms = int(time.time() * 1000)
+
+    audit = STATE.setdefault("msa_audit", {})
+
+    last_ack = audit.get("last_ack_ts")
+
+    if not last_ack:
+        last_ack = now_ms
+        audit["last_ack_ts"] = now_ms
+
+    overdue = (now_ms - last_ack) >= MSA_AUDIT_INTERVAL_MS
+
+    audit["required"] = overdue
+    audit["status"] = "ALARM" if overdue else "OK"
+
+    if overdue:
+        audit["reason"] = "14-day founder MSA audit required"
+        audit["last_alarm_ts"] = now_ms
+    else:
+        audit["reason"] = ""
+
+    audit["source"] = "system"
 # ============================================================
 # SENTINEL LOGGING HELPERS
 # ============================================================
@@ -527,6 +618,35 @@ def _extract_sentinel_node_snapshot(node):
         "msa_ok": src.get("msa_ok"),
         "weekly_up": src.get("weekly_up"),
     }
+
+
+@app.post("/founder/msa-audit/ack")
+@login_required
+def founder_msa_audit_ack():
+    with STATE_LOCK:
+        STATE["msa_audit"] = {
+            "required": False,
+            "status": "OK",
+            "reason": "",
+            "last_ack_ts": _now_iso(),
+            "last_alarm_ts": STATE.get("msa_audit", {}).get("last_alarm_ts"),
+            "source": "founder_ack"
+        }
+
+        save_state()
+
+    socketio.emit("stock_update", {
+        "type": "MSA_AUDIT",
+        "required": False,
+        "status": "OK",
+        "reason": "",
+        "source": "founder_ack",
+        "_server_ts": _now_iso()
+    })
+
+    return jsonify({"ok": True})
+
+
 
 def _get_monitor_nodes():
     out = []
@@ -1026,6 +1146,10 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
     """
     try:
         typ = str(data.get("type") or "").strip().upper()
+
+
+        
+        
         if typ not in NODE_TYPES:
             return
 
@@ -1416,7 +1540,6 @@ def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if market in STATE["anchors"]:
             STATE["anchors"][market] = msg
             STATE["_server_ts"] = int(time.time() * 1000)
-
         return None
     
     if typ not in ("SCADA_STATUS", "WATCH"):
@@ -2769,13 +2892,18 @@ def webhook():
         emit_event2 = None
         emit_payload2 = None
 
-        # ====================================================
+         # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
         # ====================================================
         with STATE_LOCK:
+
             # always stamp
             STATE["_server_ts"] = int(time.time() * 1000)
-             # Refresh latched event lifecycle and capture UI updates
+
+            # Founder 14-day MSA audit timer
+            _refresh_msa_audit()
+
+            # Refresh latched event lifecycle and capture UI updates
             event_refresh_updates = _refresh_node_event_states()
 
             typ = str(data.get("type") or "").strip().upper()
@@ -2936,7 +3064,7 @@ def webhook():
                     (fx.get("gbpaud") or {}).get("state"),
                 )
 
-                       # ====================================================
+            # ====================================================
             # MARKET ANCHOR FAST PATH
             # ====================================================
             if typ == "ANCHOR_UPDATE":
@@ -3429,6 +3557,7 @@ def webhook():
 
                 if typ == "MACRO_V2_RATIO":
                     lane = str(data.get("lane") or "").strip().lower()
+
                     if lane == "gold_copper":
                         STATE["macro_v2"]["gc"] = {
                             "state": _normalise_str(data.get("state")),
@@ -3474,6 +3603,7 @@ def webhook():
                             "trend_50sma": _normalise_str(data.get("gbpcad_trend")),
                             "msa_pct": _safe_float(data.get("gbpcad_msa")),
                         }
+
                         STATE["macro_v2"]["fx"]["gbpaud"] = {
                             "state": _normalise_str(data.get("gbpaud_state")),
                             "trend_50sma": _normalise_str(data.get("gbpaud_trend")),
@@ -3482,7 +3612,13 @@ def webhook():
 
                 try:
                     if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
-                        STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
+                        STATE["card2"] = {
+                            "state": None,
+                            "text": None,
+                            "time": None,
+                            "tf": None,
+                            "ref_id": None,
+                        }
 
                     if typ == "CARD2":
                         st = data.get("state")
@@ -3490,6 +3626,7 @@ def webhook():
 
                         if st is not None:
                             STATE["card2"]["state"] = str(st).strip().upper()
+
                         if tx is not None:
                             STATE["card2"]["text"] = str(tx).strip()
 
@@ -3499,12 +3636,14 @@ def webhook():
 
                     else:
                         c2 = data.get("card2")
+
                         if isinstance(c2, dict):
                             st = c2.get("state")
                             tx = c2.get("text")
 
                             if st is not None:
                                 STATE["card2"]["state"] = str(st).strip().upper()
+
                             if tx is not None:
                                 STATE["card2"]["text"] = str(tx).strip()
 
