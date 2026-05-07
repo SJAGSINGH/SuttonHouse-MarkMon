@@ -2397,15 +2397,26 @@ main.grid > #cr-dump-full{
     </button>
   </div>
 
-  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
-    <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
-    <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
-  </div>
+  <div
+  id="founder-controls"
+  style="margin-left:auto; display:none; align-items:center; gap:10px;"
+>
+  <button id="vault-exit" onclick="closeVault()">
+    ← Exit Secure Layer
+  </button>
+
+  <button id="msa-export-btn" type="button">
+    EXPORT MSA LIB
+  </button>
+</div>
 
 </div>
-  <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
+
+<div id="war-badge">
+  INSTITUTIONAL PARTICIPATION CONFIRMED
 </div>
 
+</div>
  
   <main class="grid">
    <div class="card" id="card-1">
