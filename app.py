@@ -623,14 +623,17 @@ def _extract_sentinel_node_snapshot(node):
 @app.post("/founder/msa-audit/ack")
 @login_required
 def founder_msa_audit_ack():
+
+    now_ms = int(time.time() * 1000)
+
     with STATE_LOCK:
         STATE["msa_audit"] = {
             "required": False,
             "status": "OK",
             "reason": "",
-            "last_ack_ts": _now_iso(),
+            "last_ack_ts": now_ms,
             "last_alarm_ts": STATE.get("msa_audit", {}).get("last_alarm_ts"),
-            "source": "founder_ack"
+            "source": "founder_ack",
         }
 
         save_state()
@@ -641,10 +644,11 @@ def founder_msa_audit_ack():
         "status": "OK",
         "reason": "",
         "source": "founder_ack",
-        "_server_ts": _now_iso()
+        "_server_ts": now_ms,
     })
 
     return jsonify({"ok": True})
+
 
 
 
