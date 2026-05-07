@@ -2385,9 +2385,13 @@ main.grid > #cr-dump-full{
 
   <div>Macro Analysis</div>
 
-  <div class="macro-header-right">
+  <div
+    id="founder-controls"
+    class="macro-header-right"
+    style="display:none;"
+  >
 
-    <div id="msa-audit-wrap" class="msa-audit-wrap" style="display:none;">
+    <div id="msa-audit-wrap" class="msa-audit-wrap">
       <span id="msa-audit-status">MSA AUDIT CLEAR</span>
 
       <button
@@ -2399,18 +2403,13 @@ main.grid > #cr-dump-full{
       </button>
     </div>
 
-    <div
-      id="founder-controls"
-      style="display:none; align-items:center; gap:10px;"
-    >
-      <button id="vault-exit" onclick="closeVault()">
-        ← Exit Secure Layer
-      </button>
+    <button id="vault-exit" onclick="closeVault()">
+      ← Exit Secure Layer
+    </button>
 
-      <button id="msa-export-btn" type="button">
-        EXPORT MSA LIB
-      </button>
-    </div>
+    <button id="msa-export-btn" type="button">
+      EXPORT MSA LIB
+    </button>
 
     <div id="war-badge">
       INSTITUTIONAL PARTICIPATION CONFIRMED
