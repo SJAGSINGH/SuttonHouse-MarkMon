@@ -251,11 +251,18 @@ DEBUG_MAX = 250
 DEBUG_LOG = deque(maxlen=DEBUG_MAX)
 DEBUG_LOCK = Lock()
 
+
+
 UK_TZ = ZoneInfo("Europe/London")
 
 
 def _iso(ts_ms):
     if not ts_ms:
+        return ""
+
+    try:
+        ts_ms = int(ts_ms)
+    except Exception:
         return ""
 
     dt = datetime.fromtimestamp(
