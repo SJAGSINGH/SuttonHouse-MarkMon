@@ -3137,169 +3137,169 @@ def webhook():
                 out["_server_ts"] = int(time.time() * 1000)
 
                 if typ == "SCADA_STATUS":
-    master_cycle_120 = STATE.get("cycle_120")
-    master_cycle = STATE.get("cycle")
+                    master_cycle_120 = STATE.get("cycle_120")
+                    master_cycle = STATE.get("cycle")
 
-    if master_cycle_120 is not None or master_cycle is not None:
-        out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
-        out["cycle"] = master_cycle
+                    if master_cycle_120 is not None or master_cycle is not None:
+                        out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
+                        out["cycle"] = master_cycle
 
-        if STATE.get("regime") is not None:
-            out["regime"] = STATE.get("regime")
-        if STATE.get("vol") is not None:
-            out["vol"] = STATE.get("vol")
+                        if STATE.get("regime") is not None:
+                            out["regime"] = STATE.get("regime")
+                        if STATE.get("vol") is not None:
+                            out["vol"] = STATE.get("vol")
 
-        if STATE.get("s1_allowed") is not None:
-            out["s1_allowed"] = STATE.get("s1_allowed")
-        if STATE.get("s2_allowed") is not None:
-            out["s2_allowed"] = STATE.get("s2_allowed")
-        if STATE.get("s3_watch") is not None:
-            out["s3_watch"] = STATE.get("s3_watch")
-        if STATE.get("s3_armed") is not None:
-            out["s3_armed"] = STATE.get("s3_armed")
-        if STATE.get("s3_allowed") is not None:
-            out["s3_allowed"] = STATE.get("s3_allowed")
-    else:
-        for k in (
-            "cycle_120", "cycle", "regime", "vol",
-            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
-        ):
-            out.pop(k, None)
+                        if STATE.get("s1_allowed") is not None:
+                            out["s1_allowed"] = STATE.get("s1_allowed")
+                        if STATE.get("s2_allowed") is not None:
+                            out["s2_allowed"] = STATE.get("s2_allowed")
+                        if STATE.get("s3_watch") is not None:
+                            out["s3_watch"] = STATE.get("s3_watch")
+                        if STATE.get("s3_armed") is not None:
+                            out["s3_armed"] = STATE.get("s3_armed")
+                        if STATE.get("s3_allowed") is not None:
+                            out["s3_allowed"] = STATE.get("s3_allowed")
+                    else:
+                        for k in (
+                            "cycle_120", "cycle", "regime", "vol",
+                            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
+                        ):
+                            out.pop(k, None)
 
-    if typ == "SCADA_STATUS":
-        STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
-    else:
-        STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
+                if typ == "SCADA_STATUS":
+                    STATE["stocks"]["last_scada_by_ref"][str(ref_id)] = out
+                else:
+                    STATE["stocks"]["last_watch_by_ref"][str(ref_id)] = out
 
-    try:
-        _store_node_payload(out)
-    except Exception:
-        pass
-
-    # ------------------------------------------------------------
-    # MESSAGE SYSTEM — GLOBAL CLUSTER AUTHORITY
-    # Step 2 WAIT        = no node setup, no node signal
-    # Step 3 SETUP_WAIT  = at least one setup, no live signal
-    # Step 4 SIGNAL      = at least one live production fire
-    # Step 4 only clears when ALL nodes are signal-free.
-    # ------------------------------------------------------------
-    if typ == "SCADA_STATUS":
-
-        def _truthy(v) -> bool:
-            if v is True:
-                return True
-            if v is False or v is None:
-                return False
-            s = str(v).strip().upper()
-            return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
-
-        prev_msg = dict(STATE.get("message") or {})
-
-        nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
-
-        any_node_signal = False
-        any_node_setup = False
-        signal_ticker = ""
-        signal_ref_id = None
-        setup_ticker = ""
-        setup_ref_id = None
-
-        if isinstance(nodes, dict):
-            for _, rec in nodes.items():
-                if not isinstance(rec, dict):
-                    continue
-
-                src = rec.get("last_scada_status") or {}
-                if not isinstance(src, dict):
-                    continue
-
-                node_ref = src.get("ref_id") or rec.get("ref_id")
                 try:
-                    node_ref = int(node_ref) if node_ref is not None else None
+                    _store_node_payload(out)
                 except Exception:
-                    node_ref = None
+                    pass
 
-                node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
+                # ------------------------------------------------------------
+                # MESSAGE SYSTEM — GLOBAL CLUSTER AUTHORITY
+                # Step 2 WAIT        = no node setup, no node signal
+                # Step 3 SETUP_WAIT  = at least one setup, no live signal
+                # Step 4 SIGNAL      = at least one live production fire
+                # Step 4 only clears when ALL nodes are signal-free.
+                # ------------------------------------------------------------
+                if typ == "SCADA_STATUS":
 
-                # Production fire only.
-                # Do NOT use signal / signal_any here because those may be latched.
-                node_signal = (
-                    _truthy(src.get("mvFire_D")) or
-                    _truthy(src.get("mvFire_4H")) or
-                    _truthy(src.get("jrFire_D")) or
-                    _truthy(src.get("jrFire_4H")) or
-                    _truthy(src.get("trigger_any"))
-                )
+                    def _truthy(v) -> bool:
+                        if v is True:
+                            return True
+                        if v is False or v is None:
+                            return False
+                        s = str(v).strip().upper()
+                        return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
 
-                # Setup memory / armed state.
-                node_setup = (
-                    _truthy(src.get("trigger_armed")) or
-                    _truthy(src.get("setup_any")) or
-                    _truthy(src.get("pill_setup_any"))
-                )
+                    prev_msg = dict(STATE.get("message") or {})
 
-                if node_signal:
-                    any_node_signal = True
-                    if not signal_ticker:
-                        signal_ticker = node_ticker
-                        signal_ref_id = node_ref
+                    nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
 
-                if node_setup:
-                    any_node_setup = True
-                    if not setup_ticker:
-                        setup_ticker = node_ticker
-                        setup_ref_id = node_ref
+                    any_node_signal = False
+                    any_node_setup = False
+                    signal_ticker = ""
+                    signal_ref_id = None
+                    setup_ticker = ""
+                    setup_ref_id = None
 
-        if any_node_signal:
-            msg_state = "SIGNAL"
-            trig_text = "TRIGGER"
-            msg_ticker = signal_ticker
-            msg_ref_id = signal_ref_id
-            setup_flag = True
+                    if isinstance(nodes, dict):
+                        for _, rec in nodes.items():
+                            if not isinstance(rec, dict):
+                                continue
 
-        elif any_node_setup:
-            msg_state = "SETUP_WAIT"
-            trig_text = "—"
-            msg_ticker = setup_ticker
-            msg_ref_id = setup_ref_id
-            setup_flag = True
+                            src = rec.get("last_scada_status") or {}
+                            if not isinstance(src, dict):
+                                continue
 
-        else:
-            msg_state = "WAIT"
-            trig_text = "—"
-            msg_ticker = ""
-            msg_ref_id = None
-            setup_flag = False
+                            node_ref = src.get("ref_id") or rec.get("ref_id")
+                            try:
+                                node_ref = int(node_ref) if node_ref is not None else None
+                            except Exception:
+                                node_ref = None
 
-        new_msg = {
-            "state": msg_state,
-            "setup": setup_flag,
-            "trigger": trig_text,
-            "ticker": msg_ticker,
-            "ref_id": msg_ref_id,
-            "_ts": int(time.time() * 1000),
-        }
+                            node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
 
-        if new_msg != prev_msg:
-            STATE["message"] = new_msg
-            emit_event2 = "macro_update"
-            emit_payload2 = copy.deepcopy(STATE)
+                            # Production fire only.
+                            # Do NOT use signal / signal_any here because those may be latched.
+                            node_signal = (
+                                _truthy(src.get("mvFire_D")) or
+                                _truthy(src.get("mvFire_4H")) or
+                                _truthy(src.get("jrFire_D")) or
+                                _truthy(src.get("jrFire_4H")) or
+                                _truthy(src.get("trigger_any"))
+                            )
 
-    _update_monitor_lane(_extract_meta(out))
+                            # Setup memory / armed state.
+                            node_setup = (
+                                _truthy(src.get("trigger_armed")) or
+                                _truthy(src.get("setup_any")) or
+                                _truthy(src.get("pill_setup_any"))
+                            )
 
-    try:
-        process_sentinel_node_logging(out)
-    except Exception:
-        pass
+                            if node_signal:
+                                any_node_signal = True
+                                if not signal_ticker:
+                                    signal_ticker = node_ticker
+                                    signal_ref_id = node_ref
 
-    try:
-        process_sentinel_cluster_logging()
-    except Exception:
-        pass
+                            if node_setup:
+                                any_node_setup = True
+                                if not setup_ticker:
+                                    setup_ticker = node_ticker
+                                    setup_ref_id = node_ref
 
-    do_save = True
-    emit_event = "stock_update"
-    emit_payload = out
+                    if any_node_signal:
+                        msg_state = "SIGNAL"
+                        trig_text = "TRIGGER"
+                        msg_ticker = signal_ticker
+                        msg_ref_id = signal_ref_id
+                        setup_flag = True
+
+                    elif any_node_setup:
+                        msg_state = "SETUP_WAIT"
+                        trig_text = "—"
+                        msg_ticker = setup_ticker
+                        msg_ref_id = setup_ref_id
+                        setup_flag = True
+
+                    else:
+                        msg_state = "WAIT"
+                        trig_text = "—"
+                        msg_ticker = ""
+                        msg_ref_id = None
+                        setup_flag = False
+
+                    new_msg = {
+                        "state": msg_state,
+                        "setup": setup_flag,
+                        "trigger": trig_text,
+                        "ticker": msg_ticker,
+                        "ref_id": msg_ref_id,
+                        "_ts": int(time.time() * 1000),
+                    }
+
+                    if new_msg != prev_msg:
+                        STATE["message"] = new_msg
+                        emit_event2 = "macro_update"
+                        emit_payload2 = copy.deepcopy(STATE)
+
+                _update_monitor_lane(_extract_meta(out))
+
+                try:
+                    process_sentinel_node_logging(out)
+                except Exception:
+                    pass
+
+                try:
+                    process_sentinel_cluster_logging()
+                except Exception:
+                    pass
+
+                do_save = True
+                emit_event = "stock_update"
+                emit_payload = out
             else:
                 # ------------------------------------------------
                 # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
