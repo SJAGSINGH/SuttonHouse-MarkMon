@@ -2829,12 +2829,15 @@ function setTooltip(el, text){
   }
 }
 
-function updateFounderTools(){
+ffunction updateFounderTools() {
+
   const rail = document.getElementById("founder-controls");
 
   if (!rail) return;
 
-  rail.style.display = (founderMode || secretMode)
+  const show = (founderMode || secretMode);
+
+  rail.style.display = show
     ? "flex"
     : "none";
 }
