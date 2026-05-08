@@ -4498,9 +4498,15 @@ function _updateDebugBtn() {
   window.closeVault = closeVault;
 
   function setWarBadge(active){
-    const badge = document.getElementById('war-badge'); if (!badge) return;
-    badge.style.display = (!secretMode && active) ? 'inline-flex' : 'none';
-  }
+  const badge = document.getElementById("war-badge");
+  if (!badge) return;
+
+  const founderOpen = founderMode || secretMode;
+
+  badge.style.display = (founderOpen && active)
+    ? "inline-flex"
+    : "none";
+}
 // ============================
 // FOUNDER HAZE — SAFE GUARD
 // (prevents render-kill if function missing)
