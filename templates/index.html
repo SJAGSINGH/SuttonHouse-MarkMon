@@ -452,10 +452,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
 
 
-#vault-exit,
-#msa-export-btn{
-  display:none;
-}
+
 
 .msa-audit-wrap {
   display: flex;
@@ -646,7 +643,6 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
   #vault-exit,
 #msa-export-btn{
-  display:none;                 /* hidden until JS enables */
   align-items:center;
   justify-content:center;
 
@@ -2034,10 +2030,7 @@ main.grid > #cr-dump-full{
   box-shadow:0 0 12px rgba(0,255,170,0.20);
 } 
 
- #vault-exit,
-#msa-export-btn{
-  display:none;
-}
+
 </style>
 
 </head>
@@ -2630,7 +2623,7 @@ setTerminalStatus('OFFLINE');
   if (clock){
     clock.innerText = now.toLocaleTimeString('en-GB', {
       hour12: false,
-      timeZone: 'UTC'
+      timeZone: 'Europe/London'
     });
   }
 
@@ -2837,11 +2830,12 @@ function setTooltip(el, text){
 }
 
 function updateFounderTools(){
-  const btn = document.getElementById("msa-export-btn");
-  if (!btn) return;
+  const rail = document.getElementById("founder-controls");
 
-  btn.style.display = (founderMode || secretMode)
-    ? "inline-flex"
+  if (!rail) return;
+
+  rail.style.display = (founderMode || secretMode)
+    ? "flex"
     : "none";
 }
 
