@@ -643,6 +643,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
   #vault-exit,
 #msa-export-btn{
+  display:none;
   align-items:center;
   justify-content:center;
 
@@ -2030,6 +2031,24 @@ main.grid > #cr-dump-full{
   box-shadow:0 0 12px rgba(0,255,170,0.20);
 } 
 
+ .macro-header-tools{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.msa-audit-wrap{
+  display:none;
+  align-items:center;
+  gap:8px;
+  color:rgba(0,255,170,0.9);
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
 
 </style>
 
@@ -2375,41 +2394,19 @@ main.grid > #cr-dump-full{
 
 
 <div class="macro-header">
-
   <div>Macro Analysis</div>
 
-  <div
-    id="founder-controls"
-    class="macro-header-right"
-    style="display:none;"
-  >
-
-    <div id="msa-audit-wrap" class="msa-audit-wrap">
+  <div class="macro-header-tools">
+    <div id="msa-audit-wrap" class="msa-audit-wrap" style="display:none;">
       <span id="msa-audit-status">MSA AUDIT CLEAR</span>
-
-      <button
-        id="msa-audit-btn"
-        onclick="ackMsaAudit()"
-        style="display:none;"
-      >
-        ACK
-      </button>
+      <button id="msa-audit-btn" onclick="ackMsaAudit()" style="display:none;">ACK</button>
     </div>
 
-    <button id="vault-exit" onclick="closeVault()">
-      ← Exit Secure Layer
-    </button>
+    <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+    <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
 
-    <button id="msa-export-btn" type="button">
-      EXPORT MSA LIB
-    </button>
-
-    <div id="war-badge">
-      INSTITUTIONAL PARTICIPATION CONFIRMED
-    </div>
-
+    <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
   </div>
-
 </div>
  
   <main class="grid">
@@ -2829,17 +2826,19 @@ function setTooltip(el, text){
   }
 }
 
-function updateFounderTools() {
+function updateFounderTools(){
+  const founderOpen = founderMode || secretMode;
 
-  const rail = document.getElementById("founder-controls");
+  const exitBtn = document.getElementById("vault-exit");
+  const exportBtn = document.getElementById("msa-export-btn");
+  const auditWrap = document.getElementById("msa-audit-wrap");
 
-  if (!rail) return;
+  if (exitBtn) exitBtn.style.display = founderOpen ? "inline-flex" : "none";
+  if (exportBtn) exportBtn.style.display = founderOpen ? "inline-flex" : "none";
+  if (auditWrap) auditWrap.style.display = founderOpen ? "inline-flex" : "none";
 
-  const show = (founderMode || secretMode);
-
-  rail.style.display = show
-    ? "flex"
-    : "none";
+  const warActive = window.__RSC_LAST?.secret?.war?.active === true;
+  setWarBadge(warActive);
 }
 
 async function exportMsaLibTxt(){
