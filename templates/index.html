@@ -2031,13 +2031,11 @@ main.grid > #cr-dump-full{
   box-shadow:0 0 12px rgba(0,255,170,0.20);
 } 
 
- .macro-header-tools{
+.macro-header-tools{
   margin-left:auto;
-
   display:flex;
   align-items:center;
   justify-content:flex-end;
-
   gap:10px;
   flex-wrap:nowrap;
   white-space:nowrap;
@@ -2053,6 +2051,53 @@ main.grid > #cr-dump-full{
   text-transform:uppercase;
   white-space:nowrap;
 }
+
+#vault-exit,
+#msa-export-btn,
+.msa-audit-wrap{
+  display:none;
+  align-items:center;
+  justify-content:center;
+
+  min-width:210px;
+  height:38px;
+  padding:0 14px;
+
+  border-radius:10px;
+  border:1px solid rgba(0,255,170,0.28);
+
+  background:rgba(0,0,0,0.22);
+  color:rgba(0,255,170,0.92);
+
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  white-space:nowrap;
+
+  cursor:pointer;
+}
+
+#msa-audit-wrap{
+  cursor:default;
+}
+
+#msa-audit-btn{
+  display:none;
+  margin-left:8px;
+  min-width:58px;
+  height:28px;
+  padding:0 10px;
+
+  border-radius:8px;
+  border:1px solid rgba(0,255,170,0.28);
+  background:rgba(0,0,0,0.22);
+  color:rgba(0,255,170,0.92);
+
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+} 
 
 </style>
 
@@ -2401,15 +2446,18 @@ main.grid > #cr-dump-full{
   <div>Macro Analysis</div>
 
   <div class="macro-header-tools">
-    <div id="msa-audit-wrap" class="msa-audit-wrap" style="display:none;">
+
+    <div id="msa-audit-wrap" class="msa-audit-wrap">
       <span id="msa-audit-status">MSA AUDIT CLEAR</span>
-      <button id="msa-audit-btn" onclick="ackMsaAudit()" style="display:none;">ACK</button>
+      <button id="msa-audit-btn" onclick="ackMsaAudit()">ACK</button>
     </div>
 
     <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+
     <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
 
     <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
+
   </div>
 </div>
  
@@ -2831,17 +2879,20 @@ function setTooltip(el, text){
 }
 
 function updateFounderTools(){
-  const founderOpen = founderMode || secretMode;
+
+  const vaultOpen = secretMode === true;
 
   const exitBtn = document.getElementById("vault-exit");
   const exportBtn = document.getElementById("msa-export-btn");
   const auditWrap = document.getElementById("msa-audit-wrap");
 
-  if (exitBtn) exitBtn.style.display = founderOpen ? "inline-flex" : "none";
-  if (exportBtn) exportBtn.style.display = founderOpen ? "inline-flex" : "none";
-  if (auditWrap) auditWrap.style.display = founderOpen ? "inline-flex" : "none";
+  if (exitBtn) exitBtn.style.display = vaultOpen ? "inline-flex" : "none";
+  if (exportBtn) exportBtn.style.display = vaultOpen ? "inline-flex" : "none";
+  if (auditWrap) auditWrap.style.display = vaultOpen ? "inline-flex" : "none";
 
-  const warActive = window.__RSC_LAST?.secret?.war?.active === true;
+  const warActive =
+    window.__RSC_LAST?.secret?.war?.active === true;
+
   setWarBadge(warActive);
 }
 
@@ -4471,17 +4522,17 @@ function _updateDebugBtn() {
   updateFounderTools();   // ✅ ADD HERE
 }
 
- function closeVault(){
+function closeVault(){
   secretMode = false;
   _updateDebugBtn();
-
-  const exitBtn = document.getElementById('vault-exit');
-  if (exitBtn) exitBtn.style.display = 'none';
 
   const sub2 = document.getElementById('sub-2');
   if (sub2) sub2.style.removeProperty('color');
 
-  hideGauge('gauge-1'); hideGauge('gauge-2'); hideGauge('gauge-3');
+  hideGauge('gauge-1');
+  hideGauge('gauge-2');
+  hideGauge('gauge-3');
+
   setText('h3-1','Regime & Volatility');
   setText('h3-2','Capital Rotation');
   setText('h3-3','CYCLE CLOCK');
@@ -4490,25 +4541,24 @@ function _updateDebugBtn() {
   else if (lastState) applyAllFromState(lastState);
   else applyAllFromState({});
 
-  // 🔑 ensure Card2 colour + halo stick
   setTimeout(() => applyAllFromState(window.__RSC_LAST || lastState || {}), 0);
 
   _updateDebugBtn();
-  updateFounderTools();   // ✅ ADD HERE
+  updateFounderTools();
 }
-
   
   window.closeVault = closeVault;
 
-  function setWarBadge(active){
+function setWarBadge(active){
   const badge = document.getElementById("war-badge");
   if (!badge) return;
 
-  const founderOpen = founderMode || secretMode;
+  const founderOpen = founderMode === true;
 
-  badge.style.display = (founderOpen && active)
-    ? "inline-flex"
-    : "none";
+  badge.style.display =
+    (founderOpen && active === true)
+      ? "inline-flex"
+      : "none";
 }
 // ============================
 // FOUNDER HAZE — SAFE GUARD
