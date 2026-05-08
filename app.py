@@ -2580,32 +2580,38 @@ def _safe_int_or_none(v):
         return None
 
 
+from datetime import datetime, timezone
+
 def _event_state_from_ts(event_ts_ms, now_ms, pre_days=5, post_days=5):
     """
-    Server-authoritative event lifecycle.
+    Server-authoritative calendar-day event lifecycle.
     Returns: active, state, days
       state in {"pre","today","post","none"}
       days:
-        pre  -> positive days until event
-        today-> 0
-        post -> positive days since event
+        pre   -> positive calendar days until event
+        today -> 0
+        post  -> positive calendar days since event
     """
     if not event_ts_ms:
         return False, "none", None
 
-    delta_ms = int(event_ts_ms) - int(now_ms)
+    try:
+        event_date = datetime.fromtimestamp(int(event_ts_ms) / 1000, tz=timezone.utc).date()
+        now_date   = datetime.fromtimestamp(int(now_ms) / 1000, tz=timezone.utc).date()
+    except Exception:
+        return False, "none", None
 
-    # same calendar-day style tolerance
-    if abs(delta_ms) < DAY_MS:
+    day_diff = (event_date - now_date).days
+
+    if day_diff == 0:
         return True, "today", 0
 
-    if delta_ms > 0:
-        days_to = int(math.ceil(delta_ms / DAY_MS))
-        if days_to <= int(pre_days):
-            return True, "pre", days_to
-        return False, "none", days_to
+    if day_diff > 0:
+        if day_diff <= int(pre_days):
+            return True, "pre", day_diff
+        return False, "none", day_diff
 
-    days_since = int(math.floor(abs(delta_ms) / DAY_MS))
+    days_since = abs(day_diff)
     if days_since <= int(post_days):
         return True, "post", days_since
 
