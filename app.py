@@ -15,7 +15,7 @@ from flask_socketio import SocketIO, emit
 from functools import wraps
 import os
 import re
-import time
+import timeapp
 import json
 import atexit
 import copy
@@ -25,6 +25,7 @@ from typing import Any, Dict, Optional
 from collections import deque
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from auth import init_auth, login_required, founder_required
 
 # ============================================================
 # SENTINEL LOGGING V1
@@ -41,7 +42,10 @@ app.secret_key = os.environ.get("WEBHOOK_SECRET", "dev-secret-key")
 
 # ✅ Threading mode (works with Gunicorn gthreads)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
-
+# -----------------------------------------
+# Production Authentication
+# -----------------------------------------
+init_auth(app)
 # -----------------------------------------
 # Temp Protection for Site
 # -----------------------------------------
