@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sutton House Access</title>
+
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      background:#050607;
+      color:#d4d7db;
+      font-family:Arial,sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .box{
+      width:360px;
+      padding:32px;
+      background:#0b0f14;
+      border:1px solid #1c2126;
+      box-shadow:0 0 30px rgba(0,0,0,.45);
+      text-align:center;
+    }
+
+    h1{
+      margin:0;
+      font-size:22px;
+      font-weight:600;
+      letter-spacing:2px;
+    }
+
+    .sub{
+      margin-top:8px;
+      margin-bottom:26px;
+      color:#8b929a;
+      font-size:13px;
+      letter-spacing:1px;
+    }
+
+    input{
+      width:100%;
+      padding:12px;
+      margin-bottom:14px;
+      border:1px solid #1c2126;
+      background:#050607;
+      color:#ffffff;
+      outline:none;
+      font-size:14px;
+    }
+
+    input:focus{
+      border-color:#3a444c;
+    }
+
+    button{
+      width:100%;
+      padding:12px;
+      border:1px solid #2a3238;
+      background:transparent;
+      color:#cfd4da;
+      cursor:pointer;
+      letter-spacing:1px;
+      font-size:13px;
+    }
+
+    button:hover{
+      border-color:#3a444c;
+      color:#ffffff;
+    }
+
+    .error{
+      margin-top:16px;
+      color:#ef4444;
+      font-size:13px;
+    }
+
+    .foot{
+      margin-top:20px;
+      color:#5f666f;
+      font-size:11px;
+      letter-spacing:1px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+
+    <h1>SUTTON HOUSE</h1>
+
+    <div class="sub">
+      MARKET OPERATING SYSTEM
+    </div>
+
+    <form method="post">
+
+      <input
+        type="text"
+        name="username"
+        placeholder="Username"
+        autocomplete="username"
+        required
+      >
+
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        autocomplete="current-password"
+        required
+      >
+
+      <button type="submit">
+        ENTER TERMINAL
+      </button>
+
+    </form>
+
+    {% if error %}
+      <div class="error">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <div class="foot">
+      CONTROLLED ACCESS REQUIRED
+    </div>
+
+  </div>
+
+</body>
+</html>
