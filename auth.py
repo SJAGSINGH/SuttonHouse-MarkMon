@@ -185,8 +185,6 @@ def register_auth_routes(app):
 
 
 def init_auth(app):
-    app.secret_key = os.getenv("SECRET_KEY", "dev-change-this")
-
     init_auth_db()
     seed_founder_user()
     register_auth_routes(app)
