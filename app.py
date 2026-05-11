@@ -2374,6 +2374,7 @@ def load_screen():
     response = make_response(render_template("load.html"))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     return response
 
 
@@ -2382,7 +2383,12 @@ def load_screen():
 def terminal():
     if not session.get("conditioned"):
         return redirect(url_for("load_screen"))
-    return render_template("index.html")
+
+    response = make_response(render_template("index.html"))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.route("/mark_conditioned", methods=["POST"])
@@ -2391,7 +2397,6 @@ def mark_conditioned():
     session["conditioned"] = True
     session.modified = True
     return ("", 204)
-
 
 @app.get("/health")
 def health():
