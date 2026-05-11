@@ -49,7 +49,7 @@ init_auth(app)
 # -----------------------------------------
 # Temp Protection for Site
 # -----------------------------------------
-SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
+# SITE_PASSWORD = os.environ.get("VAULT_PASSWORD", "changeme")
 
 
 
@@ -2257,111 +2257,9 @@ def welcome_page():
 
 
 # -----------------------------------------
-# Login
-# Always after welcome, before load
+# Login / Logout
+# Now handled by auth.py via init_auth(app)
 # -----------------------------------------
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-
-    if request.method == "POST":
-        password = request.form.get("password", "")
-
-        if password == SITE_PASSWORD:
-            session["authenticated"] = True
-            session["conditioned"] = False
-            session.modified = True
-            return redirect(url_for("load_screen"))
-        else:
-            error = "Invalid password"
-
-    return render_template_string("""
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Sutton House Access</title>
-      <style>
-        body{
-          margin:0;
-          background:#050607;
-          color:#d4d7db;
-          font-family:Arial,sans-serif;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          height:100vh;
-        }
-        .box{
-          width:320px;
-          padding:28px;
-          background:#0b0f14;
-          border:1px solid #1c2126;
-          text-align:center;
-        }
-        h2{
-          margin:0 0 8px 0;
-          font-weight:600;
-        }
-        p{
-          margin:0 0 18px 0;
-          color:#8b929a;
-          font-size:14px;
-        }
-        input{
-          width:100%;
-          box-sizing:border-box;
-          padding:12px;
-          border:1px solid #1c2126;
-          background:#050607;
-          color:#fff;
-          outline:none;
-        }
-        button{
-          width:100%;
-          margin-top:12px;
-          padding:12px;
-          border:1px solid #2a3238;
-          background:transparent;
-          color:#cfd4da;
-          cursor:pointer;
-          letter-spacing:1px;
-        }
-        button:hover{
-          border-color:#3a444c;
-          color:#fff;
-        }
-        .error{
-          margin-top:12px;
-          color:#ef4444;
-          font-size:14px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="box">
-        <h2>Sutton House</h2>
-        <p>Controlled access required</p>
-        <form method="post">
-          <input type="password" name="password" placeholder="Password" required>
-          <button type="submit">ENTER</button>
-        </form>
-        {% if error %}
-          <div class="error">{{ error }}</div>
-        {% endif %}
-      </div>
-    </body>
-    </html>
-    """, error=error)
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("welcome_page"))
-
-
 # ----------------------------
 # Protected routes
 # ----------------------------
