@@ -2800,7 +2800,7 @@ def _refresh_node_event_states() -> list[dict]:
 # Adds: STOCK LANES (WATCH + SCADA_STATUS + EVENT) -> socket "stock_update"
 # Also stores latest node payloads per ref_id for /node/<ref_id>
 # ============================================================
-force_save = False
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if not _authorised_webhook(request):
@@ -2828,12 +2828,17 @@ def webhook():
 
         # We'll decide after lock whether to save + what to emit
         do_save = False
+        force_save = False
+
         emit_event = None
         emit_payload = None
 
         # optional second emit (for message lane transitions)
         emit_event2 = None
         emit_payload2 = None
+
+        # event lifecycle emits
+        event_refresh_updates = []
 
          # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
@@ -2847,7 +2852,7 @@ def webhook():
             _refresh_msa_audit()
 
             # Refresh latched event lifecycle and capture UI updates
-            event_refresh_updates = _refresh_node_event_states()
+            event_refresh_updates = _refresh_node_event_states() or []
 
             typ = str(data.get("type") or "").strip().upper()
 
