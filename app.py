@@ -383,30 +383,7 @@ def _json_safe(x):
     return x
 
 
-def _refresh_msa_audit():
-    now_ms = int(time.time() * 1000)
 
-    audit = STATE.setdefault("msa_audit", {})
-
-    last_ack = audit.get("last_ack_ts")
-
-    if not last_ack:
-        last_ack = now_ms
-        audit["last_ack_ts"] = now_ms
-
-    overdue = (now_ms - last_ack) >= MSA_AUDIT_INTERVAL_MS
-
-    audit["required"] = overdue
-    audit["status"] = "ALARM" if overdue else "OK"
-
-    if overdue:
-        audit["reason"] = "14-day founder MSA audit required"
-        audit["last_alarm_ts"] = now_ms
-    else:
-        audit["reason"] = ""
-
-    audit["source"] = "system"
-    
 # ----------------------------
 # Helpers
 # ----------------------------
@@ -417,22 +394,42 @@ def _refresh_msa_audit():
 
     last_ack = audit.get("last_ack_ts")
 
+    # First boot only
     if not last_ack:
         last_ack = now_ms
         audit["last_ack_ts"] = now_ms
 
-    overdue = (now_ms - last_ack) >= MSA_AUDIT_INTERVAL_MS
+    elapsed_ms   = now_ms - last_ack
+    remaining_ms = max(0, MSA_AUDIT_INTERVAL_MS - elapsed_ms)
 
+    overdue = elapsed_ms >= MSA_AUDIT_INTERVAL_MS
+
+    # Core state
     audit["required"] = overdue
-    audit["status"] = "ALARM" if overdue else "OK"
+    audit["status"]   = "ALARM" if overdue else "OK"
+    audit["source"]   = "system"
+
+    # UI telemetry
+    audit["elapsed_ms"]   = elapsed_ms
+    audit["remaining_ms"] = remaining_ms
+    audit["elapsed_days"] = round(elapsed_ms / 86400000, 1)
+    audit["due_days"]     = round(remaining_ms / 86400000, 1)
+
+    # Progress 0–100
+    audit["pct"] = min(
+        100,
+        int((elapsed_ms / MSA_AUDIT_INTERVAL_MS) * 100)
+    )
 
     if overdue:
         audit["reason"] = "14-day founder MSA audit required"
-        audit["last_alarm_ts"] = now_ms
+
+        # Only stamp once
+        if not audit.get("last_alarm_ts"):
+            audit["last_alarm_ts"] = now_ms
     else:
         audit["reason"] = ""
-
-    audit["source"] = "system"
+        audit.pop("last_alarm_ts", None)
 # ============================================================
 # SENTINEL LOGGING HELPERS
 # ============================================================
