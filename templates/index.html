@@ -2448,15 +2448,36 @@ main.grid > #cr-dump-full{
   <div class="macro-header-tools">
 
     <div id="msa-audit-wrap" class="msa-audit-wrap">
-      <span id="msa-audit-status">MSA AUDIT CLEAR</span>
-      <button id="msa-audit-btn" onclick="ackMsaAudit()">ACK</button>
+
+      <div id="msa-audit-status">
+        MSA AUDIT CLEAR
+      </div>
+
+      <div id="msa-audit-meta">
+        0.0d / 14.0d
+      </div>
+
+      <div id="msa-audit-bar-wrap">
+        <div id="msa-audit-bar"></div>
+      </div>
+
+      <button id="msa-audit-btn" onclick="ackMsaAudit()">
+        ACK
+      </button>
+
     </div>
 
-    <button id="vault-exit" onclick="closeVault()">← Exit Secure Layer</button>
+    <button id="vault-exit" onclick="closeVault()">
+      ← Exit Secure Layer
+    </button>
 
-    <button id="msa-export-btn" type="button">EXPORT MSA LIB</button>
+    <button id="msa-export-btn" type="button">
+      EXPORT MSA LIB
+    </button>
 
-    <div id="war-badge">INSTITUTIONAL PARTICIPATION CONFIRMED</div>
+    <div id="war-badge">
+      INSTITUTIONAL PARTICIPATION CONFIRMED
+    </div>
 
   </div>
 </div>
@@ -2782,22 +2803,40 @@ async function ackMsaAudit() {
 
 function updateMsaAudit(state) {
 
-  const wrap = document.getElementById("msa-audit-wrap");
   const status = document.getElementById("msa-audit-status");
-  const btn = document.getElementById("msa-audit-btn");
+  const meta   = document.getElementById("msa-audit-meta");
+  const bar    = document.getElementById("msa-audit-bar");
+  const btn    = document.getElementById("msa-audit-btn");
 
-  if (!wrap || !status || !btn) return;
+  if (!status || !meta || !bar || !btn) return;
 
   const audit = state?.msa_audit || {};
+
   const required = audit.required === true;
+
+  const elapsed = audit.elapsed_days || 0;
+  const due     = audit.due_days || 0;
+  const pct     = audit.pct || 0;
 
   status.textContent = required
     ? "FOUNDER MSA AUDIT REQUIRED"
     : "MSA AUDIT CLEAR";
 
-  btn.style.display = required
-    ? "inline-block"
-    : "none";
+  meta.textContent =
+    `${elapsed.toFixed(1)}d / ${due.toFixed(1)}d`;
+
+  bar.style.width =
+    `${pct}%`;
+
+  btn.style.display =
+    required ? "inline-block" : "none";
+
+  bar.style.background =
+    required
+      ? "#ff4040"
+      : pct > 80
+        ? "#ffb000"
+        : "#00ff99";
 }
    
 function openMsaRailForRef(ref){
