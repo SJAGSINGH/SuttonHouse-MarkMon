@@ -2803,7 +2803,7 @@ def _refresh_node_event_states() -> list[dict]:
 # Adds: STOCK LANES (WATCH + SCADA_STATUS + EVENT) -> socket "stock_update"
 # Also stores latest node payloads per ref_id for /node/<ref_id>
 # ============================================================
-
+force_save = False
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if not _authorised_webhook(request):
@@ -3096,10 +3096,7 @@ def webhook():
                 emit_event = "macro_update"
                 emit_payload = copy.deepcopy(STATE)
 
-            # ====================================================
-            # EVENT BATCH LANE
-            # ====================================================
-            elif typ == "EVENT_BATCH":
+                        elif typ == "EVENT_BATCH":
                 events = data.get("events") or []
                 if not isinstance(events, list):
                     abort(400)
@@ -3141,6 +3138,7 @@ def webhook():
 
                 if emitted_any:
                     do_save = True
+                    force_save = True   # EVENT state must survive restart/deploy
                 else:
                     abort(400)
 
@@ -3165,6 +3163,7 @@ def webhook():
                     pass
 
                 do_save = True
+                force_save = True       # EVENT state must survive restart/deploy
                 emit_event = "stock_update"
                 emit_payload = out
 
@@ -3633,7 +3632,10 @@ def webhook():
         # OUTSIDE LOCK: IO + EMITS (SAFE)
         # ====================================================
         if do_save:
-            save_state_throttled()
+            if force_save:
+                save_state()            # immediate disk write for EVENT lanes
+            else:
+                save_state_throttled()  # normal throttled writes
 
         if emit_event and emit_payload is not None:
             socketio.emit(emit_event, _json_safe(emit_payload))
