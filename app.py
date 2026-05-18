@@ -3096,7 +3096,7 @@ def webhook():
                 emit_event = "macro_update"
                 emit_payload = copy.deepcopy(STATE)
 
-                elif typ == "EVENT_BATCH":
+            elif typ == "EVENT_BATCH":
                 events = data.get("events") or []
                 if not isinstance(events, list):
                     abort(400)
