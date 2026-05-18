@@ -69,13 +69,18 @@ SAVE_EVERY_MS = 2000  # save at most once every 2 seconds
 _last_save_ms = 0
 _last_save_lock = Lock()
 
-def save_state_throttled():
+def save_state_throttled(force=False):
     global _last_save_ms
+
     now = int(time.time() * 1000)
+
     with _last_save_lock:
-        if now - _last_save_ms < SAVE_EVERY_MS:
-            return
+        if not force:
+            if now - _last_save_ms < SAVE_EVERY_MS:
+                return
+
         _last_save_ms = now
+
     _save_state_to_disk()
 
 
@@ -287,7 +292,7 @@ def _msa_audit_alarm(required: bool, reason: str = "", source: str = "system"):
             "source": source
         }
 
-        save_state()
+        save_state_throttled(force=force_save)
 
         socketio.emit("stock_update", {
             "type": "MSA_AUDIT",
@@ -642,7 +647,7 @@ def _extract_sentinel_node_snapshot(node):
             "source": "founder_ack",
         }
 
-        save_state()
+        save_state_throttled(force=force_save)
 
     socketio.emit("stock_update", {
         "type": "MSA_AUDIT",
@@ -2238,7 +2243,7 @@ def founder_msa_audit_ack():
             "source": "founder_ack",
         }
 
-        save_state()
+        save_state_throttled(force=force_save)
 
     socketio.emit("macro_update", _json_safe(copy.deepcopy(STATE)))
 
@@ -2462,7 +2467,7 @@ def ingest_macro():
             payload = copy.deepcopy(STATE)
 
         # OUTSIDE LOCK
-        save_state_throttled()
+        save_state_throttled(force=force_save)
         socketio.emit("macro_update", _json_safe(payload))
 
         _log_debug("/ingest_macro", data, ok=True)
@@ -3634,10 +3639,7 @@ def webhook():
         # OUTSIDE LOCK: IO + EMITS (SAFE)
         # ====================================================
         if do_save:
-            if force_save:
-                save_state()            # immediate disk write for EVENT lanes
-            else:
-                save_state_throttled()  # normal throttled writes
+            save_state_throttled(force=force_save)
 
         if emit_event and emit_payload is not None:
             socketio.emit(emit_event, _json_safe(emit_payload))
