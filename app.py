@@ -210,6 +210,9 @@ STATE: Dict[str, Any] = {
         "by_ref": {},
     },
 
+    "pill_memory": {
+        "by_ref": {},
+    },    
     # ============================================================
     # MARKET ANCHORS
     # ============================================================
@@ -1609,6 +1612,192 @@ def _truthy(v) -> bool:
     s = str(v).strip().upper()
     return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
 
+PILL_DEPTH = 8
+
+def _bool01(v) -> int:
+    if v is True:
+        return 1
+    if v is False or v is None:
+        return 0
+    s = str(v).strip().upper()
+    return 1 if s in ("1", "TRUE", "ON", "YES", "ACTIVE") else 0
+
+
+def _int_or_none(v):
+    try:
+        if v in (None, "", "NA", "na", "null"):
+            return None
+        return int(float(v))
+    except Exception:
+        return None
+
+
+def _float_or_none(v):
+    try:
+        if v in (None, "", "NA", "na", "null"):
+            return None
+        x = float(v)
+        if math.isnan(x) or math.isinf(x):
+            return None
+        return x
+    except Exception:
+        return None
+
+
+def _lane_from_records(records, key):
+    vals = []
+    for r in records[-PILL_DEPTH:]:
+        vals.append(str(_bool01(r.get(key))))
+    while len(vals) < PILL_DEPTH:
+        vals.insert(0, "0")
+    return ";".join(vals)
+
+
+def _append_pill_record(ref_id, tf_key, record):
+    ref_key = str(ref_id)
+
+    pm = STATE.setdefault("pill_memory", {}).setdefault("by_ref", {})
+    node = pm.setdefault(ref_key, {
+        "ref_id": ref_id,
+        "ticker": record.get("ticker"),
+        "daily": [],
+        "h4": [],
+        "_server_ts": None,
+    })
+
+    if record.get("ticker"):
+        node["ticker"] = record.get("ticker")
+
+    lane = "daily" if tf_key == "D" else "h4"
+    arr = node.setdefault(lane, [])
+
+    close_key = "daily_close_time" if tf_key == "D" else "h4_close_time"
+    close_ts = record.get(close_key)
+
+    # Prevent duplicate append for same completed candle.
+    if close_ts is not None:
+        for existing in arr:
+            if existing.get(close_key) == close_ts:
+                existing.update(record)
+                node["_server_ts"] = int(time.time() * 1000)
+                return node
+
+    arr.append(record)
+
+    if len(arr) > PILL_DEPTH:
+        del arr[:-PILL_DEPTH]
+
+    node["_server_ts"] = int(time.time() * 1000)
+    return node
+
+
+def _rebuild_pill_lanes(node):
+    daily = node.get("daily") or []
+    h4 = node.get("h4") or []
+
+    return {
+        "D": {
+            "Indicator_X_D": _lane_from_records(daily, "x"),
+            "Indicator_Y_D": _lane_from_records(daily, "y"),
+            "Indicator_DIV_D": _lane_from_records(daily, "xdiv"),
+            "MSA_D": _lane_from_records(daily, "msa"),
+            "JR_D": _lane_from_records(daily, "jr"),
+            "SMA10X_D": _lane_from_records(daily, "sma10x"),
+        },
+        "H4": {
+            "Indicator_X_4H": _lane_from_records(h4, "x"),
+            "Indicator_Y_4H": _lane_from_records(h4, "y"),
+            "Indicator_DIV_4H": _lane_from_records(h4, "xdiv"),
+            "MSA_4H": _lane_from_records(h4, "msa"),
+            "JR_4H": _lane_from_records(h4, "jr"),
+            "SMA10X_4H": _lane_from_records(h4, "sma10x"),
+        },
+    }
+
+
+def _handle_pill_memory_payload(data):
+    ref_id = _int_or_none(data.get("ref_id"))
+    if ref_id is None:
+        return None
+
+    ticker = str(data.get("ticker") or "").upper()
+    now_ms = int(time.time() * 1000)
+
+    daily_complete = _truthy(data.get("daily_complete"))
+    h4_complete = _truthy(data.get("h4_complete"))
+
+    daily_node = None
+    h4_node = None
+
+    if daily_complete:
+        d_rec = {
+            "ticker": ticker,
+            "time": _int_or_none(data.get("time")),
+            "daily_close_time": _int_or_none(data.get("daily_close_time")),
+            "x": _bool01(data.get("d_x")),
+            "y": _bool01(data.get("d_y")),
+            "xdiv": _bool01(data.get("d_xdiv")),
+            "msa": _bool01(data.get("d_msa")),
+            "jr": _bool01(data.get("d_jr")),
+            "sma10x": _bool01(data.get("d_sma10x")),
+            "raw": {
+                "x": _float_or_none(data.get("d_x_raw")),
+                "y": _float_or_none(data.get("d_y_raw")),
+                "msa": _float_or_none(data.get("d_msa_raw")),
+                "jr_k1": _float_or_none(data.get("d_jr_k1")),
+                "jr_k2": _float_or_none(data.get("d_jr_k2")),
+            },
+            "_server_ts": now_ms,
+        }
+        daily_node = _append_pill_record(ref_id, "D", d_rec)
+
+    if h4_complete:
+        h_rec = {
+            "ticker": ticker,
+            "time": _int_or_none(data.get("time")),
+            "h4_close_time": _int_or_none(data.get("h4_close_time")),
+            "daily_close_time": _int_or_none(data.get("daily_close_time")),
+            "x": _bool01(data.get("h4_x")),
+            "y": _bool01(data.get("h4_y")),
+            "xdiv": _bool01(data.get("h4_xdiv")),
+            "msa": _bool01(data.get("h4_msa")),
+            "jr": _bool01(data.get("h4_jr")),
+            "sma10x": _bool01(data.get("h4_sma10x")),
+            "raw": {
+                "msa": _float_or_none(data.get("h4_msa_raw")),
+                "jr_k1": _float_or_none(data.get("h4_jr_k1")),
+                "jr_k2": _float_or_none(data.get("h4_jr_k2")),
+            },
+            "_server_ts": now_ms,
+        }
+        h4_node = _append_pill_record(ref_id, "H4", h_rec)
+
+    pm_node = (
+        ((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(str(ref_id))
+    )
+
+    if not isinstance(pm_node, dict):
+        return None
+
+    pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
+
+    # Also attach to node record for /node/<ref_id> debug.
+    nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
+    rec = nodes.setdefault(str(ref_id), {"ref_id": ref_id})
+    rec["ref_id"] = ref_id
+    rec["ticker"] = ticker or rec.get("ticker")
+    rec["pill_memory"] = copy.deepcopy(pm_node)
+
+    return {
+        "type": "PILL_MEMORY",
+        "ref_id": ref_id,
+        "ticker": ticker,
+        "daily_appended": bool(daily_complete),
+        "h4_appended": bool(h4_complete),
+        "pill_memory": copy.deepcopy(pm_node),
+        "_server_ts": now_ms,
+    }
+
 def _derive_message_from_scada(out: Dict[str, Any], prev_msg: Dict[str, Any]) -> Dict[str, Any]:
     """
     Builds the canonical Message System lane from a SCADA_STATUS payload.
@@ -1840,7 +2029,11 @@ def _load_state_from_disk() -> None:
             # -----------------------------------------
             if isinstance(cached.get("nodes"), dict):
                 STATE["nodes"] = cached.get("nodes")
-
+            # -----------------------------------------
+            # Pills Array
+            # -----------------------------------------
+            if isinstance(cached.get("pill_memory"), dict):
+                STATE["pill_memory"] = cached.get("pill_memory")
             # -----------------------------------------
             # Market anchors
             # -----------------------------------------
@@ -3142,12 +3335,24 @@ def webhook():
                         pass
 
                     emitted_any = True
-
                 if emitted_any:
                     do_save = True
                     force_save = True   # EVENT state must survive restart/deploy
                 else:
                     abort(400)
+
+            elif typ == "PILL_MEMORY":
+                out = _handle_pill_memory_payload(data)
+                if out is None:
+                    abort(400)
+
+                _update_monitor_lane(_extract_meta(out))
+
+                do_save = True
+                force_save = True
+
+                emit_event = "stock_update"
+                emit_payload = out
 
             # ====================================================
             # EVENT LANE
@@ -3156,7 +3361,6 @@ def webhook():
                 out = _process_event_payload(data)
                 if out is None:
                     abort(400)
-
                 _update_monitor_lane(_extract_meta(out))
 
                 try:
