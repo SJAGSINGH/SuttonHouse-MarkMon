@@ -1723,9 +1723,9 @@ def _handle_pill_memory_payload(data):
     ticker = str(data.get("ticker") or "").upper()
     now_ms = int(time.time() * 1000)
 
-    daily_complete = _truthy(data.get("daily_complete"))
-    h4_complete = _truthy(data.get("h4_complete"))
-
+    daily_complete = _int_or_none(data.get("daily_close_time")) is not None
+    h4_complete = _int_or_none(data.get("h4_close_time")) is not None
+    
     daily_node = None
     h4_node = None
 
