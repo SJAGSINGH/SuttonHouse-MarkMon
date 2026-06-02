@@ -3557,7 +3557,7 @@ function moveTip(e){
   if (!tip || tip.classList.contains("hidden")) return;
 
   tip.style.left = `${e.clientX + 14}px`;
-  tip.style.top  = `${e.clientY + 14}px`;
+  tip.style.top  = `${e.clientY - 180}px`;
 }
 
 function hideTip(){
