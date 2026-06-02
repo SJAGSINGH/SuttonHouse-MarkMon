@@ -3486,11 +3486,13 @@ function renderArraysToRail(arrDump){
 
   root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 
+  console.log("BINDING", root.querySelectorAll(".arr-cell").length);
+
   root.querySelectorAll(".arr-cell").forEach(cell => {
     cell.addEventListener("mouseenter", () => {
       console.log("TIP FIRE");
-    });
   });
+});
 }
 
 function showPillTip(cell){
