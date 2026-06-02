@@ -3544,9 +3544,12 @@ Difference: ${diff}
     </div>
   `;
 
-  tip.style.left = "300px";
-  tip.style.top = "300px";
-  tip.classList.remove("hidden");
+  tip.style.display = "block";
+ tip.style.left = "300px";
+ tip.style.top = "300px";
+ tip.classList.remove("hidden");
+
+console.log("TIP SHOW", tip.className, tip.style.left, tip.style.top);
 }
 
 function moveTip(e){
