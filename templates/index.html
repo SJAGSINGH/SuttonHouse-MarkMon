@@ -3487,11 +3487,10 @@ function renderArraysToRail(arrDump){
  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
 
 root.querySelectorAll(".arr-cell").forEach(cell => {
-  cell.addEventListener("mouseenter", (e) => showPillTip(e.currentTarget));
-  cell.addEventListener("mousemove", (e) => moveTip(e));
-  cell.addEventListener("mouseleave", hideTip);
+  cell.addEventListener("mouseenter", () => {
+    console.log("TIP FIRE");
+  });
 });
-}
 
 function showPillTip(cell){
   const tip = document.getElementById("sh-tooltip");
