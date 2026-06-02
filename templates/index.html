@@ -1856,6 +1856,10 @@ main.grid > #cr-dump-full{
   color: rgba(255,255,255,0.88);
 }
 
+.sh-tip .result-good{ color: var(--lime); }
+.sh-tip .result-bad{ color: var(--orange); }
+.sh-tip .dotline{ letter-spacing:2px; } 
+
 /* =========================================
    MSA RAIL (SLIDE FROM LEFT, secondary)
 ========================================= */
@@ -3238,7 +3242,43 @@ function parseArrDump(dump){
 
   return out;
 }
-    
+
+function arrToDots(arr){
+  const vals = Array.isArray(arr) ? arr.slice(0,8) : [];
+  while (vals.length < 8) vals.push(0);
+  return vals.map(v => Number(v) ? "●" : "○").join(" ");
+}
+
+function arrCount(arr){
+  return (Array.isArray(arr) ? arr : []).slice(0,8)
+    .filter(v => Number(v) !== 0).length;
+}
+
+function readHistorianLane(ref, tf, laneKey){
+  const pm =
+    window.__RSC_LAST?.nodes?.by_ref?.[String(ref)]?.pill_memory ||
+    window.__RSC_LAST?.pill_memory?.by_ref?.[String(ref)] ||
+    null;
+
+  const lanes = pm?.lanes?.[tf];
+  if (!lanes) return null;
+
+  const map = {
+    IND_X: tf === "D" ? "Indicator_X_D" : "Indicator_X_4H",
+    IND_Y: tf === "D" ? "Indicator_Y_D" : "Indicator_Y_4H",
+    INDX_DIV: tf === "D" ? "Indicator_DIV_D" : "Indicator_DIV_4H",
+    MSA: tf === "D" ? "MSA_D" : "MSA_4H",
+    JR: tf === "D" ? "JR_D" : "JR_4H"
+  };
+
+  const raw = lanes[map[laneKey]];
+  if (!raw) return null;
+
+  const parts = String(raw).split(";").map(x => Number(x));
+  while (parts.length < 8) parts.unshift(0);
+  return parts.slice(-8);
+}
+   
 function pickMacroPayload(x){
   if (!x || typeof x !== "object") return null;
 
@@ -3409,7 +3449,7 @@ function renderArraysToRail(arrDump){
         else if (v === 2) cls = "v2";
       }
 
-      return `<div class="arr-cell ${cls}" title="${tfLabel} ${laneKey}[${i}] = ${v}"></div>`;
+      return `<div class="arr-cell ${cls}" data-tf="${tfLabel}" data-lane="${laneKey}" data-index="${i}"></div>`;
     }).join("");
 
     const last = vals[7]; // always 8
@@ -3444,9 +3484,79 @@ function renderArraysToRail(arrDump){
     `;
   };
 
-  root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
+ root.innerHTML = mkPanel("D", dataD) + mkPanel("4H", dataH4);
+
+root.querySelectorAll(".arr-cell").forEach(cell => {
+  cell.addEventListener("mouseenter", (e) => showPillTip(e.currentTarget));
+  cell.addEventListener("mousemove", (e) => moveTip(e));
+  cell.addEventListener("mouseleave", hideTip);
+});
 }
-    
+
+function showPillTip(cell){
+  const tip = document.getElementById("sh-tooltip");
+  if (!tip) return;
+
+  const rail = document.getElementById("commission-rail");
+  const ref = rail?.getAttribute("data-ref");
+  if (!ref) return;
+
+  const tfLabel = cell.dataset.tf || "D";
+  const tf = tfLabel === "4H" ? "H4" : "D";
+  const lane = cell.dataset.lane || "—";
+
+  const dump = document.getElementById("cr-dump")?.dataset?.rawDump || "";
+  const currentParsed = parseArrDump(dump);
+  const current = currentParsed?.[tf]?.[lane] || [];
+  const historian = readHistorianLane(ref, tf, lane);
+
+  const currentDots = arrToDots(current);
+  const histDots = historian ? arrToDots(historian) : "NO HISTORIAN DATA";
+
+  const cCount = arrCount(current);
+  const hCount = historian ? arrCount(historian) : 0;
+  const diff = cCount - hCount;
+
+  const match =
+    historian &&
+    currentDots === histDots;
+
+  const status = historian
+    ? (match ? "MATCH ✓" : "DRIFT ⚠")
+    : "PRIMING";
+
+  tip.innerHTML = `
+    <div class="k">${tfLabel} • ${lane}</div>
+    <div class="v">
+Result: <span class="${match ? "result-good" : "result-bad"}">${status}</span>
+
+Current:
+<span class="dotline">${currentDots}</span>
+
+Historian:
+<span class="dotline">${histDots}</span>
+
+Current Count: ${cCount}
+Historian Count: ${hCount}
+Difference: ${diff}
+    </div>
+  `;
+
+  tip.classList.remove("hidden");
+}
+
+function moveTip(e){
+  const tip = document.getElementById("sh-tooltip");
+  if (!tip || tip.classList.contains("hidden")) return;
+
+  tip.style.left = `${e.clientX + 14}px`;
+  tip.style.top  = `${e.clientY + 14}px`;
+}
+
+function hideTip(){
+  const tip = document.getElementById("sh-tooltip");
+  if (tip) tip.classList.add("hidden");
+}   
 // ===============================
 // MSA TEXT (panel-specific)
 // SCADA/AUTO -> Automatic
@@ -3618,6 +3728,8 @@ function openRailForSlot(slot){
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
+  const dumpEl = document.getElementById("cr-dump");
+  if (dumpEl) dumpEl.dataset.rawDump = dump || "";
 
   // pills
   renderArraysToRail(dump);
