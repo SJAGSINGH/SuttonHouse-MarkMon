@@ -3489,9 +3489,9 @@ function renderArraysToRail(arrDump){
   console.log("BINDING", root.querySelectorAll(".arr-cell").length);
 
   root.querySelectorAll(".arr-cell").forEach(cell => {
-    cell.addEventListener("mouseenter", () => {
-      console.log("TIP FIRE");
-  });
+    cell.addEventListener("mouseenter", () => showPillTip(cell));
+    cell.addEventListener("mousemove", moveTip);
+    cell.addEventListener("mouseleave", hideTip);
 });
 }
 
