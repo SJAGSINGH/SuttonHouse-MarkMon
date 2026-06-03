@@ -1715,6 +1715,13 @@ def _rebuild_pill_lanes(node):
     }
 
 
+def _active_vix(raw, trigger):
+    return 1 if (raw is not None and trigger is not None and raw >= trigger) else 0
+
+def _active_gvz(raw, trigger):
+    return 1 if (raw is not None and trigger is not None and raw <= trigger) else 0
+
+
 def _handle_pill_memory_payload(data):
     ref_id = _int_or_none(data.get("ref_id"))
     if ref_id is None:
@@ -1725,52 +1732,65 @@ def _handle_pill_memory_payload(data):
 
     daily_complete = _int_or_none(data.get("daily_close_time")) is not None
     h4_complete = _int_or_none(data.get("h4_close_time")) is not None
-    
-    daily_node = None
-    h4_node = None
 
     if daily_complete:
+        d_x_raw = _float_or_none(data.get("d_x_raw"))
+        d_x_trigger = _float_or_none(data.get("d_x_trigger"))
+        d_y_raw = _float_or_none(data.get("d_y_raw"))
+        d_y_trigger = _float_or_none(data.get("d_y_trigger"))
+
         d_rec = {
             "ticker": ticker,
             "time": _int_or_none(data.get("time")),
             "daily_close_time": _int_or_none(data.get("daily_close_time")),
-            "x": _bool01(data.get("d_x")),
-            "y": _bool01(data.get("d_y")),
+            "x": _active_vix(d_x_raw, d_x_trigger),
+            "y": _active_gvz(d_y_raw, d_y_trigger),
             "xdiv": _bool01(data.get("d_xdiv")),
             "msa": _bool01(data.get("d_msa")),
             "jr": _bool01(data.get("d_jr")),
             "sma10x": _bool01(data.get("d_sma10x")),
             "raw": {
-                "x": _float_or_none(data.get("d_x_raw")),
-                "y": _float_or_none(data.get("d_y_raw")),
+                "x": d_x_raw,
+                "x_trigger": d_x_trigger,
+                "y": d_y_raw,
+                "y_trigger": d_y_trigger,
                 "msa": _float_or_none(data.get("d_msa_raw")),
                 "jr_k1": _float_or_none(data.get("d_jr_k1")),
                 "jr_k2": _float_or_none(data.get("d_jr_k2")),
             },
             "_server_ts": now_ms,
         }
-        daily_node = _append_pill_record(ref_id, "D", d_rec)
+        _append_pill_record(ref_id, "D", d_rec)
 
     if h4_complete:
+        h4_x_raw = _float_or_none(data.get("h4_x_raw"))
+        h4_x_trigger = _float_or_none(data.get("h4_x_trigger"))
+        h4_y_raw = _float_or_none(data.get("h4_y_raw"))
+        h4_y_trigger = _float_or_none(data.get("h4_y_trigger"))
+
         h_rec = {
             "ticker": ticker,
             "time": _int_or_none(data.get("time")),
             "h4_close_time": _int_or_none(data.get("h4_close_time")),
             "daily_close_time": _int_or_none(data.get("daily_close_time")),
-            "x": _bool01(data.get("h4_x")),
-            "y": _bool01(data.get("h4_y")),
+            "x": _active_vix(h4_x_raw, h4_x_trigger),
+            "y": _active_gvz(h4_y_raw, h4_y_trigger),
             "xdiv": _bool01(data.get("h4_xdiv")),
             "msa": _bool01(data.get("h4_msa")),
             "jr": _bool01(data.get("h4_jr")),
             "sma10x": _bool01(data.get("h4_sma10x")),
             "raw": {
+                "x": h4_x_raw,
+                "x_trigger": h4_x_trigger,
+                "y": h4_y_raw,
+                "y_trigger": h4_y_trigger,
                 "msa": _float_or_none(data.get("h4_msa_raw")),
                 "jr_k1": _float_or_none(data.get("h4_jr_k1")),
                 "jr_k2": _float_or_none(data.get("h4_jr_k2")),
             },
             "_server_ts": now_ms,
         }
-        h4_node = _append_pill_record(ref_id, "H4", h_rec)
+        _append_pill_record(ref_id, "H4", h_rec)
 
     pm_node = (
         ((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(str(ref_id))
@@ -1781,7 +1801,6 @@ def _handle_pill_memory_payload(data):
 
     pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
 
-    # Also attach to node record for /node/<ref_id> debug.
     nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
     rec = nodes.setdefault(str(ref_id), {"ref_id": ref_id})
     rec["ref_id"] = ref_id
