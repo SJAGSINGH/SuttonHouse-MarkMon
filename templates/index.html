@@ -3545,10 +3545,12 @@ Difference: ${diff}
     </div>
   `;
 
-  tip.style.display = "block";
- tip.style.left = "300px";
- tip.style.top = "300px";
- tip.classList.remove("hidden");
+tip.style.display = "block";
+tip.style.left = "300px";
+tip.style.top = "300px";
+tip.classList.remove("hidden");
+
+
 
 console.log("TIP SHOW", tip.className, tip.style.left, tip.style.top);
 }
@@ -3591,8 +3593,23 @@ function moveTip(e){
 function hideTip(){
   const tip = document.getElementById("sh-tooltip");
   if (!tip) return;
+
   tip.classList.add("hidden");
+  tip.style.display = "none";
 }
+
+document.addEventListener("mousemove", (e) => {
+  const rail = document.getElementById("commission-rail");
+  if (!rail || !rail.classList.contains("open")) return;
+
+  const overPill = e.target.closest(".arr-cell");
+  const overRail = e.target.closest("#commission-rail");
+
+  if (!overPill || !overRail) {
+    hideTip();
+  }
+});
+   
 // ===============================
 // MSA TEXT (panel-specific)
 // SCADA/AUTO -> Automatic
