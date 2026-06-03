@@ -2006,23 +2006,27 @@ def _load_state_from_disk() -> None:
             return
 
         ts = _normalise_server_ts(cached.get("_server_ts"))
+
+        state_is_stale = False
+
         if ts:
             age_secs = time.time() - (ts / 1000)
             if age_secs > STATE_MAX_AGE_SECS:
-                return
+                state_is_stale = True
 
         with STATE_LOCK:
             # -----------------------------------------
             # Core macro state
             # -----------------------------------------
-            for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
-                if k in cached:
-                    STATE[k] = cached.get(k)
+            if not state_is_stale:
+                for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
+                    if k in cached:
+                        STATE[k] = cached.get(k)
 
             # -----------------------------------------
             # Macro V2
             # -----------------------------------------
-            if isinstance(cached.get("macro_v2"), dict):
+            if not state_is_stale and isinstance(cached.get("macro_v2"), dict):
                 STATE["macro_v2"] = cached.get("macro_v2")
 
             # -----------------------------------------
