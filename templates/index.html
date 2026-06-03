@@ -3489,9 +3489,10 @@ function renderArraysToRail(arrDump){
   console.log("BINDING", root.querySelectorAll(".arr-cell").length);
 
   root.querySelectorAll(".arr-cell").forEach(cell => {
-    cell.addEventListener("mouseenter", () => showPillTip(cell));
-    cell.addEventListener("mousemove", moveTip);
-    cell.addEventListener("mouseleave", hideTip);
+   cell.addEventListener("mouseenter", () => showPillTip(cell));
+   cell.addEventListener("mousemove", moveTip);
+   cell.addEventListener("mouseleave", hideTip);
+   cell.addEventListener("mouseout", hideTip);
 });
 }
 
@@ -3556,14 +3557,42 @@ function moveTip(e){
   const tip = document.getElementById("sh-tooltip");
   if (!tip || tip.classList.contains("hidden")) return;
 
-  tip.style.left = `${e.clientX + 14}px`;
-  tip.style.top  = `${e.clientY - 180}px`;
+  const pad = 12;
+
+  let left = e.clientX + 20;
+  let top  = e.clientY - 140;
+
+  const rect = tip.getBoundingClientRect();
+
+  // Right edge
+  if (left + rect.width > window.innerWidth - pad) {
+    left = window.innerWidth - rect.width - pad;
+  }
+
+  // Left edge
+  if (left < pad) {
+    left = pad;
+  }
+
+  // Top edge
+  if (top < pad) {
+    top = e.clientY + 20;
+  }
+
+  // Bottom edge
+  if (top + rect.height > window.innerHeight - pad) {
+    top = window.innerHeight - rect.height - pad;
+  }
+
+  tip.style.left = `${left}px`;
+  tip.style.top  = `${top}px`;
 }
 
 function hideTip(){
   const tip = document.getElementById("sh-tooltip");
-  if (tip) tip.classList.add("hidden");
-}   
+  if (!tip) return;
+  tip.classList.add("hidden");
+}
 // ===============================
 // MSA TEXT (panel-specific)
 // SCADA/AUTO -> Automatic
