@@ -3515,7 +3515,10 @@ function showPillTip(cell){
   const currentParsed = parseArrDump(dump);
   const current = currentParsed?.[tf]?.[lane] || [];
   const historian = readHistorianLane(ref, tf, lane);
-  const pm = getPillMemory(ref);
+  const pm =
+  window.__RSC_LAST?.nodes?.by_ref?.[String(ref)]?.pill_memory ||
+  window.__RSC_LAST?.pill_memory?.by_ref?.[String(ref)] ||
+  null;
 
   let latestRaw = null;
 
