@@ -3515,7 +3515,15 @@ function showPillTip(cell){
   const currentParsed = parseArrDump(dump);
   const current = currentParsed?.[tf]?.[lane] || [];
   const historian = readHistorianLane(ref, tf, lane);
+  const pm = getPillMemory(ref);
 
+  let latestRaw = null;
+
+  if (pm) {
+   const tfNode = tf === "H4" ? pm.h4 : pm.daily;
+   const recs = tfNode?.records || [];
+   latestRaw = recs.length ? recs[recs.length - 1].raw : null;
+ }
   const currentDots = arrToDots(current);
   const histDots = historian ? arrToDots(historian) : "NO HISTORIAN DATA";
 
@@ -3530,7 +3538,38 @@ function showPillTip(cell){
   const status = historian
     ? (match ? "MATCH ✓" : "DRIFT ⚠")
     : "PRIMING";
+  let extra = "";
 
+if (latestRaw) {
+
+  if (lane === "IND_X") {
+    extra = `
+
+Raw: ${latestRaw.x ?? "—"}
+Trigger: ${latestRaw.x_trigger ?? "—"}
+State: ${
+      latestRaw.x != null &&
+      latestRaw.x_trigger != null &&
+      latestRaw.x >= latestRaw.x_trigger
+        ? "ACTIVE"
+        : "INACTIVE"
+    }`;
+  }
+
+  if (lane === "IND_Y") {
+    extra = `
+
+Raw: ${latestRaw.y ?? "—"}
+Trigger: ${latestRaw.y_trigger ?? "—"}
+State: ${
+      latestRaw.y != null &&
+      latestRaw.y_trigger != null &&
+      latestRaw.y <= latestRaw.y_trigger
+        ? "ACTIVE"
+        : "INACTIVE"
+    }`;
+  }
+}
   tip.innerHTML = `
     <div class="k">${tfLabel} • ${lane}</div>
     <div class="v">
@@ -3545,6 +3584,7 @@ Historian:
 Current Count: ${cCount}
 Historian Count: ${hCount}
 Difference: ${diff}
+${extra}
     </div>
   `;
 
