@@ -2662,7 +2662,10 @@ main.grid > #cr-dump-full{
   </div>
 </div>
     
+
+
 <div id="sh-tooltip" class="sh-tip hidden"></div>
+<div id="pill-tooltip" class="sh-tip hidden"></div>   
  </main>
 
 {% include "sentinel.html" %}
@@ -3497,7 +3500,7 @@ function renderArraysToRail(arrDump){
 }
 
 function showPillTip(cell){
-  const tip = document.getElementById("sh-tooltip");
+  const tip = document.getElementById("pill-tooltip");
   if (!tip) return;
 
   const rail = document.getElementById("commission-rail");
@@ -3556,7 +3559,7 @@ console.log("TIP SHOW", tip.className, tip.style.left, tip.style.top);
 }
 
 function moveTip(e){
-  const tip = document.getElementById("sh-tooltip");
+  const tip = document.getElementById("pill-tooltip");
   if (!tip || tip.classList.contains("hidden")) return;
 
   const pad = 12;
@@ -3591,7 +3594,7 @@ function moveTip(e){
 }
 
 function hideTip(){
-  const tip = document.getElementById("sh-tooltip");
+  const tip = document.getElementById("pill-tooltip");
   if (!tip) return;
 
   tip.classList.add("hidden");
