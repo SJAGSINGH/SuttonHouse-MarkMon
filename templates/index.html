@@ -3523,8 +3523,7 @@ function showPillTip(cell){
   let latestRaw = null;
 
   if (pm) {
-   const tfNode = tf === "H4" ? pm.h4 : pm.daily;
-   const recs = tfNode?.records || [];
+   const recs = tf === "H4" ? (pm.h4 || []) : (pm.daily || []);
    latestRaw = recs.length ? recs[recs.length - 1].raw : null;
  }
   const currentDots = arrToDots(current);
