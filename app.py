@@ -1689,6 +1689,11 @@ def _append_pill_record(ref_id, tf_key, record):
         del arr[:-PILL_DEPTH]
 
     node["_server_ts"] = int(time.time() * 1000)
+    print(
+        "APPEND pill_memory refs =",
+        list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
+        flush=True
+    )
     return node
 
 
