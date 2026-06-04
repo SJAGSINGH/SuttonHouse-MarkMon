@@ -2058,6 +2058,11 @@ def _load_state_from_disk() -> None:
             # -----------------------------------------
             if isinstance(cached.get("pill_memory"), dict):
                 STATE["pill_memory"] = cached.get("pill_memory")
+            print(
+                "LOAD pill_memory refs =",
+                list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
+                flush=True
+            )    
             # -----------------------------------------
             # Market anchors
             # -----------------------------------------
@@ -2083,7 +2088,11 @@ def _save_state_to_disk() -> None:
             snap = copy.deepcopy(STATE)
 
         snap = _json_safe(snap)
-
+        print(
+            "SAVE pill_memory refs =",
+            list(snap.get("pill_memory", {}).get("by_ref", {}).keys()),
+            flush=True
+        )
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(snap, f, ensure_ascii=False)
 
