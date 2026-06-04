@@ -368,7 +368,7 @@ def _update_monitor_lane(meta):
 # ---- State persistence (warm start cache) ----
 DEFAULT_STATE_FILE = "/var/data/marketmonitor_state.json" if os.path.isdir("/var/data") else "/tmp/marketmonitor_state.json"
 STATE_FILE = os.environ.get("STATE_FILE", DEFAULT_STATE_FILE)
-print("STATE_FILE =", STATE_FILE)
+print("STATE_FILE =", STATE_FILE, flush=True)
 STATE_MAX_AGE_SECS = 60 * 60 * 24 * 45  # 45 days
 
 import math
