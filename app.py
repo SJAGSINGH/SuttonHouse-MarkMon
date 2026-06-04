@@ -3987,6 +3987,10 @@ def on_connect():
         except Exception:
             pass
 _load_state_from_disk()
+
+print("================================", flush=True)
+print("STATE LOADED AT STARTUP", flush=True)
+print("================================", flush=True)
 print("STATE LOADED AT STARTUP", flush=True)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
