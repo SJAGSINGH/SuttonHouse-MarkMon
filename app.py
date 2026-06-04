@@ -3986,7 +3986,8 @@ def on_connect():
             emit("stock_update", _json_safe(lane))
         except Exception:
             pass
-
+_load_state_from_disk()
+print("STATE LOADED AT STARTUP", flush=True)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     socketio.run(app, host="0.0.0.0", port=port)
