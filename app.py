@@ -1677,20 +1677,20 @@ def _append_pill_record(ref_id, tf_key, record):
 
     # Prevent duplicate append for same completed candle.
     if close_ts is not None:
-    for existing in arr:
-        if existing.get(close_key) == close_ts:
-            last_seen = existing.get("_server_ts") or 0
+        for existing in arr:
+            if existing.get(close_key) == close_ts:
+                last_seen = existing.get("_server_ts") or 0
 
-            if now_ms - last_seen < PILL_DUP_GUARD_MS:
-                print(
-                    "PILL DUP REJECT",
-                    ref_key,
-                    tf_key,
-                    close_key,
-                    close_ts,
-                    flush=True
-                )
-                return node
+                if now_ms - last_seen < PILL_DUP_GUARD_MS:
+                    print(
+                        "PILL DUP REJECT",
+                        ref_key,
+                        tf_key,
+                        close_key,
+                        close_ts,
+                        flush=True
+                    )
+                    return node
 
             existing.update(record)
             node["_server_ts"] = now_ms
