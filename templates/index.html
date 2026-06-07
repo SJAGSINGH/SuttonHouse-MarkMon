@@ -5137,9 +5137,9 @@ function applyPublicFromState(data){
 }
 
 
-  // ----------------------------
-  // SECRET APPLY (unchanged)
-  // ----------------------------
+ // ----------------------------
+// SECRET APPLY
+// ----------------------------
 function applySecretFromState(data){
   const secret = (data && data.secret) ? data.secret : {};
   const vix  = secret.vix  || {};
@@ -5165,9 +5165,14 @@ function applySecretFromState(data){
   const v3 = document.getElementById('val-3');
   const s3 = document.getElementById('sub-3');
 
-  const xVal = (vix.value !== null && vix.value !== undefined) ? (String(vix.value) + '%') : '—';
+  const xVal =
+    (vix.value !== null && vix.value !== undefined)
+      ? (String(vix.value) + '%')
+      : '—';
+
   setText('val-1', xVal);
   setText('sub-1', vix.state ? vix.state : 'AWAITING SIGNAL');
+
   if (v1) v1.style.color = 'var(--text)';
   if (s1) s1.style.color = 'var(--text)';
 
@@ -5177,14 +5182,19 @@ function applySecretFromState(data){
     'LEVEL',
     [
       `<strong>Institutional X</strong>`,
-      `LEVEL: ${vix.level ?? '—'}${(xLevel <= 4) ? ' • WAR ROOM' : ''}`
+      `LEVEL: ${vix.level ?? '—'}${(Number.isFinite(xLevel) && xLevel <= 4) ? ' • WAR ROOM' : ''}`
     ],
     XY_COL
   );
 
-  const yVal = (gvz.value !== null && gvz.value !== undefined) ? (String(gvz.value) + '%') : '—';
+  const yVal =
+    (gvz.value !== null && gvz.value !== undefined)
+      ? (String(gvz.value) + '%')
+      : '—';
+
   setText('val-2', yVal);
   setText('sub-2', gvz.state ? gvz.state : 'AWAITING SIGNAL');
+
   if (v2) v2.style.color = 'var(--text)';
   if (s2) s2.style.color = 'var(--text)';
 
@@ -5194,22 +5204,40 @@ function applySecretFromState(data){
     'LEVEL',
     [
       `<strong>Institutional Y</strong>`,
-      `LEVEL: ${gvz.level ?? '—'}${(yLevel <= 3) ? ' • WAR ROOM' : ''}`
+      `LEVEL: ${gvz.level ?? '—'}${(Number.isFinite(yLevel) && yLevel <= 3) ? ' • WAR ROOM' : ''}`
     ],
     XY_COL
   );
 
-  const buyVal  = (buy.value  !== null && buy.value  !== undefined) ? String(buy.value)  : '—';
-  const sellVal = (sell.value !== null && sell.value !== undefined) ? String(sell.value) : '—';
+  const buyVal =
+    (buy.value !== null && buy.value !== undefined)
+      ? String(buy.value)
+      : '—';
+
+  const sellVal =
+    (sell.value !== null && sell.value !== undefined)
+      ? String(sell.value)
+      : '—';
 
   setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
-  setText('sub-3', `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim());
+
+  setText(
+    'sub-3',
+    `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim()
+  );
 
   if (v3) v3.style.color = 'var(--text)';
   if (s3) s3.style.color = 'var(--text)';
 
-  const buyL  = Number.isFinite(Number(buy.level)) ? Number(buy.level) : 0;
-  const sellL = Number.isFinite(Number(sell.level)) ? Number(sell.level) : 0;
+  const buyL =
+    Number.isFinite(Number(buy.level))
+      ? Number(buy.level)
+      : 0;
+
+  const sellL =
+    Number.isFinite(Number(sell.level))
+      ? Number(sell.level)
+      : 0;
 
   showDualGauge(
     'gauge-3',
@@ -5221,7 +5249,7 @@ function applySecretFromState(data){
       `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
     ]
   );
-}
+
   // ============================================================
   // HIDE PUBLIC-ONLY MACRO V2 LINES IN SECRET MODE
   // ============================================================
@@ -5231,7 +5259,6 @@ function applySecretFromState(data){
   if (macroV2Card1) macroV2Card1.style.display = 'none';
   if (phaseEl) phaseEl.style.display = 'none';
 }
-
   // ----------------------------
   // MONITORING STATE APPLY (unchanged)
   // ----------------------------
