@@ -4827,6 +4827,18 @@ function setWarBadge(active){
       ? "inline-flex"
       : "none";
 }
+
+function applyPublicFromState(data){
+  const x = Number(data?.secret?.war?.x_level);
+  const y = Number(data?.secret?.war?.y_level);
+
+  const institutionalConfirmed =
+    (Number.isFinite(x) && x <= 4) ||
+    (Number.isFinite(y) && y <= 3);
+
+  document.body.classList.toggle('war-room', institutionalConfirmed);
+  setWarBadge(institutionalConfirmed);
+}
 // ============================
 // FOUNDER HAZE — SAFE GUARD
 // (prevents render-kill if function missing)
