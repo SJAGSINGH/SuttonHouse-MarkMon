@@ -2599,17 +2599,19 @@ main.grid > #cr-dump-full{
   </div>
 
   <div class="cr-grid">
-    <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
-    <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
-    <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
-    <div class="cr-box"> <div class="k">STRATEGY</div> <div id="cr-strategy" class="v">—</div></div>
-    <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
-    <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
-    <!-- keep ONLY this dump (inside the rail) -->
-    <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
+  <div class="cr-box"><div class="k">SRC</div><div id="cr-src" class="v">—</div></div>
+  <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
+  <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
+  <div class="cr-box"><div class="k">STRATEGY</div><div id="cr-strategy" class="v">—</div></div>
+  <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
+  <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
 
-  
-  </div>
+  <div class="cr-box"><div class="k">LAST TX</div><div id="cr-lasttx" class="v">—</div></div>
+  <div class="cr-box"><div class="k">TX TF</div><div id="cr-lasttf" class="v">—</div></div>
+  <div class="cr-box"><div class="k">TX TYPE</div><div id="cr-lasttype" class="v">—</div></div>
+
+  <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
+</div>
 
   <div class="cr-arrays" id="cr-arrays"></div>
   <pre id="cr-dump-full" class="cr-dump-full hidden"></pre>
@@ -3679,7 +3681,15 @@ function summariseDump(dump){
   const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
   return `OK • ${s.length} chars • ${lanes.length} lanes`;
 }
+function formatLastTx(ts){
+  if (!ts) return "—";
 
+  return new Date(Number(ts)).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
 // ===============================
 // COMMISSION RAIL OPEN
 // - Prefers tile.dataset.refId (stable)
@@ -3735,7 +3745,11 @@ function openRailForSlot(slot){
 
   const msg = sc || wa || se;
   if (!msg) return;
+  const lastTx = window.__RSC_LAST?.last_tx || {};
 
+  const txTf   = lastTx.tf || "—";
+  const txTime = formatLastTx(lastTx.ts);
+  const txType = lastTx.type || "—";
   // dump (safe even if msg null)
   const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
@@ -3817,7 +3831,9 @@ function openRailForSlot(slot){
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
   set("cr-setup",    String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
-
+  set("cr-lasttx",   txTime);
+  set("cr-lasttf",   txTf);
+  set("cr-lasttype", txType);
   const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
   const signalActive = setupActive ? !!msg?.signal : null;
 
