@@ -5140,7 +5140,7 @@ function applyPublicFromState(data){
   // ----------------------------
   // SECRET APPLY (unchanged)
   // ----------------------------
-  function applySecretFromState(data){
+function applySecretFromState(data){
   const secret = (data && data.secret) ? data.secret : {};
   const vix  = secret.vix  || {};
   const gvz  = secret.gvz  || {};
@@ -5148,9 +5148,15 @@ function applyPublicFromState(data){
   const sell = secret.sell || {};
   const vold = secret.vold || {};
 
-  const warActive = !!(secret && secret.war && secret.war.active);
-  document.body.classList.toggle('war-room', warActive);
-  setWarBadge(false);
+  const xLevel = Number(vix.level);
+  const yLevel = Number(gvz.level);
+
+  const institutionalConfirmed =
+    (Number.isFinite(xLevel) && xLevel <= 4) ||
+    (Number.isFinite(yLevel) && yLevel <= 3);
+
+  document.body.classList.toggle('war-room', institutionalConfirmed);
+  setWarBadge(institutionalConfirmed);
 
   const v1 = document.getElementById('val-1');
   const s1 = document.getElementById('sub-1');
@@ -5169,7 +5175,10 @@ function applyPublicFromState(data){
     'gauge-1',
     vix.level,
     'LEVEL',
-    [`<strong>Institutional X</strong>`, `LEVEL: ${vix.level ?? '—'}${(vix.level && vix.level <= 4) ? ' • WAR ROOM' : ''}`],
+    [
+      `<strong>Institutional X</strong>`,
+      `LEVEL: ${vix.level ?? '—'}${(xLevel <= 4) ? ' • WAR ROOM' : ''}`
+    ],
     XY_COL
   );
 
@@ -5183,7 +5192,10 @@ function applyPublicFromState(data){
     'gauge-2',
     gvz.level,
     'LEVEL',
-    [`<strong>Institutional Y</strong>`, `LEVEL: ${gvz.level ?? '—'}${(gvz.level && (gvz.level <= 3 || gvz.level >= 8)) ? ' • WAR ROOM' : ''}`],
+    [
+      `<strong>Institutional Y</strong>`,
+      `LEVEL: ${gvz.level ?? '—'}${(yLevel <= 3) ? ' • WAR ROOM' : ''}`
+    ],
     XY_COL
   );
 
@@ -5196,17 +5208,20 @@ function applyPublicFromState(data){
   if (v3) v3.style.color = 'var(--text)';
   if (s3) s3.style.color = 'var(--text)';
 
-  const buyL  = Number.isFinite(buy.level) ? buy.level : 0;
-  const sellL = Number.isFinite(sell.level) ? sell.level : 0;
+  const buyL  = Number.isFinite(Number(buy.level)) ? Number(buy.level) : 0;
+  const sellL = Number.isFinite(Number(sell.level)) ? Number(sell.level) : 0;
 
   showDualGauge(
     'gauge-3',
     buyL,
     sellL,
     'PRESSURE',
-    [`<strong>Institutional Buyers / Sellers</strong>`, `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`]
+    [
+      `<strong>Institutional Buyers / Sellers</strong>`,
+      `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
+    ]
   );
-
+}
   // ============================================================
   // HIDE PUBLIC-ONLY MACRO V2 LINES IN SECRET MODE
   // ============================================================
