@@ -3086,32 +3086,37 @@ def webhook():
         emit_event2 = None
         emit_payload2 = None
 
-        # event lifecycle emits
-        event_refresh_updates = []
-
-         # ====================================================
+              # ====================================================
         # STATE MUTATION ONLY (LOCK IS TINY)
         # ====================================================
-       with STATE_LOCK:
+        with STATE_LOCK:
 
             now_ms = int(time.time() * 1000)
 
             # always stamp
             STATE["_server_ts"] = now_ms
 
-            STATE["last_tx"] = {
-                "ts": now_ms,
-                "type": str(data.get("type") or "").strip().upper(),
-                "tf": str(
+            tx_type = ""
+            tx_tf = "30"
+
+            if isinstance(data, dict):
+                tx_type = str(data.get("type") or "").strip().upper()
+                tx_tf = str(
                     data.get("tf")
                     or data.get("timeframe")
                     or data.get("chart_tf")
                     or "30"
-                ),
+                )
+
+            STATE["last_tx"] = {
+                "ts": now_ms,
+                "type": tx_type,
+                "tf": tx_tf,
             }
 
             # Founder 14-day MSA audit timer
             _refresh_msa_audit()
+
             # Refresh latched event lifecycle and capture UI updates
             event_refresh_updates = _refresh_node_event_states() or []
 
