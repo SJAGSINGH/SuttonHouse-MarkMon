@@ -3877,15 +3877,15 @@ def webhook():
                         c2 = data.get("card2")
 
                         if isinstance(c2, dict):
-                            st = c2.get("state")
-                            tx = c2.get("text")
+                            for k, v in c2.items():
+                                if v not in (None, "", "NA", "na"):
+                                    STATE["card2"][k] = v
 
-                            if st is not None:
-                                STATE["card2"]["state"] = str(st).strip().upper()
+                            if STATE["card2"].get("state") is not None:
+                                STATE["card2"]["state"] = str(STATE["card2"]["state"]).strip().upper()
 
-                            if tx is not None:
-                                STATE["card2"]["text"] = str(tx).strip()
-
+                            if STATE["card2"].get("text") is not None:
+                                STATE["card2"]["text"] = str(STATE["card2"]["text"]).strip()
                             for k in ("time", "tf", "ref_id"):
                                 if k in c2 and c2.get(k) not in (None, "", "NA", "na"):
                                     STATE["card2"][k] = c2.get(k)
