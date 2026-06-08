@@ -178,14 +178,27 @@ STATE: Dict[str, Any] = {
     # ============================================================
     # CARD 2 — canonical, nested ONLY
     # ============================================================
+    # ============================================================
+    # CARD 2 — canonical, nested ONLY
+    # Preserve all nested fields from Pine / Macro payload
+    # ============================================================
     "card2": {
         "state": None,
         "text": None,
+        "event_status": None,
+        "event_weeks": None,
+        "event_ref_min_weeks": None,
+        "event_ref_mean_weeks": None,
+        "event_ref_median_weeks": None,
+        "event_ref_mode_weeks": None,
+        "event_ref_max_weeks": None,
+        "event_pct_mean": None,
+        "event_over_mean": None,
+        "event_start_time": None,
         "time": None,
         "tf": None,
         "ref_id": None,
     },
-
     # ============================================================
     # MESSAGE SYSTEM — terminal stepper
     # ============================================================
@@ -2311,18 +2324,20 @@ def _parse_typed_payload(data: Dict[str, Any]) -> None:
                 STATE["flow"] = tx_norm
 
         # ✅ ALSO populate the nested dict so UI can read data.card2.state/text
+        # ✅ Preserve full Card 2 payload, including Cycle Event fields
         if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
-            STATE["card2"] = {"state": None, "text": None, "time": None, "tf": None, "ref_id": None}
+            STATE["card2"] = {}
 
+        # First preserve all incoming fields
+        for k, v in data.items():
+            if k not in ("type",) and v not in (None, "", "NA", "na"):
+                STATE["card2"][k] = v
+
+        # Then apply normalized canonical fields
         if st_norm is not None:
             STATE["card2"]["state"] = st_norm
         if tx_norm is not None:
             STATE["card2"]["text"] = tx_norm
-
-        # optional metadata passthrough (safe)
-        for k in ("time", "tf", "ref_id"):
-            if k in data and data.get(k) not in (None, "", "NA", "na"):
-                STATE["card2"][k] = data.get(k)
 
         return
 
