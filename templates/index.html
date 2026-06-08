@@ -5884,33 +5884,32 @@ function applyAllFromState(data) {
         c2.classList.add("halo-bg-steel");
       }
 
-      // ----------------------------
+            // ----------------------------
       // CYCLE EVENT GAUGE
       // ----------------------------
       const host = document.getElementById("gauge-2");
       if (!host) return;
 
-      const ev = data?.macro_v2?.cycle_event || {};
+      const ev = data?.card2 || {};
 
-      const months = Number(ev?.months);
-      const meanMonths = Number(ev?.mean_months ?? 2.7);
-      const maxMonths = Number(ev?.max_months ?? 6.0);
+      const weeks = Number(ev?.event_weeks);
+      const meanWeeks = Number(ev?.event_ref_mean_weeks ?? 11.7);
+      const maxWeeks  = Number(ev?.event_ref_max_weeks  ?? 26.0);
 
-      if (!Number.isFinite(months)) {
+      if (!Number.isFinite(weeks)) {
         host.style.display = "none";
         host.innerHTML = "";
         return;
       }
 
-      const fillPct = Math.max(
-        0,
-        Math.min(100, (months / maxMonths) * 100)
-      );
+      const fillPct = Math.max(0, Math.min(100, (weeks / maxWeeks) * 100));
+      const meanPct = Math.max(0, Math.min(100, (meanWeeks / maxWeeks) * 100));
 
-      const meanPct = Math.max(
-        0,
-        Math.min(100, (meanMonths / maxMonths) * 100)
-      );
+      const state = String(ev?.state || "NEUTRAL").toUpperCase();
+      const railColor =
+        state === "RED" ? "var(--red)" :
+        state === "GREEN" ? "var(--lime)" :
+        "rgba(255,255,255,0.35)";
 
       host.style.display = "block";
       host.style.width = "100%";
@@ -5929,13 +5928,7 @@ function applyAllFromState(data) {
             margin:0 0 4px 0;
           ">CYCLE EVENT PROGRESSION</div>
 
-          <div style="
-            position:relative;
-            width:100%;
-            height:10px;
-            margin:0 0 8px 0;
-          ">
-
+          <div style="position:relative;width:100%;height:10px;margin:0 0 8px 0;">
             <div style="
               position:absolute;
               left:0;
@@ -5950,8 +5943,8 @@ function applyAllFromState(data) {
               <div style="
                 width:${fillPct}%;
                 height:100%;
-                background:${cls === "card2-red" ? "var(--red)" : "var(--lime)"};
-                box-shadow:0 0 8px ${cls === "card2-red" ? "var(--red)" : "var(--lime)"};
+                background:${railColor};
+                box-shadow:0 0 8px ${railColor};
                 transition:width .4s ease;
               "></div>
             </div>
@@ -5964,7 +5957,6 @@ function applyAllFromState(data) {
               height:9px;
               background:rgba(255,255,255,0.8);
             "></div>
-
           </div>
 
           <div style="
@@ -5975,19 +5967,10 @@ function applyAllFromState(data) {
             color:#8a8a8a;
             line-height:1.25;
           ">
-
-            <div style="
-              color:#fff;
-              font-weight:600;
-              margin-bottom:2px;
-            ">
-              EVENT AGE: ${months.toFixed(1)} MONTHS
+            <div style="color:#fff;font-weight:600;margin-bottom:2px;">
+              EVENT AGE: ${weeks.toFixed(0)} WEEKS
             </div>
-
-            <div>
-              HISTORICAL MEAN: ${meanMonths.toFixed(1)} MONTHS
-            </div>
-
+            <div>HISTORICAL MEAN: ${meanWeeks.toFixed(1)} WEEKS</div>
           </div>
 
         </div>
