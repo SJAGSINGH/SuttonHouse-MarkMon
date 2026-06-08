@@ -5931,24 +5931,24 @@ function applyAllFromState(data) {
       const maxWeeks  = Number(ev?.event_ref_max_weeks  ?? 26.0);
 
       if (!Number.isFinite(weeks)) {
-  host.style.display = "block";
-  host.innerHTML = `
-    <div style="
-      margin-top:10px;
-      font-size:9px;
-      letter-spacing:1.2px;
-      text-transform:uppercase;
-      color:#8a8a8a;
-      line-height:1.25;
-    ">
-      <div style="color:#fff;font-weight:600;margin-bottom:2px;">
-        CYCLE EVENT DATA PENDING
+        host.style.display = "block";
+        host.innerHTML = `
+          <div style="
+           margin-top:10px;
+           font-size:9px;
+           letter-spacing:1.2px;
+           text-transform:uppercase;
+           color:#8a8a8a;
+           line-height:1.25;
+         ">
+       <div style="color:#fff;font-weight:600;margin-bottom:2px;">
+         CYCLE EVENT DATA PENDING
+       </div>
+       <div>${ev?.event_status || "Awaiting refreshed macro payload"}</div>
       </div>
-      <div>${ev?.event_status || "Awaiting refreshed macro payload"}</div>
-    </div>
-  `;
-  return;
-}
+  `  ;
+    return;
+  }
 
       const fillPct = Math.max(0, Math.min(100, (weeks / maxWeeks) * 100));
       const meanPct = Math.max(0, Math.min(100, (meanWeeks / maxWeeks) * 100));
