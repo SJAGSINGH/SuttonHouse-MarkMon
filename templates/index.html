@@ -5918,46 +5918,48 @@ function applyAllFromState(data) {
         c2.classList.add("halo-bg-steel");
       }
 
-            // ----------------------------
+          // ----------------------------
       // CYCLE EVENT GAUGE
       // ----------------------------
       const host = document.getElementById("gauge-2");
       if (!host) return;
 
       const ev = data?.card2 || {};
-      console.log("CARD2 RAW", ev);
+
       const weeks = Number(ev?.event_weeks);
       const meanWeeks = Number(ev?.event_ref_mean_weeks ?? 11.7);
-      const maxWeeks  = Number(ev?.event_ref_max_weeks  ?? 26.0);
+      const maxWeeks  = Number(ev?.event_ref_max_weeks ?? 26.0);
 
       if (!Number.isFinite(weeks)) {
         host.style.display = "block";
         host.innerHTML = `
           <div style="
-           margin-top:10px;
-           font-size:9px;
-           letter-spacing:1.2px;
-           text-transform:uppercase;
-           color:#8a8a8a;
-           line-height:1.25;
-         ">
-       <div style="color:#fff;font-weight:600;margin-bottom:2px;">
-         CYCLE EVENT DATA PENDING
-       </div>
-       <div>${ev?.event_status || "Awaiting refreshed macro payload"}</div>
-      </div>
-  `  ;
-    return;
-  }
+            margin-top:10px;
+            font-size:9px;
+            letter-spacing:1.2px;
+            text-transform:uppercase;
+            color:#8a8a8a;
+            line-height:1.25;
+          ">
+            <div style="color:#fff;font-weight:600;margin-bottom:2px;">
+              CYCLE EVENT DATA PENDING
+            </div>
+            <div>${ev?.event_status || "Awaiting refreshed macro payload"}</div>
+          </div>
+        `;
+        return;
+      }
 
       const fillPct = Math.max(0, Math.min(100, (weeks / maxWeeks) * 100));
       const meanPct = Math.max(0, Math.min(100, (meanWeeks / maxWeeks) * 100));
 
-      const state = String(ev?.state || "NEUTRAL").toUpperCase();
-      const railColor =
-        state === "RED" ? "var(--red)" :
-        state === "GREEN" ? "var(--lime)" :
-        "rgba(255,255,255,0.35)";
+      let railColor = "#d6b24c"; // yellow
+
+      if (weeks >= meanWeeks) {
+        railColor = "var(--red)";
+      } else if (weeks >= 8) {
+        railColor = "var(--orange)";
+      }
 
       host.style.display = "block";
       host.style.width = "100%";
@@ -5977,6 +5979,7 @@ function applyAllFromState(data) {
           ">CYCLE EVENT PROGRESSION</div>
 
           <div style="position:relative;width:100%;height:10px;margin:0 0 8px 0;">
+
             <div style="
               position:absolute;
               left:0;
@@ -5997,14 +6000,29 @@ function applyAllFromState(data) {
               "></div>
             </div>
 
-            <div style="
-              position:absolute;
-              left:${meanPct}%;
-              top:0;
-              width:2px;
-              height:9px;
-              background:rgba(255,255,255,0.8);
-            "></div>
+            <div
+              title="Historical Cycle Event Statistics
+
+Min: ${Number(ev?.event_ref_min_weeks ?? 8).toFixed(0)} Weeks
+Mean: ${meanWeeks.toFixed(1)} Weeks
+Median: ${Number(ev?.event_ref_median_weeks ?? 13).toFixed(0)} Weeks
+Mode: ${Number(ev?.event_ref_mode_weeks ?? 13).toFixed(0)} Weeks
+Max: ${maxWeeks.toFixed(0)} Weeks
+
+Current: ${weeks.toFixed(0)} Weeks
+${Number(ev?.event_pct_mean ?? ((weeks / meanWeeks) * 100)).toFixed(1)}% of Mean
+Status: ${String(ev?.event_status || "—").toUpperCase()}"
+              style="
+                position:absolute;
+                left:${meanPct}%;
+                top:0;
+                width:2px;
+                height:9px;
+                background:rgba(255,255,255,0.8);
+                cursor:help;
+              ">
+            </div>
+
           </div>
 
           <div style="
@@ -6031,7 +6049,6 @@ function applyAllFromState(data) {
       host.innerHTML = "";
     }
   }
-
   // ============================================================
   // CARD 4 — RECESSION PULSE (LOCKED v1)
   // ============================================================
