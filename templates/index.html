@@ -2564,7 +2564,7 @@ main.grid > #cr-dump-full{
     <div class="mr-box"><div class="k">CYCLE CLOCK</div><div id="mr-cycle" class="v">—</div></div>
     <div class="mr-box"><div class="k">MATURITY</div><div id="mr-maturity" class="v">—</div></div>
 
-    <div class="mr-box mr-wide"><div class="k">CARD 2</div><div id="mr-card2" class="v">—</div></div>
+    <div class="mr-box mr-wide"><div class="k">CYCLE EVENT</div><div id="mr-card2" class="v">Displayed on Card 2</div></div>
     <div class="mr-box mr-wide">
       <div class="k">TREND PRESSURE</div>
       <div id="mr-trend-pressure" class="v">—</div>
@@ -3398,8 +3398,42 @@ function paintMacroRail(p){
   setTxt("mr-maturity", (cycle120 !== "—") ? `${cycle120}/120` : "—");
 
   // card2
-  const c2 = m.card2 || {};
-  setTxt("mr-card2", `${c2.state ?? "—"} • ${c2.text ?? "—"}`);
+  // Card 2 summary removed from Macro Rail.
+ // Card 2 now owns Cycle Event display.
+ setTxt("mr-card2", "Cycle Event displayed on Card 2");
+
+ // Trend Pressure moved into Macro Rail
+ const gc = m?.macro_v2?.gc || null;
+ const s2Allowed =
+   m?.s2_allowed === true ||
+  String(m?.s2_allowed).toLowerCase() === "true";
+
+if (gc) {
+  const state = String(gc?.latch_state || "NEUTRAL").toUpperCase();
+  const phase = String(gc?.phase || "UNSET").toUpperCase();
+  const count = Number(gc?.latch_count);
+  const mean  = Number(gc?.mean_duration);
+  const pct   = Number(gc?.pct_of_mean);
+  const mode  = String(gc?.mean_mode || "MANUAL").toUpperCase();
+
+  let label = "INACTIVE";
+
+  if (!s2Allowed) label = "S2 NOT PERMITTED";
+  else if (state === "GREEN") label = "TREND SUPPORTED";
+  else if (state === "RED") label = "PULLBACK PRESSURE";
+  else if (state === "ORANGE") label = "TRANSITION / BASING";
+
+  const countTxt = Number.isFinite(count) ? String(count) : "—";
+  const meanTxt  = Number.isFinite(mean) ? mean.toFixed(1) : "—";
+  const pctTxt   = Number.isFinite(pct) ? `${pct.toFixed(1)}%` : "—";
+
+  setTxt(
+    "mr-trend-pressure",
+    `${label} • ${state} • ${phase} • ${countTxt}/${meanTxt} (${pctTxt}) • ${mode}`
+  );
+} else {
+  setTxt("mr-trend-pressure", "—");
+}
 
   setTxt("mr-sahm", sahm);
   setTxt("mr-econ", sahmBucket(sahm));
