@@ -279,7 +279,7 @@ DEBUG_LOCK = Lock()
 
 
 UK_TZ = ZoneInfo("Europe/London")
-PILL_DUP_GUARD_MS = 29 * 60 * 1000
+# PILL_DUP_GUARD_MS = 29 * 60 * 1000
 
 def _iso(ts_ms):
     if not ts_ms:
@@ -1670,7 +1670,9 @@ def _lane_from_records(records, key):
 def _append_pill_record(ref_id, tf_key, record):
     ref_key = str(ref_id)
     now_ms = int(time.time() * 1000)
+
     pm = STATE.setdefault("pill_memory", {}).setdefault("by_ref", {})
+
     node = pm.setdefault(ref_key, {
         "ref_id": ref_id,
         "ticker": record.get("ticker"),
@@ -1688,38 +1690,30 @@ def _append_pill_record(ref_id, tf_key, record):
     close_key = "daily_close_time" if tf_key == "D" else "h4_close_time"
     close_ts = record.get(close_key)
 
-    # Prevent duplicate append for same completed candle.
+    # Same completed candle = update existing record.
+    # New completed candle = append new record.
     if close_ts is not None:
         for existing in arr:
             if existing.get(close_key) == close_ts:
-                last_seen = existing.get("_server_ts") or 0
+                record["_server_ts"] = now_ms
+                existing.update(record)
+                node["_server_ts"] = now_ms
+                return node
 
-                if now_ms - last_seen < PILL_DUP_GUARD_MS:
-                    print(
-                        "PILL DUP REJECT",
-                        ref_key,
-                        tf_key,
-                        close_key,
-                        close_ts,
-                        flush=True
-                    )
-                    return node
-
-            existing.update(record)
-            node["_server_ts"] = now_ms
-            return node
-
+    record["_server_ts"] = now_ms
     arr.append(record)
 
     if len(arr) > PILL_DEPTH:
         del arr[:-PILL_DEPTH]
 
-    node["_server_ts"] = int(time.time() * 1000)
+    node["_server_ts"] = now_ms
+
     print(
         "APPEND pill_memory refs =",
         list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
         flush=True
     )
+
     return node
 
 
