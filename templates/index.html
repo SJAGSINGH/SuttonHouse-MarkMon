@@ -5925,7 +5925,7 @@ function applyAllFromState(data) {
       if (!host) return;
 
       const ev = data?.card2 || {};
-
+      console.log("CARD2 RAW", ev);
       const weeks = Number(ev?.event_weeks);
       const meanWeeks = Number(ev?.event_ref_mean_weeks ?? 11.7);
       const maxWeeks  = Number(ev?.event_ref_max_weeks  ?? 26.0);
