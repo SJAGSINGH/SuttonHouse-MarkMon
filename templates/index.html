@@ -628,7 +628,87 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   .pulse-fast{ animation:node-pulse .5s infinite ease-in-out; }
   @keyframes node-pulse{ 0%{transform:scale(.9);opacity:.5} 50%{transform:scale(1.1);opacity:1} 100%{transform:scale(.9);opacity:.5} }
   .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
+   /* ============================
+   CARD 4 — SNAG 2 DRAWDOWN RAIL
+   Non-invasive: does not alter pass-mode pulse classes
+============================ */
 
+#card-4{
+  overflow:hidden;
+}
+
+#card-4 .pulse-container{
+  padding:6px 0 4px;
+  flex-grow:0;
+}
+
+#card-4 #led-node{
+  width:36px;
+  height:36px;
+}
+
+#card-4 .mw-wrap{
+  margin-top:8px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+
+.mw-rail{
+  height:86px;
+  width:10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.10);
+  position:relative;
+  overflow:visible;
+}
+
+.mw-fill{
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:100%;
+  height:0%;
+  border-radius:999px;
+  background:rgba(255,68,68,0.45);
+  box-shadow:0 0 10px rgba(255,68,68,0.16);
+  transition:height 0.8s ease;
+}
+
+.mw-capline{
+  position:absolute;
+  left:-4px;
+  right:-4px;
+  top:0;
+  border-top:1px solid rgba(255,255,255,0.42);
+}
+
+.mw-caplabel{
+  position:absolute;
+  top:-7px;
+  left:17px;
+  font-size:8px;
+  letter-spacing:1px;
+  color:rgba(255,255,255,0.58);
+}
+
+.mw-title,
+.mw-val,
+.mw-note{
+  font-size:10px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  line-height:1.35;
+}
+
+.mw-title{ color:rgba(255,255,255,0.48); }
+.mw-val{ color:#fff; font-weight:600; }
+.mw-note{
+  color:rgba(255,255,255,0.72);
+  max-width:155px;
+}
   #password-modal{
     display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,.95); z-index:10000;
@@ -2533,7 +2613,7 @@ main.grid > #cr-dump-full{
       <div class="mw-val" id="mw-val">—</div>
     </div>
 
-    <div class="mw-bar" aria-hidden="true">
+    <div class="mw-rail" aria-hidden="true">
       <div class="mw-fill" id="mw-fill"></div>
       <div class="mw-capline"></div>
       <div class="mw-caplabel">35%</div>
