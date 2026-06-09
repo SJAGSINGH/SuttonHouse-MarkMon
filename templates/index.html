@@ -628,7 +628,32 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   .pulse-fast{ animation:node-pulse .5s infinite ease-in-out; }
   @keyframes node-pulse{ 0%{transform:scale(.9);opacity:.5} 50%{transform:scale(1.1);opacity:1} 100%{transform:scale(.9);opacity:.5} }
   .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
-/* ============================
+
+ /* SNAG 2 — contraction shock signature only */
+#card-4.glow-danger #led-node.pulse-fast{
+  animation: recession-shock 5.2s cubic-bezier(.16,1,.3,1) infinite !important;
+}
+
+@keyframes recession-shock{
+  0%{
+    transform:scale(0.98);
+    opacity:0.72;
+  }
+
+  /* quick shock expansion */
+  6%{
+    transform:scale(1.18);
+    opacity:1;
+  }
+
+  /* slow controlled decay */
+  100%{
+    transform:scale(0.98);
+    opacity:0.72;
+  }
+}
+ 
+ /* ============================
    CARD 4 — SNAG 2 DRAWDOWN RAIL
    Recession-only overlay.
    Expansion/Stalling keep original Card 4 layout.
