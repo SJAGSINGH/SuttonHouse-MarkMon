@@ -6258,10 +6258,24 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
   const mwVal  = document.getElementById("mw-val");
   const mwNote = document.getElementById("mw-note");
 
-  if (mwWrap) mwWrap.style.display = "none";
-  if (mwNote) mwNote.style.display = "none";
-  if (mwFill) mwFill.style.height = "0%";
-  if (mwVal) mwVal.innerText = "—";
+  // Reset recession-only UI.
+ // Rail and Market Weakness readout should NEVER appear
+ // during Expansion or Stalling states.
+
+ if (mwWrap) mwWrap.style.display = "none";
+
+ if (mwNote) {
+   mwNote.style.display = "none";
+   mwNote.innerText = "";
+ }
+
+ if (mwFill) {
+   mwFill.style.height = "0%";
+ }
+
+ if (mwVal) {
+   mwVal.innerText = "";
+ }
 
   window.__S3_ARMED = false;
 
@@ -6287,23 +6301,24 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
     return;
   }
 
-  if (v4) v4.innerText = "Economic:CONTRACTION";
-  if (c4) c4.className = "card glow-danger";
-  if (node) {
-    node.className = "pulse-node pulse-fast";
-    node.style.background = "var(--red)";
-    node.style.boxShadow = "0 0 60px var(--red)";
-  }
+ if (v4) v4.innerText = "Economic:CONTRACTION";
+if (c4) c4.className = "card glow-danger";
+if (node) {
+  node.className = "pulse-node pulse-fast";
+  node.style.background = "var(--red)";
+  node.style.boxShadow = "0 0 60px var(--red)";
+}
 
-  if (mwWrap) mwWrap.style.display = "block";
+// CONTRACTION ONLY: show recession drawdown rail/readout
+if (mwWrap) mwWrap.style.display = "block";
 
-  let dd =
-    data.spx_dd_pct ??
-    data.spx_dd ??
-    data.spxDrawdown ??
-    data.dd ??
-    data.drawdown ??
-    null;
+let dd =
+  data.spx_dd_pct ??
+  data.spx_dd ??
+  data.spxDrawdown ??
+  data.dd ??
+  data.drawdown ??
+  null;
 
   if (typeof dd === "string") dd = Number(dd);
 
