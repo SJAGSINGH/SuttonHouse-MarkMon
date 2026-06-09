@@ -702,7 +702,120 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   text-transform:uppercase;
   line-height:1.35;
 }
+/* ============================
+   CARD 4 — SNAG 2 DRAWDOWN RAIL
+============================ */
 
+#card-4{
+  overflow:hidden;
+  min-height:170px;
+}
+
+#card-4 .card4-layout{
+  display:grid;
+  grid-template-columns:38px 1fr;
+  gap:18px;
+  height:100%;
+  align-items:stretch;
+}
+
+#card-4 .card4-main{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  min-height:118px;
+}
+
+#card-4 .pulse-container{
+  padding:0;
+  flex-grow:0;
+}
+
+#card-4 #led-node{
+  width:38px;
+  height:38px;
+}
+
+#card-4 .mw-rail{
+  height:124px;
+  width:12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.045);
+  border:1px solid rgba(255,255,255,0.13);
+  position:relative;
+  overflow:visible;
+  align-self:center;
+  margin-left:2px;
+}
+
+#card-4 .mw-fill{
+  position:absolute;
+  left:1px;
+  bottom:1px;
+  width:calc(100% - 2px);
+  height:0%;
+  border-radius:999px;
+  background:rgba(255,68,68,0.78);
+  box-shadow:0 0 12px rgba(255,68,68,0.22);
+  transition:height 0.8s ease;
+}
+
+#card-4 .mw-capline{
+  position:absolute;
+  left:-7px;
+  right:-7px;
+  top:0;
+  border-top:1px solid rgba(255,255,255,0.62);
+}
+
+#card-4 .mw-caplabel{
+  position:absolute;
+  top:-8px;
+  left:20px;
+  font-size:8px;
+  letter-spacing:1px;
+  color:rgba(255,255,255,0.68);
+}
+
+#card-4 .mw-readout{
+  align-self:flex-start;
+  margin-left:20px;
+  margin-top:4px;
+}
+
+#card-4 .mw-title{
+  font-size:10px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  line-height:1.3;
+}
+
+#card-4 .mw-val{
+  margin-top:6px;
+  font-size:22px;
+  letter-spacing:2px;
+  font-weight:700;
+  color:#fff;
+  line-height:1;
+}
+
+#card-4 .mw-note{
+  margin-top:8px;
+  font-size:10px;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  color:var(--lime);
+  text-shadow:0 0 10px rgba(50,205,50,0.25);
+}
+
+#card-4 .recession-text{
+  margin-top:10px;
+  font-size:11px !important;
+  letter-spacing:1.4px;
+  justify-content:center;
+}
 .mw-title{ color:rgba(255,255,255,0.48); }
 .mw-val{ color:#fff; font-weight:600; }
 .mw-note{
@@ -2598,37 +2711,35 @@ main.grid > #cr-dump-full{
    <div id="gauge-3" style="display:none;"></div>
 </div>
     
-   <div class="card" id="card-4">
+  <div class="card" id="card-4">
   <h3>Recession Pulse</h3>
 
-  <!-- Pulse node -->
-  <div class="pulse-container">
-    <div id="led-node" class="pulse-node"></div>
-  </div>
+  <div class="card4-layout">
 
-  <!-- Market Weakness (ONLY shown during Contraction) -->
-  <div class="mw-wrap" id="mw-wrap" style="display:none;">
-    <div class="mw-row">
-      <div class="mw-title">MARKET WEAKNESS</div>
-      <div class="mw-val" id="mw-val">—</div>
-    </div>
-
-    <div class="mw-rail" aria-hidden="true">
+    <div class="mw-rail" id="mw-wrap" style="display:none;">
       <div class="mw-fill" id="mw-fill"></div>
       <div class="mw-capline"></div>
       <div class="mw-caplabel">35%</div>
     </div>
 
-    <div class="mw-note" id="mw-note" style="display:none;">
-      MARKET WEAKNESS THRESHOLD ACHIEVED
+    <div class="card4-main">
+      <div class="pulse-container">
+        <div id="led-node" class="pulse-node"></div>
+      </div>
+
+      <div class="mw-readout">
+        <div class="mw-title">MARKET WEAKNESS</div>
+        <div class="mw-val" id="mw-val">—</div>
+        <div class="mw-note" id="mw-note" style="display:none;">ACHIEVED</div>
+      </div>
+
+      <div class="primary-text recession-text" id="val-4">AWAITING</div>
+      <div class="secondary-text" id="sub-4" style="display:none;"></div>
     </div>
+
   </div>
-
-  <!-- Sahm state text -->
-  <div class="primary-text recession-text" id="val-4">AWAITING</div>
-  <div class="secondary-text" id="sub-4" style="display:none;"></div>
 </div>
-
+   
 <!-- Macro Commission Rail (SLIDE DOWN FROM TOP) -->
 <div id="macro-rail" class="hidden">
   <div class="mr-head">
@@ -6130,102 +6241,101 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
     }
   }
   // ============================================================
-  // CARD 4 — RECESSION PULSE (LOCKED v1)
-  // ============================================================
-  (function applyCard4FromState() {
-    if (!(data && data.sahm != null)) return;
+// CARD 4 — RECESSION PULSE + DRAWDOWN RAIL (SNAG 2)
+// ============================================================
+(function applyCard4FromState() {
+  if (!(data && data.sahm != null)) return;
 
-    const s = Number(data.sahm);
-    if (!Number.isFinite(s)) return;
+  const s = Number(data.sahm);
+  if (!Number.isFinite(s)) return;
 
-    const v4   = document.getElementById("val-4");
-    const c4   = document.getElementById("card-4");
-    const node = document.getElementById("led-node");
+  const v4   = document.getElementById("val-4");
+  const c4   = document.getElementById("card-4");
+  const node = document.getElementById("led-node");
 
-    const mwWrap = document.getElementById("mw-wrap");
-    const mwFill = document.getElementById("mw-fill");
-    const mwVal  = document.getElementById("mw-val");
-    const mwNote = document.getElementById("mw-note");
+  const mwWrap = document.getElementById("mw-wrap");
+  const mwFill = document.getElementById("mw-fill");
+  const mwVal  = document.getElementById("mw-val");
+  const mwNote = document.getElementById("mw-note");
 
-    if (mwWrap) mwWrap.style.display = "none";
-    if (mwNote) mwNote.style.display = "none";
-    if (mwFill) mwFill.style.height = "0%";
-    window.__S3_ARMED = false;
+  if (mwWrap) mwWrap.style.display = "none";
+  if (mwNote) mwNote.style.display = "none";
+  if (mwFill) mwFill.style.height = "0%";
+  if (mwVal) mwVal.innerText = "—";
 
-    if (s < 0.35) {
-      if (v4) v4.innerText = "Economic:EXPANSION";
-      if (c4) c4.className = "card glow-lime";
-      if (node) {
-        node.className = "pulse-node pulse-slow";
-        node.style.background = "var(--lime)";
-        node.style.boxShadow = "0 0 40px var(--lime)";
-      }
-      return;
-    }
+  window.__S3_ARMED = false;
 
-    if (s < 0.50) {
-      if (v4) v4.innerText = "Economy:STALLING";
-      if (c4) c4.className = "card glow-warning";
-      if (node) {
-        node.className = "pulse-node pulse-mid";
-        node.style.background = "var(--orange)";
-        node.style.boxShadow = "0 0 40px var(--orange)";
-      }
-      return;
-    }
-
-    if (v4) v4.innerText = "Economic:CONTRACTION";
-    if (c4) c4.className = "card glow-danger";
+  if (s < 0.35) {
+    if (v4) v4.innerText = "Economic:EXPANSION";
+    if (c4) c4.className = "card glow-lime";
     if (node) {
-      node.className = "pulse-node pulse-fast";
-      node.style.background = "var(--red)";
-      node.style.boxShadow = "0 0 60px var(--red)";
+      node.className = "pulse-node pulse-slow";
+      node.style.background = "var(--lime)";
+      node.style.boxShadow = "0 0 40px var(--lime)";
     }
+    return;
+  }
 
-    if (mwWrap) mwWrap.style.display = "flex";
-
-    let dd =
-      data.spx_dd ??
-      data.spxDrawdown ??
-      data.spx_dd_pct ??
-      data.dd ??
-      data.drawdown ??
-      null;
-
-    if (typeof dd === "string") dd = Number(dd);
-
-    if (typeof dd !== "number" || !Number.isFinite(dd)) {
-      if (mwVal) mwVal.innerText = "SPX DD: —";
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS: PENDING";
-      }
-      return;
+  if (s < 0.50) {
+    if (v4) v4.innerText = "Economy:STALLING";
+    if (c4) c4.className = "card glow-warning";
+    if (node) {
+      node.className = "pulse-node pulse-mid";
+      node.style.background = "var(--orange)";
+      node.style.boxShadow = "0 0 40px var(--orange)";
     }
+    return;
+  }
 
-    dd = Math.abs(dd);
-    if (dd <= 1) dd *= 100;
+  if (v4) v4.innerText = "Economic:CONTRACTION";
+  if (c4) c4.className = "card glow-danger";
+  if (node) {
+    node.className = "pulse-node pulse-fast";
+    node.style.background = "var(--red)";
+    node.style.boxShadow = "0 0 60px var(--red)";
+  }
 
-    const CAP = 35;
-    const clipped = Math.min(CAP, dd);
-    const pct = Math.round((clipped / CAP) * 100);
+  if (mwWrap) mwWrap.style.display = "block";
 
-    if (mwFill) mwFill.style.height = pct + "%";
-    if (mwVal)  mwVal.innerText = `SPX DD: ${dd.toFixed(1)}%`;
+  let dd =
+    data.spx_dd_pct ??
+    data.spx_dd ??
+    data.spxDrawdown ??
+    data.dd ??
+    data.drawdown ??
+    null;
 
-    if (dd >= CAP) {
-      window.__S3_ARMED = true;
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS THRESHOLD ACHIEVED";
-      }
-    } else {
-      if (mwNote) {
-        mwNote.style.display = "block";
-        mwNote.innerText = "MARKET WEAKNESS TRACKING";
-      }
+  if (typeof dd === "string") dd = Number(dd);
+
+  if (typeof dd !== "number" || !Number.isFinite(dd)) {
+    if (mwVal) mwVal.innerText = "—";
+    if (mwNote) {
+      mwNote.style.display = "none";
+      mwNote.innerText = "";
     }
-  })();
+    return;
+  }
+
+  dd = Math.abs(dd);
+  if (dd <= 1) dd *= 100;
+
+  const CAP = 35;
+  const clipped = Math.min(CAP, dd);
+  const pct = Math.round((clipped / CAP) * 100);
+  const achieved = dd >= CAP;
+
+  if (mwFill) mwFill.style.height = pct + "%";
+  if (mwVal) mwVal.innerText = `${dd.toFixed(1)}%`;
+
+  if (mwNote) {
+    mwNote.style.display = achieved ? "block" : "none";
+    mwNote.innerText = achieved ? "ACHIEVED" : "";
+  }
+
+  if (achieved) {
+    window.__S3_ARMED = true;
+  }
+})();
 
   // ============================================================
   // SCREENER RAIL REFRESH
