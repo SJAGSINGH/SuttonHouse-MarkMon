@@ -630,7 +630,8 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   .recession-text{ font-size:12px !important; text-align:center; justify-content:center; margin-top:10px; }
 /* ============================
    CARD 4 — SNAG 2 DRAWDOWN RAIL
-   Recession-only. Does not alter pass-mode pulse classes.
+   Recession-only overlay.
+   Expansion/Stalling keep original Card 4 layout.
 ============================ */
 
 #card-4{
@@ -638,48 +639,54 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   min-height:170px;
 }
 
+/* Default/pass mode: original centred layout */
 #card-4 .card4-layout{
-  display:grid;
-  grid-template-columns:38px 1fr;
-  gap:18px;
+  position:relative;
   height:100%;
-  align-items:stretch;
-}
-
-#card-4 .card4-main{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:space-between;
   min-height:118px;
 }
 
+#card-4 .card4-main{
+  height:100%;
+  min-height:118px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
 #card-4 .pulse-container{
-  padding:0;
-  flex-grow:0;
+  padding:15px 0;
+  flex-grow:1;
 }
 
 #card-4 #led-node{
-  width:38px;
-  height:38px;
+  width:55px;
+  height:55px;
 }
 
-/* hidden by default — JS only shows rail in contraction */
+/* Rail hidden by default */
 #card-4 .mw-rail{
   display:none;
+}
+
+/* Readout hidden by default */
+#card-4 .mw-readout{
+  display:none;
+}
+
+/* Contraction only: enable rail overlay without changing card size */
+#card-4.glow-danger .mw-rail{
+  display:block;
+  position:absolute;
+  left:18px;
+  top:22px;
   height:124px;
   width:12px;
   border-radius:999px;
   background:rgba(255,255,255,0.045);
   border:1px solid rgba(255,255,255,0.13);
-  position:relative;
   overflow:visible;
-  align-self:center;
-  margin-left:2px;
-}
-
-#card-4.glow-danger .mw-rail{
-  display:block;
 }
 
 #card-4 .mw-fill{
@@ -711,16 +718,12 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   color:rgba(255,255,255,0.68);
 }
 
-/* hidden by default — visible only in contraction */
-#card-4 .mw-readout{
-  display:none;
-  align-self:flex-start;
-  margin-left:20px;
-  margin-top:4px;
-}
-
+/* Contraction only: show readout */
 #card-4.glow-danger .mw-readout{
   display:block;
+  position:absolute;
+  left:92px;
+  bottom:50px;
 }
 
 #card-4 .mw-title{
@@ -750,17 +753,13 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 #card-4 .recession-text{
-  margin-top:10px;
-  font-size:11px !important;
-  letter-spacing:1.4px;
+  font-size:12px !important;
+  text-align:center;
   justify-content:center;
+  margin-top:10px;
 }
-.mw-title{ color:rgba(255,255,255,0.48); }
-.mw-val{ color:#fff; font-weight:600; }
-.mw-note{
-  color:rgba(255,255,255,0.72);
-  max-width:155px;
-}
+ 
+
   #password-modal{
     display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,.95); z-index:10000;
