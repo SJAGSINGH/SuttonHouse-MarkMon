@@ -3597,8 +3597,8 @@ def webhook():
                                 _truthy(src.get("mvFire_D")) or
                                 _truthy(src.get("mvFire_4H")) or
                                 _truthy(src.get("jrFire_D")) or
-                                _truthy(src.get("jrFire_4H")) or
-                                _truthy(src.get("trigger_any"))
+                                _truthy(src.get("jrFire_4H"))
+                               
                             )
 
                             # Setup memory / armed state.
