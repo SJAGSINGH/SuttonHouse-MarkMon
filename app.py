@@ -3566,6 +3566,9 @@ def webhook():
                     setup_ref_id = None
 
                     if isinstance(nodes, dict):
+                        MESSAGE_ELIGIBLE_MIN_REF = 1
+                        MESSAGE_ELIGIBLE_MAX_REF = 20
+
                         for _, rec in nodes.items():
                             if not isinstance(rec, dict):
                                 continue
@@ -3579,6 +3582,12 @@ def webhook():
                                 node_ref = int(node_ref) if node_ref is not None else None
                             except Exception:
                                 node_ref = None
+
+                            # SNAG 9 — Global Message Drift guard.
+                            # Message Card may only speak from monitored Sutton House nodes.
+                            # Market anchors / global sensors / future internal layers must not enter the message pool.
+                            if node_ref is None or not (MESSAGE_ELIGIBLE_MIN_REF <= node_ref <= MESSAGE_ELIGIBLE_MAX_REF):
+                                continue
 
                             node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
 
