@@ -1726,17 +1726,11 @@ def _rebuild_pill_lanes(node):
             "Indicator_X_D": _lane_from_records(daily, "x"),
             "Indicator_Y_D": _lane_from_records(daily, "y"),
             "Indicator_DIV_D": _lane_from_records(daily, "xdiv"),
-            "MSA_D": _lane_from_records(daily, "msa"),
-            "JR_D": _lane_from_records(daily, "jr"),
-            "SMA10X_D": _lane_from_records(daily, "sma10x"),
         },
         "H4": {
             "Indicator_X_4H": _lane_from_records(h4, "x"),
             "Indicator_Y_4H": _lane_from_records(h4, "y"),
             "Indicator_DIV_4H": _lane_from_records(h4, "xdiv"),
-            "MSA_4H": _lane_from_records(h4, "msa"),
-            "JR_4H": _lane_from_records(h4, "jr"),
-            "SMA10X_4H": _lane_from_records(h4, "sma10x"),
         },
     }
 
@@ -1759,6 +1753,17 @@ def _handle_pill_memory_payload(data):
     daily_complete = _int_or_none(data.get("daily_close_time")) is not None
     h4_complete = _int_or_none(data.get("h4_close_time")) is not None
 
+    # ============================================================
+    # SNAG 10 — HISTORIAN / GLOBAL CONTEXT ONLY
+    # Pill memory stores:
+    #   X
+    #   Y
+    #   X_DIV
+    #
+    # It does NOT store MSA / JR / SMA10X.
+    # Those remain local setup-engine / SCADA_STATUS truth.
+    # ============================================================
+
     if daily_complete:
         d_x_raw = _float_or_none(data.get("d_x_raw"))
         d_x_trigger = _float_or_none(data.get("d_x_trigger"))
@@ -1769,23 +1774,23 @@ def _handle_pill_memory_payload(data):
             "ticker": ticker,
             "time": _int_or_none(data.get("time")),
             "daily_close_time": _int_or_none(data.get("daily_close_time")),
+
+            # Global context lanes only
             "x": _active_vix(d_x_raw, d_x_trigger),
             "y": _active_gvz(d_y_raw, d_y_trigger),
             "xdiv": _bool01(data.get("d_xdiv")),
-            "msa": _bool01(data.get("d_msa")),
-            "jr": _bool01(data.get("d_jr")),
-            "sma10x": _bool01(data.get("d_sma10x")),
+
             "raw": {
                 "x": d_x_raw,
                 "x_trigger": d_x_trigger,
                 "y": d_y_raw,
                 "y_trigger": d_y_trigger,
-                "msa": _float_or_none(data.get("d_msa_raw")),
-                "jr_k1": _float_or_none(data.get("d_jr_k1")),
-                "jr_k2": _float_or_none(data.get("d_jr_k2")),
+                "xdiv": _bool01(data.get("d_xdiv")),
             },
+
             "_server_ts": now_ms,
         }
+
         _append_pill_record(ref_id, "D", d_rec)
 
     if h4_complete:
@@ -1799,23 +1804,23 @@ def _handle_pill_memory_payload(data):
             "time": _int_or_none(data.get("time")),
             "h4_close_time": _int_or_none(data.get("h4_close_time")),
             "daily_close_time": _int_or_none(data.get("daily_close_time")),
+
+            # Global context lanes only
             "x": _active_vix(h4_x_raw, h4_x_trigger),
             "y": _active_gvz(h4_y_raw, h4_y_trigger),
             "xdiv": _bool01(data.get("h4_xdiv")),
-            "msa": _bool01(data.get("h4_msa")),
-            "jr": _bool01(data.get("h4_jr")),
-            "sma10x": _bool01(data.get("h4_sma10x")),
+
             "raw": {
                 "x": h4_x_raw,
                 "x_trigger": h4_x_trigger,
                 "y": h4_y_raw,
                 "y_trigger": h4_y_trigger,
-                "msa": _float_or_none(data.get("h4_msa_raw")),
-                "jr_k1": _float_or_none(data.get("h4_jr_k1")),
-                "jr_k2": _float_or_none(data.get("h4_jr_k2")),
+                "xdiv": _bool01(data.get("h4_xdiv")),
             },
+
             "_server_ts": now_ms,
         }
+
         _append_pill_record(ref_id, "H4", h_rec)
 
     pm_node = (
@@ -1829,8 +1834,12 @@ def _handle_pill_memory_payload(data):
 
     nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
     rec = nodes.setdefault(str(ref_id), {"ref_id": ref_id})
+
     rec["ref_id"] = ref_id
     rec["ticker"] = ticker or rec.get("ticker")
+
+    # Pill memory is attached for historian/tooltip use only.
+    # It must not overwrite or imply MSA/JR/SMA10X authority.
     rec["pill_memory"] = copy.deepcopy(pm_node)
 
     return {
@@ -1842,7 +1851,6 @@ def _handle_pill_memory_payload(data):
         "pill_memory": copy.deepcopy(pm_node),
         "_server_ts": now_ms,
     }
-
 def _derive_message_from_scada(out: Dict[str, Any], prev_msg: Dict[str, Any]) -> Dict[str, Any]:
     """
     Builds the canonical Message System lane from a SCADA_STATUS payload.
