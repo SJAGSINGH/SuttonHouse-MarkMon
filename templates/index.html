@@ -1277,10 +1277,30 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 }
 
 /* MSA label colours */
-.msa-label{ color: rgba(255,255,255,0.45); }
-.msa-auto{ color: var(--lime) !important;   text-shadow:0 0 10px rgba(50,205,50,.25); }
-.msa-man { color: var(--orange) !important; text-shadow:0 0 10px rgba(255,140,0,.20); }
-.msa-na  { color: var(--red) !important;    text-shadow:0 0 10px rgba(255,68,68,.22); }
+/* MSA label colours */
+.msa-label{
+  color: rgba(255,255,255,0.45);
+}
+
+.msa-auto{
+  color: var(--lime) !important;
+}
+
+.msa-semi{
+  color:#4da3ff !important;
+}
+
+.msa-man{
+  color: var(--orange) !important;
+}
+
+
+
+.msa-miss,
+.msa-na{
+  color: var(--red) !important;
+  text-shadow:0 0 10px rgba(255,68,68,.22);
+}
 
 /* ============================
    STOCK NODE — IMAGE + HALO
@@ -4342,7 +4362,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     }
   }
 
-  // ============================================================
+    // ============================================================
   // MSA DISPLAY
   // ============================================================
   const norm = String(msaText || "").trim().toUpperCase();
@@ -4364,7 +4384,6 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
       "msa-auto",
       "msa-semi",
       "msa-man",
-      "msa-sless",
       "msa-miss",
       "msa-na"
     );
@@ -4378,14 +4397,9 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     else if (display === "MAN" || display === "MANUAL") {
       msa.classList.add("msa-man");
     }
-    else if (display === "S_LESS" || display === "STATELESS") {
-      msa.classList.add("msa-sless");
-    }
-    else if (display === "MISS" || display === "MISSING") {
-      msa.classList.add("msa-miss");
-    }
     else {
-      msa.classList.add("msa-na");
+      // MISS / MISSING / NO STATE / anything unexpected
+      msa.classList.add("msa-miss");
     }
   }
   // ============================================================
