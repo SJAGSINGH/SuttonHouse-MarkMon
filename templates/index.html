@@ -4508,11 +4508,21 @@ function normaliseMsaLabel(msg){
   const d = String(dRaw || "").trim().toUpperCase();
   const h4 = String(h4Raw || "").trim().toUpperCase();
 
-  if (
-    (d === "AUTO" && (h4 === "MANUAL" || h4 === "MAN")) ||
-    ((d === "MANUAL" || d === "MAN") && h4 === "AUTO")
-  ) {
-    return { msa: "SEMI", srcRaw: `D:${d || "—"} 4H:${h4 || "—"}`, src: "SEMI" };
+  const isAuto = v => (v === "AUTO" || v === "AUTOMATIC" || v === "SCADA");
+  const isMan  = v => (v === "MANUAL" || v === "MAN");
+
+  if (d && h4) {
+    if (isAuto(d) && isAuto(h4)) {
+      return { msa: "AUTO", srcRaw: `D:${d} 4H:${h4}`, src: "AUTO" };
+    }
+
+    if (isMan(d) && isMan(h4)) {
+      return { msa: "MAN", srcRaw: `D:${d} 4H:${h4}`, src: "MAN" };
+    }
+
+    if ((isAuto(d) && isMan(h4)) || (isMan(d) && isAuto(h4))) {
+      return { msa: "SEMI", srcRaw: `D:${d} 4H:${h4}`, src: "SEMI" };
+    }
   }
 
   const srcRaw =
@@ -4526,15 +4536,16 @@ function normaliseMsaLabel(msg){
   const src = String(srcRaw || "").trim().toUpperCase();
 
   const msa =
-    (src === "AUTO" || src === "AUTOMATIC" || src === "SCADA") ? "AUTO" :
+    isAuto(src) ? "AUTO" :
     (src === "SEMI" || src === "HYBRID") ? "SEMI" :
-    (src === "MANUAL" || src === "MAN") ? "MAN" :
+    isMan(src) ? "MAN" :
     (src === "S_LESS" || src === "STATELESS" || src === "STATE_LESS") ? "S_LESS" :
     (src === "MISSING" || src === "MISS") ? "MISS" :
     "NO STATE";
 
   return { msa, srcRaw, src };
 }
+    
 function applyMsaClass(el, msa){
   if (!el) return;
 
