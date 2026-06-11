@@ -452,40 +452,95 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
 
 
 
+/* ============================================================
+   MSA AUDIT RAIL — SNAG 19
+   ============================================================ */
 
-
-.msa-audit-wrap {
-  display: flex;
+#vault-exit,
+#msa-export-btn,
+#msa-audit-wrap {
+  display: none;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+
+  min-width: 210px;
+  height: 38px;
+  padding: 0 14px;
+
+  border-radius: 10px;
+  border: 1px solid rgba(0,255,170,0.28);
+
+  background: rgba(0,0,0,0.22);
+  color: rgba(0,255,170,0.92);
 
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 2px;
   text-transform: uppercase;
+  white-space: nowrap;
 
-  color: rgba(0, 224, 164, 0.85);
+  cursor: pointer;
+}
+
+#msa-audit-wrap {
+  cursor: default;
 }
 
 #msa-audit-status {
   white-space: nowrap;
 }
 
+/* Founder ACK button */
 #msa-audit-btn {
-  border: 1px solid rgba(0, 224, 164, 0.35);
-  background: transparent;
-  color: rgba(0, 224, 164, 0.95);
+  display: none;
+  margin-left: 8px;
+  min-width: 58px;
+  height: 28px;
+  padding: 0 10px;
 
-  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,255,170,0.28);
+  background: rgba(0,0,0,0.22);
+  color: rgba(0,255,170,0.92);
+
   font-size: 10px;
-  letter-spacing: 0.12em;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-
   cursor: pointer;
 }
 
 #msa-audit-btn:hover {
   opacity: 0.85;
 }
+
+/* Severity bands */
+#msa-audit-wrap.audit-green {
+  border-color: rgba(0,255,170,0.35);
+  color: rgba(0,255,170,0.92);
+}
+
+#msa-audit-wrap.audit-amber {
+  border-color: rgba(255,170,0,0.55);
+  color: rgba(255,190,80,0.95);
+}
+
+#msa-audit-wrap.audit-red {
+  border-color: rgba(255,65,65,0.65);
+  color: rgba(255,90,90,0.98);
+}
+
+#msa-audit-wrap.audit-amber #msa-audit-btn {
+  display: inline-flex;
+  border-color: rgba(255,170,0,0.55);
+  color: rgba(255,190,80,0.95);
+}
+
+#msa-audit-wrap.audit-red #msa-audit-btn {
+  display: inline-flex;
+  border-color: rgba(255,65,65,0.65);
+  color: rgba(255,90,90,0.98);
+}
+
+
 
 /* kill old rail classes if still present */
 .right-rail,
@@ -2223,63 +2278,7 @@ main.grid > #cr-dump-full{
   white-space:nowrap;
 }
 
-.msa-audit-wrap{
-  display:none;
-  align-items:center;
-  gap:8px;
-  color:rgba(0,255,170,0.9);
-  font-size:10px;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  white-space:nowrap;
-}
 
-#vault-exit,
-#msa-export-btn,
-.msa-audit-wrap{
-  display:none;
-  align-items:center;
-  justify-content:center;
-
-  min-width:210px;
-  height:38px;
-  padding:0 14px;
-
-  border-radius:10px;
-  border:1px solid rgba(0,255,170,0.28);
-
-  background:rgba(0,0,0,0.22);
-  color:rgba(0,255,170,0.92);
-
-  font-size:11px;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  white-space:nowrap;
-
-  cursor:pointer;
-}
-
-#msa-audit-wrap{
-  cursor:default;
-}
-
-#msa-audit-btn{
-  display:none;
-  margin-left:8px;
-  min-width:58px;
-  height:28px;
-  padding:0 10px;
-
-  border-radius:8px;
-  border:1px solid rgba(0,255,170,0.28);
-  background:rgba(0,0,0,0.22);
-  color:rgba(0,255,170,0.92);
-
-  font-size:10px;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  cursor:pointer;
-} 
 
 </style>
 
@@ -3119,20 +3118,41 @@ function updateFounderTools(){
 
   const vaultOpen = secretMode === true;
 
-  const exitBtn = document.getElementById("vault-exit");
+  const exitBtn   = document.getElementById("vault-exit");
   const exportBtn = document.getElementById("msa-export-btn");
   const auditWrap = document.getElementById("msa-audit-wrap");
+  const auditText = document.getElementById("msa-audit-status");
 
-  if (exitBtn) exitBtn.style.display = vaultOpen ? "inline-flex" : "none";
+  if (exitBtn)   exitBtn.style.display   = vaultOpen ? "inline-flex" : "none";
   if (exportBtn) exportBtn.style.display = vaultOpen ? "inline-flex" : "none";
   if (auditWrap) auditWrap.style.display = vaultOpen ? "inline-flex" : "none";
 
-  const warActive =
-    window.__RSC_LAST?.secret?.war?.active === true;
+  const state = window.__RSC_LAST || {};
+  const audit = state?.msa_audit || {};
 
-  setWarBadge(getInstitutionalConfirmed(window.__RSC_LAST || data));
+  if (auditWrap && auditText) {
+    const elapsed = Number(audit.elapsed_days ?? 0);
+    const due     = Number(audit.due_days ?? 14);
+    const status  = String(audit.status || "OK").toUpperCase();
+
+    auditWrap.classList.remove("audit-green", "audit-amber", "audit-red");
+
+    if (elapsed >= 21) {
+      auditWrap.classList.add("audit-red");
+    }
+    else if (elapsed >= 14) {
+      auditWrap.classList.add("audit-amber");
+    }
+    else {
+      auditWrap.classList.add("audit-green");
+    }
+
+    auditText.textContent =
+      `MSA AUDIT ${status === "ALARM" ? "REQUIRED" : "CLEAR"}  ${elapsed.toFixed(1)}D / 14.0D`;
+  }
+
+  setWarBadge(getInstitutionalConfirmed(state));
 }
-
 async function exportMsaLibTxt(){
   try{
     const r = await fetch("/api/export_msa_lib", { cache: "no-store" });
