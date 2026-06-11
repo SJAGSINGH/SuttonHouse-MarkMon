@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -3097,14 +3097,10 @@ function updateFounderTools(){
   if (exportBtn) exportBtn.style.display = vaultOpen ? "inline-flex" : "none";
   if (auditWrap) auditWrap.style.display = vaultOpen ? "inline-flex" : "none";
 
-  const x = Number(window.__RSC_LAST?.secret?.vix?.level);
-  const y = Number(window.__RSC_LAST?.secret?.gvz?.level);
+  const warActive =
+    window.__RSC_LAST?.secret?.war?.active === true;
 
-  const institutionalConfirmed =
-    (Number.isFinite(x) && x <= 4) ||
-    (Number.isFinite(y) && y <= 3);
-
-  setWarBadge(institutionalConfirmed);
+  setWarBadge(warActive);
 }
 
 async function exportMsaLibTxt(){
@@ -5026,8 +5022,8 @@ function setWarBadge(active){
 }
 
 function applyPublicFromState(data){
-  const x = Number(data?.secret?.vix?.level);
-  const y = Number(data?.secret?.gvz?.level);
+  const x = Number(data?.secret?.war?.x_level);
+  const y = Number(data?.secret?.war?.y_level);
 
   const institutionalConfirmed =
     (Number.isFinite(x) && x <= 4) ||
@@ -5084,16 +5080,9 @@ function mv2ToneClass(v){
   // PUBLIC APPLY
   // ----------------------------
 function applyPublicFromState(data){
-  const x = Number(data?.secret?.vix?.level);
-  const y = Number(data?.secret?.gvz?.level);
-
-  const institutionalConfirmed =
-    (Number.isFinite(x) && x <= 4) ||
-    (Number.isFinite(y) && y <= 3);
-
-  document.body.classList.toggle('war-room', institutionalConfirmed);
-  setWarBadge(institutionalConfirmed);
-}
+  const warActive = !!(data?.secret?.war?.active);
+  document.body.classList.toggle('war-room', warActive);
+  setWarBadge(warActive);
 
   // ---------- reset ----------
   ['card-1','card-2','card-3'].forEach(id => {
@@ -6018,14 +6007,8 @@ function applyAllFromState(data) {
   window.__LAST = lastState;
 
   // --- WAR badge ---
- const x = Number(data?.secret?.vix?.level);
- const y = Number(data?.secret?.gvz?.level);
-
- const institutionalConfirmed =
-  (Number.isFinite(x) && x <= 4) ||
-  (Number.isFinite(y) && y <= 3);
-
- setWarBadge(institutionalConfirmed);
+  const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
+  setWarBadge(warActive);
 
   // --- Core render lanes ---
   if (!secretMode) applyPublicFromState(data);
@@ -6815,3 +6798,4 @@ setupCommissionTooltips();
 </script>
 </body>
 </html>
+ 
