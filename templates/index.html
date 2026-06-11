@@ -2891,7 +2891,17 @@ setTerminalStatus('OFFLINE');
 
   tick();
   setInterval(tick, 1000);
-   
+    
+function getInstitutionalConfirmed(data){
+  const x = Number(data?.secret?.vix?.level);
+  const y = Number(data?.secret?.gvz?.level);
+
+  return (
+    (Number.isFinite(x) && x <= 4) ||
+    (Number.isFinite(y) && y <= 3)
+  );
+}
+    
 function applyScreenerRail(refId){
   const item =
     document.querySelector(`.stock-item[data-slot="${refId}"]`) ||
@@ -3100,7 +3110,7 @@ function updateFounderTools(){
   const warActive =
     window.__RSC_LAST?.secret?.war?.active === true;
 
-  setWarBadge(warActive);
+  setWarBadge(getInstitutionalConfirmed(window.__RSC_LAST || data));
 }
 
 async function exportMsaLibTxt(){
@@ -5081,8 +5091,8 @@ function mv2ToneClass(v){
   // ----------------------------
 function applyPublicFromState(data){
   const warActive = !!(data?.secret?.war?.active);
-  document.body.classList.toggle('war-room', warActive);
-  setWarBadge(warActive);
+  document.body.classList.toggle('war-room', getInstitutionalConfirmed(window.__RSC_LAST || data));
+  setWarBadge(getInstitutionalConfirmed(window.__RSC_LAST || data));
 
   // ---------- reset ----------
   ['card-1','card-2','card-3'].forEach(id => {
@@ -6008,7 +6018,7 @@ function applyAllFromState(data) {
 
   // --- WAR badge ---
   const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
-  setWarBadge(warActive);
+  setWarBadge(getInstitutionalConfirmed(window.__RSC_LAST || data));
 
   // --- Core render lanes ---
   if (!secretMode) applyPublicFromState(data);
