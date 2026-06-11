@@ -4623,23 +4623,13 @@ function applyWatch(msg){
   if (!item) return;
 
   const label = item.querySelector(".stock-label");
-  const msaEl = item.querySelector(".msa-label");
 
   const tkr = msg.ticker ? String(msg.ticker).toUpperCase() : "—";
   if (label) label.textContent = tkr;
 
-  const { msa, srcRaw } = normaliseMsaLabel(msg);
-
-  // WATCH must not erase valid SCADA MSA state.
-  // Only update MSA if WATCH actually carries MSA source truth.
-  if (msaEl && srcRaw) {
-    msaEl.textContent = msa;
-    msaEl.title = window.COMMISSIONING && srcRaw
-      ? `msa_src: ${String(srcRaw).toUpperCase()}`
-      : "";
-
-    applyMsaClass(msaEl, msa);
-  }
+  // WATCH must not own MSA.
+  // SCADA_STATUS is final authority for MSA source/display.
+  // WATCH payloads may carry msa_src: "NA", so never let WATCH repaint .msa-label.
 }
 
   // ----------------------------
