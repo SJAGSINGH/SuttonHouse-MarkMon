@@ -660,35 +660,9 @@ def _extract_sentinel_node_snapshot(node):
 
 
 
-
-    now_ms = int(time.time() * 1000)
+  
 
  
-
-with STATE_LOCK:
-    STATE["msa_audit"] = {
-        "required": False,
-        "status": "OK",
-        "reason": "",
-        "last_ack_ts": now_ms,
-        "last_alarm_ts": None,
-        "source": "founder_ack",
-        "elapsed_ms": 0,
-        "remaining_ms": MSA_AUDIT_INTERVAL_MS,
-        "elapsed_days": 0,
-        "due_days": 14,
-        "pct": 0,
-        "_server_ts": now_ms,
-    }
-
-    STATE["_server_ts"] = now_ms
-    payload = copy.deepcopy(STATE)
-
-save_state_throttled(force=True)
-
-socketio.emit("macro_update", _json_safe(payload))
-
-return jsonify({"ok": True})
 
 
 
