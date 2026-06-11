@@ -298,26 +298,35 @@ def _iso(ts_ms):
     return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
 
 def _msa_audit_alarm(required: bool, reason: str = "", source: str = "system"):
+
     with STATE_LOCK:
+
         STATE["msa_audit"] = {
             "required": bool(required),
             "status": "ALARM" if required else "OK",
             "reason": reason if required else "",
             "last_ack_ts": STATE.get("msa_audit", {}).get("last_ack_ts"),
-            "last_alarm_ts": _now_iso() if required else STATE.get("msa_audit", {}).get("last_alarm_ts"),
-            "source": source
+            "last_alarm_ts": (
+                int(time.time() * 1000)
+                if required
+                else STATE.get("msa_audit", {}).get("last_alarm_ts")
+            ),
+            "source": source,
         }
 
-        save_state_throttled(force=force_save)
+    save_state_throttled(force=True)
 
-        socketio.emit("stock_update", {
+    socketio.emit(
+        "stock_update",
+        {
             "type": "MSA_AUDIT",
             "required": bool(required),
             "status": "ALARM" if required else "OK",
             "reason": reason if required else "",
             "source": source,
-            "_server_ts": _now_iso()
-        })
+            "_server_ts": int(time.time() * 1000),
+        }
+    )
 
 def _safe_short_json(obj, limit=2000):
     try:
@@ -654,28 +663,32 @@ def _extract_sentinel_node_snapshot(node):
 
     now_ms = int(time.time() * 1000)
 
-    with STATE_LOCK:
-        STATE["msa_audit"] = {
-            "required": False,
-            "status": "OK",
-            "reason": "",
-            "last_ack_ts": now_ms,
-            "last_alarm_ts": STATE.get("msa_audit", {}).get("last_alarm_ts"),
-            "source": "founder_ack",
-        }
+ 
 
-        save_state_throttled(force=force_save)
-
-    socketio.emit("stock_update", {
-        "type": "MSA_AUDIT",
+with STATE_LOCK:
+    STATE["msa_audit"] = {
         "required": False,
         "status": "OK",
         "reason": "",
+        "last_ack_ts": now_ms,
+        "last_alarm_ts": None,
         "source": "founder_ack",
+        "elapsed_ms": 0,
+        "remaining_ms": MSA_AUDIT_INTERVAL_MS,
+        "elapsed_days": 0,
+        "due_days": 14,
+        "pct": 0,
         "_server_ts": now_ms,
-    })
+    }
 
-    return jsonify({"ok": True})
+    STATE["_server_ts"] = now_ms
+    payload = copy.deepcopy(STATE)
+
+save_state_throttled(force=True)
+
+socketio.emit("macro_update", _json_safe(payload))
+
+return jsonify({"ok": True})
 
 
 
@@ -2101,7 +2114,11 @@ def _load_state_from_disk() -> None:
             # -----------------------------------------
             if isinstance(cached.get("anchors"), dict):
                 STATE["anchors"] = cached.get("anchors")
-
+            # -----------------------------------------
+            # MSA Audit timer
+            # -----------------------------------------
+            if isinstance(cached.get("msa_audit"), dict):
+                STATE["msa_audit"].update(cached.get("msa_audit"))
             # -----------------------------------------
             # Secret block
             # -----------------------------------------
@@ -2495,21 +2512,33 @@ def founder_msa_audit_ack():
     now_ms = int(time.time() * 1000)
 
     with STATE_LOCK:
-        STATE["msa_audit"] = {
+        audit = STATE.setdefault("msa_audit", {})
+
+        audit.update({
             "required": False,
             "status": "OK",
             "reason": "",
             "last_ack_ts": now_ms,
-            "last_alarm_ts": STATE.get("msa_audit", {}).get("last_alarm_ts"),
+            "last_alarm_ts": None,
             "source": "founder_ack",
-        }
+            "elapsed_ms": 0,
+            "remaining_ms": MSA_AUDIT_INTERVAL_MS,
+            "elapsed_days": 0,
+            "due_days": 14,
+            "pct": 0,
+            "_server_ts": now_ms,
+        })
 
-        save_state_throttled(force=force_save)
+        STATE["_server_ts"] = now_ms
+        payload = copy.deepcopy(STATE)
 
-    socketio.emit("macro_update", _json_safe(copy.deepcopy(STATE)))
+    save_state_throttled(force=True)
+    socketio.emit("macro_update", _json_safe(payload))
 
-    return jsonify({"ok": True})
-    
+    return jsonify({
+        "ok": True,
+        "msa_audit": _json_safe(payload.get("msa_audit")),
+    })    
 # -----------------------------------------
 # Public welcome
 # Always first page
@@ -2562,9 +2591,11 @@ def mark_conditioned():
 @app.get("/health")
 def health():
     return jsonify({"ok": True}), 200
+    
 @app.get("/health/snapshot")
 def health_snapshot():
     with STATE_LOCK:
+        _refresh_msa_audit()
         snap = copy.deepcopy(STATE)
 
     snap = _json_safe(snap)
@@ -2728,9 +2759,9 @@ def ingest_macro():
             payload = copy.deepcopy(STATE)
 
         # OUTSIDE LOCK
-        save_state_throttled(force=force_save)
+        save_state_throttled(force=True)
         socketio.emit("macro_update", _json_safe(payload))
-
+        
         _log_debug("/ingest_macro", data, ok=True)
         return jsonify({"ok": True}), 200
 
@@ -4018,18 +4049,34 @@ def verify_secret():
 
 @socketio.on("connect")
 def on_connect():
+
     with STATE_LOCK:
+
+        # ----------------------------------------------------
+        # SNAG 19C
+        # Refresh founder audit timer on every connection
+        # so elapsed_days / due_days are always current.
+        # ----------------------------------------------------
+        _refresh_msa_audit()
+
         if not isinstance(STATE.get("_server_ts"), (int, float)):
             STATE["_server_ts"] = int(time.time() * 1000)
+
         snap = copy.deepcopy(STATE)
 
+    # ----------------------------------------------------
     # Full macro/state snapshot
+    # ----------------------------------------------------
     emit("macro_update", _json_safe(snap))
 
     # ----------------------------------------------------
     # Warm-start stock lanes so nodes repaint on refresh
     # ----------------------------------------------------
-    stocks = snap.get("stocks", {}) if isinstance(snap.get("stocks"), dict) else {}
+    stocks = (
+        snap.get("stocks", {})
+        if isinstance(snap.get("stocks"), dict)
+        else {}
+    )
 
     for lane in stocks.get("last_scada_by_ref", {}).values():
         try:
@@ -4042,12 +4089,15 @@ def on_connect():
             emit("stock_update", _json_safe(lane))
         except Exception:
             pass
+
+
 _load_state_from_disk()
 
 print("================================", flush=True)
 print("STATE LOADED AT STARTUP", flush=True)
 print("================================", flush=True)
 print("STATE LOADED AT STARTUP", flush=True)
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     socketio.run(app, host="0.0.0.0", port=port)
