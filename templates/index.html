@@ -4345,7 +4345,7 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   // ============================================================
   // MSA DISPLAY
   // ============================================================
-  const norm = String(msaText || "").toUpperCase();
+  const norm = String(msaText || "").trim().toUpperCase();
   const display = norm || "NO STATE";
 
   const raw = (rawSrc == null) ? "" : String(rawSrc).trim();
@@ -4354,15 +4354,40 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
   if (msa){
     msa.textContent = display;
 
-    if (window.COMMISSIONING && rawUpper) msa.title = `msa_src: ${rawUpper}`;
-    else msa.title = "";
+    if (window.COMMISSIONING && rawUpper) {
+      msa.title = `msa_src: ${rawUpper}`;
+    } else {
+      msa.title = "";
+    }
 
-    msa.classList.remove("msa-auto","msa-man","msa-na");
-    if (display === "AUTO") msa.classList.add("msa-auto");
-    else if (display === "MAN" || display === "MANUAL") msa.classList.add("msa-man");
-    else msa.classList.add("msa-na");
+    msa.classList.remove(
+      "msa-auto",
+      "msa-semi",
+      "msa-man",
+      "msa-sless",
+      "msa-miss",
+      "msa-na"
+    );
+
+    if (display === "AUTO") {
+      msa.classList.add("msa-auto");
+    }
+    else if (display === "SEMI") {
+      msa.classList.add("msa-semi");
+    }
+    else if (display === "MAN" || display === "MANUAL") {
+      msa.classList.add("msa-man");
+    }
+    else if (display === "S_LESS" || display === "STATELESS") {
+      msa.classList.add("msa-sless");
+    }
+    else if (display === "MISS" || display === "MISSING") {
+      msa.classList.add("msa-miss");
+    }
+    else {
+      msa.classList.add("msa-na");
+    }
   }
-
   // ============================================================
   // EVENT TAG
   // ============================================================
@@ -4465,6 +4490,48 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
 }
 
 
+function normaliseMsaLabel(msg){
+  const srcRaw =
+    msg?.msa_src ??
+    msg?.msa_source ??
+    msg?.msa_mode ??
+    msg?.msa ??
+    msg?.msaSrc ??
+    "";
+
+  const src = String(srcRaw || "").trim().toUpperCase();
+
+  const msa =
+    (src === "AUTO" || src === "AUTOMATIC" || src === "SCADA") ? "AUTO" :
+    (src === "SEMI" || src === "HYBRID") ? "SEMI" :
+    (src === "MANUAL" || src === "MAN") ? "MAN" :
+    (src === "S_LESS" || src === "STATELESS" || src === "STATE_LESS") ? "S_LESS" :
+    (src === "MISSING" || src === "MISS") ? "MISS" :
+    "NO STATE";
+
+  return { msa, srcRaw, src };
+}
+
+function applyMsaClass(el, msa){
+  if (!el) return;
+
+  el.classList.remove(
+    "msa-auto",
+    "msa-semi",
+    "msa-man",
+    "msa-sless",
+    "msa-miss",
+    "msa-na"
+  );
+
+  if (msa === "AUTO") el.classList.add("msa-auto");
+  else if (msa === "SEMI") el.classList.add("msa-semi");
+  else if (msa === "MAN" || msa === "MANUAL") el.classList.add("msa-man");
+  else if (msa === "S_LESS" || msa === "STATELESS") el.classList.add("msa-sless");
+  else if (msa === "MISS" || msa === "MISSING") el.classList.add("msa-miss");
+  else el.classList.add("msa-na");
+}
+
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -4481,24 +4548,19 @@ function applyScadaStatus(msg){
     (msg.setup_4H === true);
 
   let glow = "grey";
-  if (sig) glow = "lime";        // UPDATED
+  if (sig) glow = "lime";
   else if (setup) glow = "orange";
 
   // ----------------------------
   // MSA LABEL (separate lane)
   // ----------------------------
-  const src = String(msg.msa_src || "").trim().toUpperCase();
-
-  const msa =
-    (src === "AUTO" || src === "SCADA") ? "AUTO" :
-    (src === "MANUAL" || src === "MAN") ? "MAN" :
-    "NO STATE";
+  const { msa, srcRaw } = normaliseMsaLabel(msg);
 
   // store reason for tooltip (KEY IT BY REF_ID, not slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(msg.ref_id)] =
     `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
-    `msa_src:${(msg.msa_src ?? "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
+    `msa_src:${(srcRaw || "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
     `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
     `signal:${msg.signal}`;
 
@@ -4512,12 +4574,13 @@ function applyScadaStatus(msg){
     glow,
     msg.ticker,
     msa,
-    msg.msa_src,
+    srcRaw,
     setup,
     sig,
     logoUrl
   );
 }
+
 function applyWatch(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -4531,21 +4594,17 @@ function applyWatch(msg){
   const tkr = msg.ticker ? String(msg.ticker).toUpperCase() : "—";
   if (label) label.textContent = tkr;
 
-  const src = String(msg.msa_src || "").trim().toUpperCase();
-  const msa =
-    (src === "AUTO" || src === "SCADA") ? "AUTO" :
-    (src === "MANUAL" || src === "MAN") ? "MAN"  :
-    "NO STATE";
+  const { msa, srcRaw } = normaliseMsaLabel(msg);
 
   if (msaEl) {
     msaEl.textContent = msa;
-    msaEl.classList.remove("msa-auto","msa-man","msa-na");
-    if (msa === "AUTO") msaEl.classList.add("msa-auto");
-    else if (msa === "MAN") msaEl.classList.add("msa-man");
-    else msaEl.classList.add("msa-na");
+    msaEl.title = window.COMMISSIONING && srcRaw
+      ? `msa_src: ${String(srcRaw).toUpperCase()}`
+      : "";
+
+    applyMsaClass(msaEl, msa);
   }
 }
-
 
   // ----------------------------
   // COLOR PALETTES (rhyme with Pine)
