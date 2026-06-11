@@ -4491,6 +4491,30 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
 
 
 function normaliseMsaLabel(msg){
+  const dRaw =
+    msg?.msa_src_D ??
+    msg?.msa_source_D ??
+    msg?.d_msa_src ??
+    msg?.d_source ??
+    "";
+
+  const h4Raw =
+    msg?.msa_src_4H ??
+    msg?.msa_source_4H ??
+    msg?.h4_msa_src ??
+    msg?.h4_source ??
+    "";
+
+  const d = String(dRaw || "").trim().toUpperCase();
+  const h4 = String(h4Raw || "").trim().toUpperCase();
+
+  if (
+    (d === "AUTO" && (h4 === "MANUAL" || h4 === "MAN")) ||
+    ((d === "MANUAL" || d === "MAN") && h4 === "AUTO")
+  ) {
+    return { msa: "SEMI", srcRaw: `D:${d || "—"} 4H:${h4 || "—"}`, src: "SEMI" };
+  }
+
   const srcRaw =
     msg?.msa_src ??
     msg?.msa_source ??
@@ -4511,7 +4535,6 @@ function normaliseMsaLabel(msg){
 
   return { msa, srcRaw, src };
 }
-
 function applyMsaClass(el, msa){
   if (!el) return;
 
