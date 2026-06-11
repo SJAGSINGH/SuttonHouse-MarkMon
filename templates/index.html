@@ -6684,7 +6684,20 @@ if (socket) {
           if (!msg.type) msg.type = "SCADA_STATUS";
           if (msg.ref_id == null) msg.ref_id = Number(k);
 
-          try { applyScadaStatus(msg); } catch(e){ console.warn("warmstart applyScadaStatus failed", e, msg); }
+          console.log(
+            "WARMSTART SCADA",
+            k,
+            msg.ticker,
+            "msa_src:", msg.msa_src,
+            "D:", msg.msa_src_D,
+            "4H:", msg.msa_src_4H
+          );
+
+          try {
+            applyScadaStatus(msg);
+          } catch(e) {
+            console.warn("warmstart applyScadaStatus failed", k, e, msg);
+          }
         });
     }
 
