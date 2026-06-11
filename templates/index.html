@@ -4630,7 +4630,9 @@ function applyWatch(msg){
 
   const { msa, srcRaw } = normaliseMsaLabel(msg);
 
-  if (msaEl) {
+  // WATCH must not erase valid SCADA MSA state.
+  // Only update MSA if WATCH actually carries MSA source truth.
+  if (msaEl && srcRaw) {
     msaEl.textContent = msa;
     msaEl.title = window.COMMISSIONING && srcRaw
       ? `msa_src: ${String(srcRaw).toUpperCase()}`
