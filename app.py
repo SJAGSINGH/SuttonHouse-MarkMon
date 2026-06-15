@@ -983,7 +983,7 @@ def process_sentinel_node_logging(node):
 
     if prev.get("signal") != snap.get("signal"):
         _log_node_transition(
-            "NODE_SIGNAL_ON" if snap.get("signal") else "NODE_SIGNAL_OFF",
+            "_ON" if snap.get("signal") else "_OFF",
             "SIGNAL_DETECTED" if snap.get("signal") else "SIGNAL_CLEARED",
             f"{ticker or 'NODE'} signal detected." if snap.get("signal") else f"{ticker or 'NODE'} signal cleared.",
             snap,
@@ -1051,7 +1051,7 @@ def process_sentinel_cluster_logging():
     if prev.get("active_signals", 0) < 2 and current.get("active_signals", 0) >= 2:
         _append_sentinel_log({
             "kind": "CLUSTER_CHANGE",
-            "code": "MULTI_NODE_SIGNAL_CLUSTER",
+            "code": "MULTI__CLUSTER",
             "severity": "attention",
             "message": f"Multiple monitored signals active ({current.get('active_signals')}).",
             "state": _extract_sentinel_macro_snapshot(STATE),
@@ -3555,7 +3555,7 @@ def webhook():
                 # Step 2 WAIT        = no node setup, no node signal
                 # Step 3 SETUP_WAIT  = at least one setup, no live signal
                 # Step 4 SIGNAL      = at least one live production fire
-                # Step 4 only clears when ALL nodes are signal-free.
+                # GLOBAL ONLY: ref_id 1–20 monitored universe.
                 # ------------------------------------------------------------
                 if typ == "SCADA_STATUS":
 
@@ -3568,20 +3568,19 @@ def webhook():
                         return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
 
                     prev_msg = dict(STATE.get("message") or {})
-
                     nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
 
-                    any_node_signal = False
-                    any_node_setup = False
+                    MESSAGE_ELIGIBLE_MIN_REF = 1
+                    MESSAGE_ELIGIBLE_MAX_REF = 20
+
+                    signal_count = 0
+                    setup_count = 0
                     signal_ticker = ""
                     signal_ref_id = None
                     setup_ticker = ""
                     setup_ref_id = None
 
                     if isinstance(nodes, dict):
-                        MESSAGE_ELIGIBLE_MIN_REF = 1
-                        MESSAGE_ELIGIBLE_MAX_REF = 20
-
                         for _, rec in nodes.items():
                             if not isinstance(rec, dict):
                                 continue
@@ -3598,21 +3597,30 @@ def webhook():
 
                             # SNAG 9 — Global Message Drift guard.
                             # Message Card may only speak from monitored Sutton House nodes.
-                            # Market anchors / global sensors / future internal layers must not enter the message pool.
                             if node_ref is None or not (MESSAGE_ELIGIBLE_MIN_REF <= node_ref <= MESSAGE_ELIGIBLE_MAX_REF):
                                 continue
 
                             node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
 
-                            # Production fire only.
-                            # Do NOT use signal / signal_any here because those may be latched.
+                            # Production fire authority.
+                            # trigger_any is NOT signal authority.
+                            fire_fields_present = any(k in src for k in (
+                                "mvFire_D",
+                                "mvFire_4H",
+                                "jrFire_D",
+                                "jrFire_4H",
+                            ))
+
                             node_signal = (
                                 _truthy(src.get("mvFire_D")) or
                                 _truthy(src.get("mvFire_4H")) or
                                 _truthy(src.get("jrFire_D")) or
                                 _truthy(src.get("jrFire_4H"))
-                               
                             )
+
+                            # Fallback only for older payloads that do not yet carry fire fields.
+                            if not fire_fields_present:
+                                node_signal = _truthy(src.get("signal"))
 
                             # Setup memory / armed state.
                             node_setup = (
@@ -3622,16 +3630,19 @@ def webhook():
                             )
 
                             if node_signal:
-                                any_node_signal = True
+                                signal_count += 1
                                 if not signal_ticker:
                                     signal_ticker = node_ticker
                                     signal_ref_id = node_ref
 
                             if node_setup:
-                                any_node_setup = True
+                                setup_count += 1
                                 if not setup_ticker:
                                     setup_ticker = node_ticker
                                     setup_ref_id = node_ref
+
+                    any_node_signal = signal_count > 0
+                    any_node_setup = setup_count > 0
 
                     if any_node_signal:
                         msg_state = "SIGNAL"
@@ -3660,6 +3671,9 @@ def webhook():
                         "trigger": trig_text,
                         "ticker": msg_ticker,
                         "ref_id": msg_ref_id,
+                        "setup_count": setup_count,
+                        "signal_count": signal_count,
+                        "global": True,
                         "_ts": int(time.time() * 1000),
                     }
 
@@ -3667,7 +3681,6 @@ def webhook():
                         STATE["message"] = new_msg
                         emit_event2 = "macro_update"
                         emit_payload2 = copy.deepcopy(STATE)
-
                 _update_monitor_lane(_extract_meta(out))
 
                 try:
