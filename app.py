@@ -3624,7 +3624,6 @@ def webhook():
 
                             # Setup memory / armed state.
                             node_setup = (
-                                _truthy(src.get("trigger_armed")) or
                                 _truthy(src.get("setup_any")) or
                                 _truthy(src.get("pill_setup_any"))
                             )
@@ -3694,8 +3693,13 @@ def webhook():
                     pass
 
                 do_save = True
-                emit_event = "stock_update"
-                emit_payload = out
+
+                if typ == "SCADA_STATUS":
+                    emit_event = "stock_update"
+                    emit_payload = out
+                else:
+                    emit_event = None
+                    emit_payload = None
             else:
                 # ------------------------------------------------
                 # PINE AUTHORITY — MACRO + CARD4 (TRUTH)
@@ -4071,11 +4075,7 @@ def on_connect():
         except Exception:
             pass
 
-    for lane in stocks.get("last_watch_by_ref", {}).values():
-        try:
-            emit("stock_update", _json_safe(lane))
-        except Exception:
-            pass
+    
 
 
 _load_state_from_disk()
