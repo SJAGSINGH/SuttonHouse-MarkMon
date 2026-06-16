@@ -3571,13 +3571,7 @@ def webhook():
                 # ------------------------------------------------------------
                 if typ == "SCADA_STATUS":
 
-                    def _truthy(v) -> bool:
-                        if v is True:
-                            return True
-                        if v is False or v is None:
-                            return False
-                        s = str(v).strip().upper()
-                        return s in ("1", "TRUE", "ON", "YES", "ACTIVE")
+                  
 
                     prev_msg = dict(STATE.get("message") or {})
                     nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
