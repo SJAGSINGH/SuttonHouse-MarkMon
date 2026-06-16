@@ -3979,7 +3979,7 @@ def webhook():
         if emit_event2 and emit_payload2 is not None:
             socketio.emit(emit_event2, _json_safe(emit_payload2))
 
-                for ev_msg in (event_refresh_updates or []):
+        for ev_msg in (event_refresh_updates or []):
             socketio.emit("stock_update", _json_safe(ev_msg))
 
         _log_debug("/webhook", data, ok=True)
