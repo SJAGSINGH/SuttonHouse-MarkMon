@@ -4078,7 +4078,7 @@ function openRailForSlot(slot){
   set("cr-lasttf",   txTf);
   set("cr-lasttype", txType);
   const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
-  const signalActive = setupActive ? !!msg?.signal : null;
+  const signalActive = !!msg?.signal;
 
   set("cr-signal", signalActive);
   set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
@@ -6016,9 +6016,7 @@ function getSentinelNodeState(data) {
       sc.pill_setup_any === true ||
       String(sc.pill_setup_any).toLowerCase() === "true";
 
-    const signalAvailable =
-      sc.trigger_any === true ||
-      String(sc.trigger_any).toLowerCase() === "true";
+   const signalAvailable = !!sc.signal;
 
     if (s2Allowed) anyS2Allowed = true;
     if (s2Allowed && setupAvailable) anySetupAvailable = true;
