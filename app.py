@@ -3985,10 +3985,18 @@ def webhook():
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
-    except Exception as e:
+       except Exception as e:
+        import traceback
+
+        print("\n=== WEBHOOK EXCEPTION ===", flush=True)
+        print(traceback.format_exc(), flush=True)
+        print("=========================\n", flush=True)
+
         msg = str(e)
         _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
         return jsonify({"ok": False, "error": msg}), 400
+
+
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
