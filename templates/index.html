@@ -4020,7 +4020,7 @@ function openRailForSlot(slot){
   setSnap("cr-sma10x-h4", smaH4);
 
   // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
-  setSnap("cr-setup2",   msg?.setup_any);
+  setSnap("cr-setup2", !!(msg?.setup_any || msg?.pill_setup_any));
   setSnap("cr-trigger2", msg?.trigger_armed);
 
   const rail = document.getElementById("commission-rail");
@@ -4073,7 +4073,7 @@ function openRailForSlot(slot){
   set("cr-tf",       tf);
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
-  set("cr-setup",    String(!!(msg?.setup_any || msg?.setup_D || msg?.setup_4H || se)));
+   set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
   set("cr-lasttx",   txTime);
   set("cr-lasttf",   txTf);
   set("cr-lasttype", txType);
