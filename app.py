@@ -3521,24 +3521,7 @@ def webhook():
 
                     out["setup"] = bool(setup_truth)
 
-                    mv_fire_d  = _truthy(out.get("mvFire_D"))
-                    mv_fire_4h = _truthy(out.get("mvFire_4H"))
-                    jr_fire_d  = _truthy(out.get("jrFire_D"))
-                    jr_fire_4h = _truthy(out.get("jrFire_4H"))
-
-                    live_signal = (
-                        mv_fire_d or
-                        mv_fire_4h or
-                        jr_fire_d or
-                        jr_fire_4h
-                    )
-
-                    out["signal"] = bool(live_signal)
-                    out["signal_any"] = bool(live_signal)
-                    out["trigger_any"] = bool(live_signal)
-
-                    out["SMA10X_D"] = bool(mv_fire_d or jr_fire_d)
-                    out["SMA10X_4H"] = bool(mv_fire_4h or jr_fire_4h)
+                  
 
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
