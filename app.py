@@ -1214,6 +1214,20 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
 
         rec["ref_id"] = ref_i
         # ============================================================
+        # NODE-LEVEL SCADA HEARTBEAT
+        # SCADA_STATUS = Authority
+        # LAST SCADA TX = Heartbeat
+        # ============================================================
+        if typ == "SCADA_STATUS":
+            rec["last_scada_tx_ts"] = now
+            rec["last_scada_tx_date"] = _iso(now)
+            rec["last_scada_tf"] = str(
+                data.get("tf")
+                or data.get("timeframe")
+                or data.get("chart_tf")
+                or ""
+            )
+        # ============================================================
         # MSA STORAGE (D + 4H packs)
         # ============================================================
         if typ == "SCADA_STATUS":
