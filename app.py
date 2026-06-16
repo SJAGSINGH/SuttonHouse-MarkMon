@@ -3509,7 +3509,22 @@ def webhook():
                     out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
                 out["_server_ts"] = int(time.time() * 1000)
+                # ----------------------------------------------------
+                # SCADA_STATUS setup authority normalisation
+                # Prevent legacy setup:true or trigger_armed from
+                # keeping node halo/card in setup.
+                #
+                # Production setup authority:
+                # setup_any / pill_setup_any only.
+                # ----------------------------------------------------
+                if typ == "SCADA_STATUS":
+                    setup_truth = (
+                        _truthy(out.get("setup_any")) or
+                        _truthy(out.get("pill_setup_any"))
+                    )
 
+                    out["setup"] = bool(setup_truth)
+                    
                 if typ == "SCADA_STATUS":
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
