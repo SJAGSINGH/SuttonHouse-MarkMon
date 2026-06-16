@@ -4611,8 +4611,14 @@ function applyScadaStatus(msg){
 
   // setup comes from setup flags (NOT MSA)
   const setup =
+  (
     (msg.setup_any === true) ||
-    (msg.pill_setup_any === true);
+    (msg.pill_setup_any === true)
+  ) &&
+  (
+    msg.allow_D === true ||
+    msg.allow_4H === true
+  );
 
   let glow = "grey";
   if (sig) glow = "lime";
