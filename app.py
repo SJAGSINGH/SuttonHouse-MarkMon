@@ -3509,13 +3509,9 @@ def webhook():
                     out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
                 out["_server_ts"] = int(time.time() * 1000)
-                # ----------------------------------------------------
-                # SCADA_STATUS setup authority normalisation
-                # Prevent legacy setup:true or trigger_armed from
-                # keeping node halo/card in setup.
-                #
-                # Production setup authority:
-                # setup_any / pill_setup_any only.
+                              # ----------------------------------------------------
+                # SCADA_STATUS setup/signal authority normalisation
+                # SCADA_STATUS only. WATCH stores only.
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
                     setup_truth = (
@@ -3525,26 +3521,25 @@ def webhook():
 
                     out["setup"] = bool(setup_truth)
 
-                mv_fire_d  = _truthy(out.get("mvFire_D"))
-                mv_fire_4h = _truthy(out.get("mvFire_4H"))
-                jr_fire_d  = _truthy(out.get("jrFire_D"))
-                jr_fire_4h = _truthy(out.get("jrFire_4H"))
+                    mv_fire_d  = _truthy(out.get("mvFire_D"))
+                    mv_fire_4h = _truthy(out.get("mvFire_4H"))
+                    jr_fire_d  = _truthy(out.get("jrFire_D"))
+                    jr_fire_4h = _truthy(out.get("jrFire_4H"))
 
-                live_signal = (
-                    mv_fire_d or
-                    mv_fire_4h or
-                    jr_fire_d or
-                    jr_fire_4h
-                )
+                    live_signal = (
+                        mv_fire_d or
+                        mv_fire_4h or
+                        jr_fire_d or
+                        jr_fire_4h
+                    )
 
-                out["signal"] = bool(live_signal)
-                out["signal_any"] = bool(live_signal)
-                out["trigger_any"] = bool(live_signal)
+                    out["signal"] = bool(live_signal)
+                    out["signal_any"] = bool(live_signal)
+                    out["trigger_any"] = bool(live_signal)
 
-                out["SMA10X_D"] = bool(mv_fire_d or jr_fire_d)
-                out["SMA10X_4H"] = bool(mv_fire_4h or jr_fire_4h)
-                
-                if typ == "SCADA_STATUS":
+                    out["SMA10X_D"] = bool(mv_fire_d or jr_fire_d)
+                    out["SMA10X_4H"] = bool(mv_fire_4h or jr_fire_4h)
+
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
 
