@@ -4543,7 +4543,7 @@ function normaliseMsaLabel(msg){
   const h4 = String(h4Raw || "").trim().toUpperCase();
 
   const isAuto = v => (v === "AUTO" || v === "AUTOMATIC" || v === "SCADA");
-  const isMan  = v => (v === "MANUAL" || v === "MAN");
+  const isMan  = v => (v === "MANUAL" || v === "MAN" || v === "LIB");
 
   if (d && h4) {
     if (isAuto(d) && isAuto(h4)) {
