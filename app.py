@@ -3979,13 +3979,13 @@ def webhook():
         if emit_event2 and emit_payload2 is not None:
             socketio.emit(emit_event2, _json_safe(emit_payload2))
 
-        for ev_msg in (event_refresh_updates or []):
+                for ev_msg in (event_refresh_updates or []):
             socketio.emit("stock_update", _json_safe(ev_msg))
 
         _log_debug("/webhook", data, ok=True)
         return "SUCCESS", 200
 
-       except Exception as e:
+    except Exception as e:
         import traceback
 
         print("\n=== WEBHOOK EXCEPTION ===", flush=True)
@@ -3995,7 +3995,6 @@ def webhook():
         msg = str(e)
         _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
         return jsonify({"ok": False, "error": msg}), 400
-
 
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
