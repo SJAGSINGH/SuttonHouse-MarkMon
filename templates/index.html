@@ -4074,8 +4074,8 @@ function openRailForSlot(slot){
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
   set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
-  set("cr-lasttx",   rec?.last_scada_tx_date || "—");
-  set("cr-lasttf",   rec?.last_scada_tf || "—");
+  set("cr-lasttx",   msg?.last_scada_tx_date || sc?.last_scada_tx_date || "—");
+  set("cr-lasttf",   msg?.last_scada_tf || sc?.last_scada_tf || "—");
   set("cr-lasttype", "SCADA_STATUS");
   const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
   const signalActive = !!msg?.signal;
