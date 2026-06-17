@@ -3523,7 +3523,17 @@ def webhook():
                     out["_anchor"] = copy.deepcopy(STATE["anchors"][market])
 
                 out["_server_ts"] = int(time.time() * 1000)
-                              # ----------------------------------------------------
+                
+                if typ == "SCADA_STATUS":
+                    out["last_scada_tx_ts"] = out["_server_ts"]
+                    out["last_scada_tx_date"] = _iso(out["_server_ts"])
+                    out["last_scada_tf"] = str(
+                    out.get("tf")
+                        or out.get("timeframe")
+                        or out.get("chart_tf")
+                        or ""
+                    )
+                # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
                 # ----------------------------------------------------
