@@ -2784,9 +2784,9 @@ main.grid > #cr-dump-full{
   <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
   <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
 
-  <div class="cr-box"><div class="k">LAST TX</div><div id="cr-lasttx" class="v">—</div></div>
-  <div class="cr-box"><div class="k">TX TF</div><div id="cr-lasttf" class="v">—</div></div>
-  <div class="cr-box"><div class="k">TX TYPE</div><div id="cr-lasttype" class="v">—</div></div>
+  <div class="cr-box"><div class="k">LAST SCADA TX</div><div id="cr-lasttx" class="v">—</div></div>
+  <div class="cr-box"><div class="k">SCADA TF</div><div id="cr-lasttf" class="v">—</div></div>
+  <div class="cr-box"><div class="k">AUTHORITY</div><div id="cr-lasttype" class="v">—</div></div>
 
   <div class="cr-box cr-wide"><div class="k">DUMP</div><div id="cr-dump" class="v mono">—</div></div>
 </div>
@@ -4073,10 +4073,10 @@ function openRailForSlot(slot){
   set("cr-tf",       tf);
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
-   set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
-  set("cr-lasttx",   txTime);
-  set("cr-lasttf",   txTf);
-  set("cr-lasttype", txType);
+  set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
+  set("cr-lasttx",   msg?.last_scada_tx_date || "—");
+  set("cr-lasttf",   msg?.last_scada_tf || "—");
+  set("cr-lasttype", "SCADA_STATUS");
   const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
   const signalActive = !!msg?.signal;
 
