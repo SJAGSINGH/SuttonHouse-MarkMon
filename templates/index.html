@@ -3492,7 +3492,34 @@ function readHistorianLane(ref, tf, laneKey){
   while (parts.length < 8) parts.unshift(0);
   return parts.slice(-8);
 }
-   
+
+
+function applyH4GlobalHistorianAuthority(ref, parsed){
+  if (!ref || !parsed || !parsed.H4) return parsed;
+
+  // SNAG 10E — H4 GLOBAL ONLY
+  // Historian authority:
+  // - IND_X_4H
+  // - IND_Y_4H
+  // - INDX_DIV_4H
+  //
+  // Do NOT move:
+  // - MSA_4H
+  // - JR_4H
+  // - SMA10X
+  // - Daily lanes
+
+  const hx = readHistorianLane(ref, "H4", "IND_X");
+  const hy = readHistorianLane(ref, "H4", "IND_Y");
+  const hd = readHistorianLane(ref, "H4", "INDX_DIV");
+
+  if (hx) parsed.H4.IND_X = hx;
+  if (hy) parsed.H4.IND_Y = hy;
+  if (hd) parsed.H4.INDX_DIV = hd;
+
+  return parsed;
+}
+    
 function pickMacroPayload(x){
   if (!x || typeof x !== "object") return null;
 
@@ -3663,7 +3690,13 @@ function renderArraysToRail(arrDump){
   const root = document.getElementById("cr-arrays");
   if (!root) return;
 
-  const parsed = parseArrDump(arrDump) || {};
+  let parsed = parseArrDump(arrDump) || {};
+
+  const rail = document.getElementById("commission-rail");
+  const ref = rail?.getAttribute("data-ref");
+
+  parsed = applyH4GlobalHistorianAuthority(ref, parsed);
+  
   const dataD  = parsed.D  || {};
   const dataH4 = parsed.H4 || {};
   
@@ -3769,7 +3802,8 @@ function showPillTip(cell){
   const lane = cell.dataset.lane || "—";
 
   const dump = document.getElementById("cr-dump")?.dataset?.rawDump || "";
-  const currentParsed = parseArrDump(dump);
+  let currentParsed = parseArrDump(dump);
+  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed); currentParsed = parseArrDump(dump);
   const current = currentParsed?.[tf]?.[lane] || [];
   const historian = readHistorianLane(ref, tf, lane);
   const pm =
