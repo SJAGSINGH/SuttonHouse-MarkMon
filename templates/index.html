@@ -3695,23 +3695,13 @@ function renderArraysToRail(arrDump){
   const rail = document.getElementById("commission-rail");
   const ref = rail?.getAttribute("data-ref");
 
+  // SNAG 10E
+  // H4 Global Authority now comes from Historian.
   parsed = applyH4GlobalHistorianAuthority(ref, parsed);
-  
+
   const dataD  = parsed.D  || {};
   const dataH4 = parsed.H4 || {};
-  
-  const rail = document.getElementById("commission-rail");
-  const ref = rail?.getAttribute("data-ref");
 
-  if (ref) {
-    const hx = readHistorianLane(ref, "H4", "IND_X");
-    const hy = readHistorianLane(ref, "H4", "IND_Y");
-    const hd = readHistorianLane(ref, "H4", "INDX_DIV");
-
-    if (hx) dataH4.IND_X = hx;
-    if (hy) dataH4.IND_Y = hy;
-    if (hd) dataH4.INDX_DIV = hd;
-  }
   const lanes = [
     { key:"IND_X",    label:"IND_X" },
     { key:"IND_Y",    label:"IND_Y" },
