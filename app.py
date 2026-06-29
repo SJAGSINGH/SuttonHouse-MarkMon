@@ -1696,22 +1696,40 @@ def _append_pill_record(ref_id, tf_key, record):
     if close_ts is not None:
         for existing in arr:
             if existing.get(close_key) == close_ts:
+
+                print(
+                    f"[PILL UPDATE] ref={ref_id} tf={tf_key} "
+                    f"close={close_ts} len={len(arr)}",
+                    flush=True
+                )
+
                 record["_server_ts"] = now_ms
                 existing.update(record)
                 node["_server_ts"] = now_ms
                 return node
 
+    print(
+        f"[PILL APPEND] ref={ref_id} tf={tf_key} "
+        f"close={close_ts} len(before)={len(arr)}",
+        flush=True
+    )
+
     record["_server_ts"] = now_ms
     arr.append(record)
 
     if len(arr) > PILL_DEPTH:
+        print(
+            f"[PILL TRIM] ref={ref_id} tf={tf_key} "
+            f"len(before trim)={len(arr)} depth={PILL_DEPTH}",
+            flush=True
+        )
         del arr[:-PILL_DEPTH]
 
     node["_server_ts"] = now_ms
 
     print(
-        "APPEND pill_memory refs =",
-        list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
+        f"[PILL STORED] ref={ref_id} tf={tf_key} "
+        f"len(after)={len(arr)}",
         flush=True
     )
 
