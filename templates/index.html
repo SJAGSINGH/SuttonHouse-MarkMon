@@ -4242,7 +4242,22 @@ function openRailForSlot(slot){
     dumpEl.dataset.rawDump = dump || "";
   }
 
+   // ------------------------------------------------
+  // Store current node identity BEFORE rendering pills.
+  // H4 historian authority requires the correct ref_id.
+  // ------------------------------------------------
+  rail.setAttribute("data-ref", ref);
+  rail.setAttribute("data-slot", String(slot));
+
+  // Pills:
+  // Daily comes from current Pine dump.
+  // H4 global X/Y/DIV is replaced by historian authority.
   renderArraysToRail(dump);
+
+  // open animation
+  rail.classList.remove("hidden");
+  requestAnimationFrame(() => rail.classList.add("open"));
+}
 
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
