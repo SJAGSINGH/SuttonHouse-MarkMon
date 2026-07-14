@@ -4049,15 +4049,28 @@ function openRailForSlot(slot){
     el.classList.add(yes ? "yes" : "no");
   };
 
-  // ✅ SMA10X snapshot lanes (from dump)
+   // ✅ SMA10X snapshot lanes (from dump)
   const smaD  = readSingleLane(dump, "SMA10X_D");
   const smaH4 = readSingleLane(dump, "SMA10X_4H");
+
   setSnap("cr-sma10x-d", smaD);
   setSnap("cr-sma10x-h4", smaH4);
 
-  // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
-  setSnap("cr-setup2", !!(msg?.setup_any || msg?.pill_setup_any));
-  setSnap("cr-trigger2", msg?.trigger_armed);
+  // ------------------------------------------------
+  // TIMEFRAME-SEPARATED AUTHORITY
+  // Daily and H4 remain independent.
+  // Aggregate values are for the node halo only.
+  // ------------------------------------------------
+  const setupD  = msg?.setup_D === true;
+  const setupH4 = msg?.setup_4H === true;
+
+  const signalD  = msg?.signal_D === true;
+  const signalH4 = msg?.signal_4H === true;
+
+  // Optional legacy commissioning fields.
+  // These elements may not exist in the current HTML.
+  setSnap("cr-setup2", setupD || setupH4);
+  setSnap("cr-trigger2", signalD || signalH4);
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
@@ -4074,6 +4087,7 @@ function openRailForSlot(slot){
 
   if (title){
     let buildTxt = "";
+
     if (buildVer || buildDate){
       buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
     }
@@ -4084,8 +4098,8 @@ function openRailForSlot(slot){
 
   if (meta){
     meta.textContent = sc
-      ? `SCADA_STATUS`
-      : (wa ? `WATCH` : `NO STATE`);
+      ? "SCADA_STATUS"
+      : (wa ? "WATCH" : "NO STATE");
   }
 
   const stratBtn = document.getElementById("cr-strategy");
@@ -4102,32 +4116,64 @@ function openRailForSlot(slot){
   // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
+    if (!el) return;
+
+    el.textContent =
+      (v == null || v === "")
+        ? "—"
+        : String(v);
   };
 
   set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",       tf);
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
-  set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
-  set("cr-lasttx",   msg?.last_scada_tx_date || sc?.last_scada_tx_date || "—");
-  set("cr-lasttf",   msg?.last_scada_tf || sc?.last_scada_tf || "—");
-  set("cr-lasttype", "SCADA_STATUS");
-  const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
-  const signalActive = !!msg?.signal;
 
-  set("cr-signal", signalActive);
-  set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+  // Timeframe-separated setup display
+  set(
+    "cr-setup",
+    `D:${setupD ? "YES" : "NO"} • 4H:${setupH4 ? "YES" : "NO"}`
+  );
+
+  // Timeframe-separated signal display
+  set(
+    "cr-signal",
+    `D:${signalD ? "YES" : "NO"} • 4H:${signalH4 ? "YES" : "NO"}`
+  );
+
+  set(
+    "cr-lasttx",
+    msg?.last_scada_tx_date ||
+    sc?.last_scada_tx_date ||
+    "—"
+  );
+
+  set(
+    "cr-lasttf",
+    msg?.last_scada_tf ||
+    sc?.last_scada_tf ||
+    "—"
+  );
+
+  set("cr-lasttype", "SCADA_STATUS");
+
+  set(
+    "cr-engine",
+    (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—"
+  );
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
+
   const dumpEl = document.getElementById("cr-dump");
-  if (dumpEl) dumpEl.dataset.rawDump = dump || "";
+  if (dumpEl){
+    dumpEl.dataset.rawDump = dump || "";
+  }
 
   // pills
   renderArraysToRail(dump);
 
-  // open animation (no jump)
+  // open animation
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
@@ -4135,7 +4181,6 @@ function openRailForSlot(slot){
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
-
 function summariseDump(dump){
   const s = String(dump || "");
   if (!s) return "—";
@@ -4643,18 +4688,28 @@ function applyScadaStatus(msg){
   // ----------------------------
   // NODE STATE (separate lanes)
   // ----------------------------
-  const sig = (msg.signal === true);
+   // ------------------------------------------------
+  // TIMEFRAME-SEPARATED AUTHORITY
+  // Daily and H4 must never contaminate each other.
+  // Aggregates below are for the node halo only.
+  // ------------------------------------------------
+  const setupD =
+    msg.setup_D === true &&
+    msg.allow_D === true;
 
-  // setup comes from setup flags (NOT MSA)
-  const setup =
-  (
-    (msg.setup_any === true) ||
-    (msg.pill_setup_any === true)
-  ) &&
-  (
-    msg.allow_D === true ||
-    msg.allow_4H === true
-  );
+  const setupH4 =
+    msg.setup_4H === true &&
+    msg.allow_4H === true;
+
+  const signalD =
+    msg.signal_D === true;
+
+  const signalH4 =
+    msg.signal_4H === true;
+
+  // Node halo only
+  const setup = setupD || setupH4;
+  const sig = signalD || signalH4;
 
   let glow = "grey";
   if (sig) glow = "lime";
@@ -4671,7 +4726,8 @@ function applyScadaStatus(msg){
     `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
     `msa_src:${(srcRaw || "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
     `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
-    `signal:${msg.signal}`;
+    `signal_D:${msg.signal_D} signal_4H:${msg.signal_4H} ` +
+    `halo_setup:${setup} halo_signal:${sig}`;
 
   // Slot-based logo url
   const slotNum = Number(slot);
