@@ -3993,26 +3993,29 @@ function openRailForSlot(slot){
   if (!Number.isFinite(n)) return;
 
   const GRID_MAX = window.GRID_MAX || 64;
-  const GRID_SLOTS = window.GRID_SLOTS || 20; // your DOM grid is 0..19
+  const GRID_SLOTS = window.GRID_SLOTS || 20;
 
-  // ✅ prefer ref_id stored on the clicked tile (ONLY if n is a real slot index)
   let refId = null;
+
   if (n >= 0 && n < GRID_SLOTS){
     const tile = document.querySelector(`.stock-item[data-slot="${n}"]`);
     const rid = tile?.dataset?.refId;
+
     if (rid != null && rid !== ""){
       const parsed = Number(rid);
       if (Number.isFinite(parsed)) refId = parsed;
     }
   }
 
-  // ✅ fallback: accept ref_id (1..GRID_MAX) or legacy 0-based index
   if (!Number.isFinite(refId)) {
     if (n >= 1 && n <= GRID_MAX) {
-      refId = n; // treat as ref_id
+      refId = n;
     } else {
-      const idx = n; // treat as 0-based index
-      refId = (window.gridSlots && window.gridSlots[idx] != null) ? window.gridSlots[idx] : (idx + 1);
+      const idx = n;
+      refId =
+        (window.gridSlots && window.gridSlots[idx] != null)
+          ? window.gridSlots[idx]
+          : (idx + 1);
     }
   }
 
@@ -4024,32 +4027,30 @@ function openRailForSlot(slot){
 
   const msg = sc || wa || se;
   if (!msg) return;
-  const lastTx = window.__RSC_LAST?.last_tx || {};
 
-  const txTf   = lastTx.tf || "—";
-  const txTime = formatLastTx(lastTx.ts);
-  const txType = lastTx.type || "—";
-  // dump (safe even if msg null)
-  const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+  const dump =
+    (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
-  // ✅ YES/NO renderer (also clears old classes)
   const setSnap = (id, v) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    el.classList.remove("yes","no");
+    el.classList.remove("yes", "no");
 
     if (v == null){
       el.textContent = "—";
       return;
     }
 
-    const yes = (v === 1 || v === true);
+    const yes = v === 1 || v === true;
+
     el.textContent = yes ? "YES" : "NO";
     el.classList.add(yes ? "yes" : "no");
   };
 
-   // ✅ SMA10X snapshot lanes (from dump)
+  // ------------------------------------------------
+  // SMA10X SNAPSHOT
+  // ------------------------------------------------
   const smaD  = readSingleLane(dump, "SMA10X_D");
   const smaH4 = readSingleLane(dump, "SMA10X_4H");
 
@@ -4057,28 +4058,26 @@ function openRailForSlot(slot){
   setSnap("cr-sma10x-h4", smaH4);
 
   // ------------------------------------------------
-  // TIMEFRAME-SEPARATED AUTHORITY
-  // Daily and H4 remain independent.
-  // Aggregate values are for the node halo only.
-  // ------------------------------------------------
-  // ------------------------------------------------
   // TIMEFRAME-SEPARATED COMMISSION RAIL AUTHORITY
   //
-  // Daily setup/signal stay paired.
-  // H4 setup/signal stay paired.
+  // Actual setup inputs currently transported:
+  //   pill_setup_D
+  //   pill_setup_4H
   //
-  // Temporary bridge:
-  // the existing aggregate production signal is
-  // attributed to Daily only when Daily alone owns
-  // the active setup.
+  // Fallback:
+  //   setup_D / setup_4H
+  //
+  // Green requires setup + signal on the same TF.
   // ------------------------------------------------
   const setupD =
-    msg?.setup_D === true &&
-    msg?.allow_D === true;
+    msg?.pill_setup_D === true ||
+    msg?.pill_setup_d === true ||
+    msg?.setup_D === true;
 
   const setupH4 =
-    msg?.setup_4H === true &&
-    msg?.allow_4H === true;
+    msg?.pill_setup_4H === true ||
+    msg?.pill_setup_h4 === true ||
+    msg?.setup_4H === true;
 
   const hasSignalD =
     Object.prototype.hasOwnProperty.call(msg || {}, "signal_D");
@@ -4096,20 +4095,24 @@ function openRailForSlot(slot){
       ? msg.signal_4H === true
       : null;
 
-  const legacyProductionSignal =
+  const aggregateSignal =
     msg?.signal === true ||
     msg?.signal_any === true ||
     msg?.trigger_any === true;
 
-  // Restore the established Daily signal path only.
-  // Do not transfer aggregate authority to H4.
+  // Temporary compatibility bridge:
+  // assign aggregate signal only to the sole active setup timeframe.
   if (
     signalD !== true &&
-    setupD === true &&
-    setupH4 === false &&
-    legacyProductionSignal === true
+    signalH4 !== true &&
+    aggregateSignal === true
   ){
-    signalD = true;
+    if (setupD === true && setupH4 === false){
+      signalD = true;
+    }
+    else if (setupH4 === true && setupD === false){
+      signalH4 = true;
+    }
   }
 
   const matchedSignalD =
@@ -4120,8 +4123,6 @@ function openRailForSlot(slot){
     setupH4 === true &&
     signalH4 === true;
 
-  // Optional legacy commissioning fields.
-  // These elements may not exist in the current HTML.
   setSnap("cr-setup2", setupD || setupH4);
 
   setSnap(
@@ -4132,12 +4133,18 @@ function openRailForSlot(slot){
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
-  // header
   const tkr = msg?.ticker || "—";
   const tf  = msg?.tf || "—";
 
-  const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
-  const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
+  const buildVer =
+    sc?.Build_Version ??
+    msg?.Build_Version ??
+    null;
+
+  const buildDate =
+    sc?.Build_Date ??
+    msg?.Build_Date ??
+    null;
 
   const title = document.getElementById("cr-title");
   const meta  = document.getElementById("cr-meta");
@@ -4146,7 +4153,8 @@ function openRailForSlot(slot){
     let buildTxt = "";
 
     if (buildVer || buildDate){
-      buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
+      buildTxt =
+        ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
     }
 
     title.textContent =
@@ -4154,9 +4162,10 @@ function openRailForSlot(slot){
   }
 
   if (meta){
-    meta.textContent = sc
-      ? "SCADA_STATUS"
-      : (wa ? "WATCH" : "NO STATE");
+    meta.textContent =
+      sc
+        ? "SCADA_STATUS"
+        : (wa ? "WATCH" : "NO STATE");
   }
 
   const stratBtn = document.getElementById("cr-strategy");
@@ -4170,13 +4179,12 @@ function openRailForSlot(slot){
     msaBtn.onclick = () => openMsaRailForRef(ref);
   }
 
-  // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
     if (!el) return;
 
     el.textContent =
-      (v == null || v === "")
+      v == null || v === ""
         ? "—"
         : String(v);
   };
@@ -4192,13 +4200,11 @@ function openRailForSlot(slot){
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
 
-  // Timeframe-separated setup display
   set(
     "cr-setup",
     `D:${fmtAuthority(setupD)} • 4H:${fmtAuthority(setupH4)}`
   );
 
-  // Timeframe-separated signal display
   set(
     "cr-signal",
     `D:${fmtAuthority(signalD)} • 4H:${fmtAuthority(signalH4)}`
@@ -4225,22 +4231,22 @@ function openRailForSlot(slot){
     (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—"
   );
 
-  // dump summary
-  set("cr-dump", dump ? summariseDump(dump) : "—");
+  set(
+    "cr-dump",
+    dump ? summariseDump(dump) : "—"
+  );
 
   const dumpEl = document.getElementById("cr-dump");
+
   if (dumpEl){
     dumpEl.dataset.rawDump = dump || "";
   }
 
-  // pills
   renderArraysToRail(dump);
 
-  // open animation
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
 
-  // store ref + original input for live updates/debug
   rail.setAttribute("data-ref", ref);
   rail.setAttribute("data-slot", String(slot));
 }
