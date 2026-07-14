@@ -3562,29 +3562,58 @@ def webhook():
                     )
 
                     out["setup"] = bool(setup_truth)
-                    # Live signal authority = production fire only
-                    mv_fire_d  = _truthy(out.get("mvFire_D"))
-                    mv_fire_4h = _truthy(out.get("mvFire_4H"))
-                    jr_fire_d  = _truthy(out.get("jrFire_D"))
-                    jr_fire_4h = _truthy(out.get("jrFire_4H"))
 
-                    live_signal = (
-                        mv_fire_d or
-                        mv_fire_4h or
-                        jr_fire_d or
-                        jr_fire_4h
+                    # ------------------------------------------------
+                    # Live signal authority
+                    #
+                    # Preferred split production contract:
+                    #   mvFire_D / mvFire_4H / jrFire_D / jrFire_4H
+                    #
+                    # Compatibility fallback:
+                    #   preserve the previous aggregate signal authority
+                    #   when the split fields are not yet present.
+                    # ------------------------------------------------
+                    fire_keys = (
+                        "mvFire_D",
+                        "mvFire_4H",
+                        "jrFire_D",
+                        "jrFire_4H",
                     )
+
+                    split_fire_present = any(k in out for k in fire_keys)
+
+                    if split_fire_present:
+                        mv_fire_d = _truthy(out.get("mvFire_D"))
+                        mv_fire_4h = _truthy(out.get("mvFire_4H"))
+                        jr_fire_d = _truthy(out.get("jrFire_D"))
+                        jr_fire_4h = _truthy(out.get("jrFire_4H"))
+
+                        live_signal = (
+                            mv_fire_d or
+                            mv_fire_4h or
+                            jr_fire_d or
+                            jr_fire_4h
+                        )
+                    else:
+                        live_signal = (
+                            _truthy(out.get("signal")) or
+                            _truthy(out.get("signal_any")) or
+                            _truthy(out.get("trigger_any"))
+                        )
 
                     out["signal"] = bool(live_signal)
                     out["signal_any"] = bool(live_signal)
                     out["trigger_any"] = bool(live_signal)
-                  
 
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
 
                     if master_cycle_120 is not None or master_cycle is not None:
-                        out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
+                        out["cycle_120"] = (
+                            master_cycle_120
+                            if master_cycle_120 is not None
+                            else master_cycle
+                        )
                         out["cycle"] = master_cycle
 
                         if STATE.get("regime") is not None:
@@ -3604,8 +3633,15 @@ def webhook():
                             out["s3_allowed"] = STATE.get("s3_allowed")
                     else:
                         for k in (
-                            "cycle_120", "cycle", "regime", "vol",
-                            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
+                            "cycle_120",
+                            "cycle",
+                            "regime",
+                            "vol",
+                            "s1_allowed",
+                            "s2_allowed",
+                            "s3_watch",
+                            "s3_armed",
+                            "s3_allowed",
                         ):
                             out.pop(k, None)
 
