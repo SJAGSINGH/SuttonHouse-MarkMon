@@ -3793,7 +3793,7 @@ function showPillTip(cell){
 
   const dump = document.getElementById("cr-dump")?.dataset?.rawDump || "";
   let currentParsed = parseArrDump(dump);
-  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed);
+  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed); currentParsed = parseArrDump(dump);
   const current = currentParsed?.[tf]?.[lane] || [];
   const historian = readHistorianLane(ref, tf, lane);
   const pm =
@@ -3993,29 +3993,26 @@ function openRailForSlot(slot){
   if (!Number.isFinite(n)) return;
 
   const GRID_MAX = window.GRID_MAX || 64;
-  const GRID_SLOTS = window.GRID_SLOTS || 20;
+  const GRID_SLOTS = window.GRID_SLOTS || 20; // your DOM grid is 0..19
 
+  // ✅ prefer ref_id stored on the clicked tile (ONLY if n is a real slot index)
   let refId = null;
-
   if (n >= 0 && n < GRID_SLOTS){
     const tile = document.querySelector(`.stock-item[data-slot="${n}"]`);
     const rid = tile?.dataset?.refId;
-
     if (rid != null && rid !== ""){
       const parsed = Number(rid);
       if (Number.isFinite(parsed)) refId = parsed;
     }
   }
 
+  // ✅ fallback: accept ref_id (1..GRID_MAX) or legacy 0-based index
   if (!Number.isFinite(refId)) {
     if (n >= 1 && n <= GRID_MAX) {
-      refId = n;
+      refId = n; // treat as ref_id
     } else {
-      const idx = n;
-      refId =
-        (window.gridSlots && window.gridSlots[idx] != null)
-          ? window.gridSlots[idx]
-          : (idx + 1);
+      const idx = n; // treat as 0-based index
+      refId = (window.gridSlots && window.gridSlots[idx] != null) ? window.gridSlots[idx] : (idx + 1);
     }
   }
 
@@ -4027,134 +4024,58 @@ function openRailForSlot(slot){
 
   const msg = sc || wa || se;
   if (!msg) return;
+  const lastTx = window.__RSC_LAST?.last_tx || {};
 
-  const dump =
-    (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
+  const txTf   = lastTx.tf || "—";
+  const txTime = formatLastTx(lastTx.ts);
+  const txType = lastTx.type || "—";
+  // dump (safe even if msg null)
+  const dump = (sc?.arr_dump ?? wa?.arr_dump ?? se?.arr_dump) || "";
 
+  // ✅ YES/NO renderer (also clears old classes)
   const setSnap = (id, v) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    el.classList.remove("yes", "no");
+    el.classList.remove("yes","no");
 
     if (v == null){
       el.textContent = "—";
       return;
     }
 
-    const yes = v === 1 || v === true;
-
+    const yes = (v === 1 || v === true);
     el.textContent = yes ? "YES" : "NO";
     el.classList.add(yes ? "yes" : "no");
   };
 
-  // ------------------------------------------------
-  // SMA10X SNAPSHOT
-  // ------------------------------------------------
+  // ✅ SMA10X snapshot lanes (from dump)
   const smaD  = readSingleLane(dump, "SMA10X_D");
   const smaH4 = readSingleLane(dump, "SMA10X_4H");
-
   setSnap("cr-sma10x-d", smaD);
   setSnap("cr-sma10x-h4", smaH4);
 
-  // ------------------------------------------------
-  // TIMEFRAME-SEPARATED COMMISSION RAIL AUTHORITY
-  //
-  // Actual setup inputs currently transported:
-  //   pill_setup_D
-  //   pill_setup_4H
-  //
-  // Fallback:
-  //   setup_D / setup_4H
-  //
-  // Green requires setup + signal on the same TF.
-  // ------------------------------------------------
-  const setupD =
-    msg?.pill_setup_D === true ||
-    msg?.pill_setup_d === true ||
-    msg?.setup_D === true;
-
-  const setupH4 =
-    msg?.pill_setup_4H === true ||
-    msg?.pill_setup_h4 === true ||
-    msg?.setup_4H === true;
-
-  const hasSignalD =
-    Object.prototype.hasOwnProperty.call(msg || {}, "signal_D");
-
-  const hasSignalH4 =
-    Object.prototype.hasOwnProperty.call(msg || {}, "signal_4H");
-
-  let signalD =
-    hasSignalD
-      ? msg.signal_D === true
-      : null;
-
-  let signalH4 =
-    hasSignalH4
-      ? msg.signal_4H === true
-      : null;
-
-  const aggregateSignal =
-    msg?.signal === true ||
-    msg?.signal_any === true ||
-    msg?.trigger_any === true;
-
-  // Temporary compatibility bridge:
-  // assign aggregate signal only to the sole active setup timeframe.
-  if (
-    signalD !== true &&
-    signalH4 !== true &&
-    aggregateSignal === true
-  ){
-    if (setupD === true && setupH4 === false){
-      signalD = true;
-    }
-    else if (setupH4 === true && setupD === false){
-      signalH4 = true;
-    }
-  }
-
-  const matchedSignalD =
-    setupD === true &&
-    signalD === true;
-
-  const matchedSignalH4 =
-    setupH4 === true &&
-    signalH4 === true;
-
-  setSnap("cr-setup2", setupD || setupH4);
-
-  setSnap(
-    "cr-trigger2",
-    matchedSignalD || matchedSignalH4
-  );
+  // ✅ NEW truth booleans (from JSON fields, NOT inferred in UI)
+  setSnap("cr-setup2", !!(msg?.setup_any || msg?.pill_setup_any));
+  setSnap("cr-trigger2", msg?.trigger_armed);
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
 
+  // header
   const tkr = msg?.ticker || "—";
   const tf  = msg?.tf || "—";
 
-  const buildVer =
-    sc?.Build_Version ??
-    msg?.Build_Version ??
-    null;
-
-  const buildDate =
-    sc?.Build_Date ??
-    msg?.Build_Date ??
-    null;
+  const buildVer  = sc?.Build_Version ?? msg?.Build_Version ?? null;
+  const buildDate = sc?.Build_Date    ?? msg?.Build_Date    ?? null;
 
   const title = document.getElementById("cr-title");
   const meta  = document.getElementById("cr-meta");
 
   if (title){
     let buildTxt = "";
-
     if (buildVer || buildDate){
-      buildTxt =
-        ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
+      buildTxt = ` • BUILD ${buildVer || "—"} ${buildDate || ""}`;
     }
 
     title.textContent =
@@ -4162,10 +4083,9 @@ function openRailForSlot(slot){
   }
 
   if (meta){
-    meta.textContent =
-      sc
-        ? "SCADA_STATUS"
-        : (wa ? "WATCH" : "NO STATE");
+    meta.textContent = sc
+      ? `SCADA_STATUS`
+      : (wa ? `WATCH` : `NO STATE`);
   }
 
   const stratBtn = document.getElementById("cr-strategy");
@@ -4179,97 +4099,50 @@ function openRailForSlot(slot){
     msaBtn.onclick = () => openMsaRailForRef(ref);
   }
 
+  // boxes helper
   const set = (id, v) => {
     const el = document.getElementById(id);
-    if (!el) return;
-
-    el.textContent =
-      v == null || v === ""
-        ? "—"
-        : String(v);
-  };
-
-  const fmtAuthority = v => {
-    if (v === true) return "YES";
-    if (v === false) return "NO";
-    return "—";
+    if (el) el.textContent = (v == null || v === "" ? "—" : String(v));
   };
 
   set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",       tf);
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
-
-  set(
-    "cr-setup",
-    `D:${fmtAuthority(setupD)} • 4H:${fmtAuthority(setupH4)}`
-  );
-
-  set(
-    "cr-signal",
-    `D:${fmtAuthority(signalD)} • 4H:${fmtAuthority(signalH4)}`
-  );
-
-  set(
-    "cr-lasttx",
-    msg?.last_scada_tx_date ||
-    sc?.last_scada_tx_date ||
-    "—"
-  );
-
-  set(
-    "cr-lasttf",
-    msg?.last_scada_tf ||
-    sc?.last_scada_tf ||
-    "—"
-  );
-
+  set("cr-setup", String(msg?.setup_any === true || msg?.pill_setup_any === true));
+  set("cr-lasttx",   msg?.last_scada_tx_date || sc?.last_scada_tx_date || "—");
+  set("cr-lasttf",   msg?.last_scada_tf || sc?.last_scada_tf || "—");
   set("cr-lasttype", "SCADA_STATUS");
+  const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
+  const signalActive = !!msg?.signal;
 
-  set(
-    "cr-engine",
-    (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—"
-  );
+  set("cr-signal", signalActive);
+  set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
 
-  set(
-    "cr-dump",
-    dump ? summariseDump(dump) : "—"
-  );
-
+  // dump summary
+  set("cr-dump", dump ? summariseDump(dump) : "—");
   const dumpEl = document.getElementById("cr-dump");
+  if (dumpEl) dumpEl.dataset.rawDump = dump || "";
 
-  if (dumpEl){
-    dumpEl.dataset.rawDump = dump || "";
-  }
-
-    // ------------------------------------------------
-  // Store current node identity BEFORE rendering pills.
-  // H4 historian authority requires the correct ref_id.
-  // ------------------------------------------------
-  rail.setAttribute("data-ref", ref);
-  rail.setAttribute("data-slot", String(slot));
-
-  // Pills:
-  // Daily comes from current Pine dump.
-  // H4 global X/Y/DIV is replaced by historian authority.
+  // pills
   renderArraysToRail(dump);
 
-  // open animation
+  // open animation (no jump)
   rail.classList.remove("hidden");
   requestAnimationFrame(() => rail.classList.add("open"));
+
+  // store ref + original input for live updates/debug
+  rail.setAttribute("data-ref", ref);
+  rail.setAttribute("data-slot", String(slot));
 }
 
 function summariseDump(dump){
   const s = String(dump || "");
   if (!s) return "—";
-
-  const lanes = s
-    .split("|")
-    .map(x => x.trim())
-    .filter(Boolean);
-
+  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
   return `OK • ${s.length} chars • ${lanes.length} lanes`;
 }
+
 function closeRail(){
   hideTip();
 
@@ -4508,69 +4381,40 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
 
   const hasTicker = tkr !== "—";
 
-   // ============================================================
+  // ============================================================
   // NODE HALO + COLOUR + LOGO
   // ============================================================
   if (node){
     // Ensure base class never gets lost
     node.classList.add("stock-node");
 
-    // Reset state classes only
-    node.classList.remove(
-      "grey",
-      "orange",
-      "green",
-      "lime",
-      "red",
-      "halo-on",
-      "halo-signal"
-    );
+    // reset state classes only
+    node.classList.remove("grey","orange","green","lime","red","halo-on","halo-signal");
 
-    // Base face colour class
+    // base face colour class
     node.classList.add(glow || "grey");
 
-    // Halo appears for setup or matched signal
+    // halo appears for setup OR signal
     const haloOn = !!(isSetup || isSignal);
+    if (haloOn) node.classList.add("halo-on");
+    if (isSignal) node.classList.add("halo-signal");
 
-    if (haloOn){
-      node.classList.add("halo-on");
-    }
-
-    if (isSignal){
-      node.classList.add("halo-signal");
-    }
-
-    // ------------------------------------------------
-    // COMPANY LOGO
-    // Logos remain visible independently of halo state.
-    // Halo state controls only the surrounding glow.
-    // ------------------------------------------------
+    // LOGO inside node: show when setup OR signal
     const existingImg = node.querySelector("img");
-    const shouldShowLogo = hasTicker && !!logoUrl;
+    const shouldShowLogo = haloOn;
 
-    if (shouldShowLogo){
+    if (shouldShowLogo && logoUrl){
       if (!existingImg){
         const img = document.createElement("img");
-
-        img.alt = tkr;
+        img.alt = hasTicker ? tkr : "";
         img.src = logoUrl;
-
-        img.onerror = () => {
-          try {
-            img.remove();
-          }
-          catch(e){}
-        };
-
+        img.onerror = () => { try { img.remove(); } catch(e) {} };
         node.appendChild(img);
-      }
-      else if (existingImg.getAttribute("src") !== logoUrl){
+      } else if (existingImg.getAttribute("src") !== logoUrl) {
         existingImg.setAttribute("src", logoUrl);
-        existingImg.alt = tkr;
       }
-    }
-    else if (existingImg){
-      existingImg.remove();
+    } else {
+      if (existingImg) existingImg.remove();
     }
   }
 
@@ -4796,101 +4640,42 @@ function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  // ------------------------------------------------
-  // TIMEFRAME-SEPARATED NODE AUTHORITY
-  //
-  // Orange:
-  //   Daily setup OR H4 setup
-  //
-  // Green:
-  //   Daily setup + Daily signal
-  //   OR
-  //   H4 setup + H4 signal
-  //
-  // Aggregate signal may only be assigned to the
-  // sole active setup timeframe.
-  // ------------------------------------------------
-  const setupD =
-    msg?.pill_setup_D === true ||
-    msg?.pill_setup_d === true ||
-    msg?.setup_D === true;
+  // ----------------------------
+  // NODE STATE (separate lanes)
+  // ----------------------------
+  const sig = (msg.signal === true);
 
-  const setupH4 =
-    msg?.pill_setup_4H === true ||
-    msg?.pill_setup_h4 === true ||
-    msg?.setup_4H === true;
-
-  const explicitSignalD =
-    msg?.signal_D === true;
-
-  const explicitSignalH4 =
-    msg?.signal_4H === true;
-
-  const aggregateSignal =
-    msg?.signal === true ||
-    msg?.signal_any === true ||
-    msg?.trigger_any === true;
-
-  let signalD = explicitSignalD;
-  let signalH4 = explicitSignalH4;
-
-  // Temporary compatibility bridge.
-  // Never cross Daily setup with H4 signal or vice versa.
-  if (
-    explicitSignalD === false &&
-    explicitSignalH4 === false &&
-    aggregateSignal === true
-  ){
-    if (setupD === true && setupH4 === false){
-      signalD = true;
-    }
-    else if (setupH4 === true && setupD === false){
-      signalH4 = true;
-    }
-  }
-
-  const matchedSignalD =
-    setupD === true &&
-    signalD === true;
-
-  const matchedSignalH4 =
-    setupH4 === true &&
-    signalH4 === true;
-
+  // setup comes from setup flags (NOT MSA)
   const setup =
-    setupD === true ||
-    setupH4 === true;
-
-  const sig =
-    matchedSignalD ||
-    matchedSignalH4;
+  (
+    (msg.setup_any === true) ||
+    (msg.pill_setup_any === true)
+  ) &&
+  (
+    msg.allow_D === true ||
+    msg.allow_4H === true
+  );
 
   let glow = "grey";
+  if (sig) glow = "lime";
+  else if (setup) glow = "orange";
 
-  if (sig){
-    glow = "lime";
-  }
-  else if (setup){
-    glow = "orange";
-  }
-
+  // ----------------------------
+  // MSA LABEL (separate lane)
+  // ----------------------------
   const { msa, srcRaw } = normaliseMsaLabel(msg);
 
+  // store reason for tooltip (KEY IT BY REF_ID, not slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(msg.ref_id)] =
-    `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
-    `setup_D:${setupD} signal_D:${signalD} matched_D:${matchedSignalD} ` +
-    `setup_4H:${setupH4} signal_4H:${signalH4} matched_4H:${matchedSignalH4} ` +
-    `aggregate_signal:${aggregateSignal} ` +
-    `halo_setup:${setup} halo_signal:${sig}`;
+    `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
+    `msa_src:${(srcRaw || "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
+    `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
+    `signal:${msg.signal}`;
 
+  // Slot-based logo url
   const slotNum = Number(slot);
-
-  const logoIndex =
-    slotNum >= 1 && slotNum <= 20
-      ? slotNum
-      : slotNum + 1;
-
+  const logoIndex = (slotNum >= 1 && slotNum <= 20) ? slotNum : (slotNum + 1);
   const logoUrl = `/static/logos/${logoIndex}.png`;
 
   setNode(
@@ -7194,4 +6979,3 @@ setupCommissionTooltips();
 </script>
 </body>
 </html>
- 
