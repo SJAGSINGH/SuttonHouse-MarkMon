@@ -3562,18 +3562,43 @@ def webhook():
                     )
 
                     out["setup"] = bool(setup_truth)
-                    # Live signal authority = production fire only
-                    mv_fire_d  = _truthy(out.get("mvFire_D"))
-                    mv_fire_4h = _truthy(out.get("mvFire_4H"))
-                    jr_fire_d  = _truthy(out.get("jrFire_D"))
-                    jr_fire_4h = _truthy(out.get("jrFire_4H"))
-
-                    live_signal = (
-                        mv_fire_d or
-                        mv_fire_4h or
-                        jr_fire_d or
-                        jr_fire_4h
+                                       # ------------------------------------------------
+                    # SIGNAL AUTHORITY — RESTORE WORKING CONTRACT
+                    #
+                    # Prefer split production-fire fields when Pine
+                    # actually supplies them.
+                    #
+                    # Otherwise preserve the established aggregate
+                    # signal/trigger authority already sent by Pine.
+                    # ------------------------------------------------
+                    incoming_signal = (
+                        _truthy(out.get("signal")) or
+                        _truthy(out.get("signal_any")) or
+                        _truthy(out.get("trigger_any"))
                     )
+
+                    fire_keys = (
+                        "mvFire_D",
+                        "mvFire_4H",
+                        "jrFire_D",
+                        "jrFire_4H",
+                    )
+
+                    split_fire_present = any(
+                        key in out
+                        for key in fire_keys
+                    )
+
+                    if split_fire_present:
+                        live_signal = (
+                            _truthy(out.get("mvFire_D")) or
+                            _truthy(out.get("mvFire_4H")) or
+                            _truthy(out.get("jrFire_D")) or
+                            _truthy(out.get("jrFire_4H"))
+                        )
+                    else:
+                        # Original working Pine aggregate authority.
+                        live_signal = incoming_signal
 
                     out["signal"] = bool(live_signal)
                     out["signal_any"] = bool(live_signal)
