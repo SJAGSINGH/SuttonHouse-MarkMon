@@ -4748,78 +4748,65 @@ function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  // ------------------------------------------------
-  // TIMEFRAME-SEPARATED NODE AUTHORITY
+    // ------------------------------------------------
+  // NODE HALO AUTHORITY — RESTORE WORKING DAILY PATH
   //
-  // Orange:
-  //   Daily setup OR H4 setup
+  // Setup truth:
+  //   use timeframe-separated pill setup fields.
   //
-  // Green:
-  //   Daily setup + Daily signal
-  //   OR
-  //   H4 setup + H4 signal
+  // Signal truth:
+  //   use split signal fields when available.
+  //   otherwise attribute the established aggregate
+  //   signal only to the one active setup timeframe.
   //
-  // Temporary Daily compatibility:
-  // Until split production fire is transported,
-  // the existing aggregate production signal may
-  // be attributed to Daily only when Daily alone
-  // owns the setup.
+  // Green requires setup + signal on same timeframe.
   // ------------------------------------------------
   const setupD =
-    msg?.setup_D === true &&
-    msg?.allow_D === true;
+    msg?.pill_setup_D === true ||
+    msg?.pill_setup_d === true ||
+    msg?.setup_D === true;
 
   const setupH4 =
-    msg?.setup_4H === true &&
-    msg?.allow_4H === true;
+    msg?.pill_setup_4H === true ||
+    msg?.pill_setup_h4 === true ||
+    msg?.setup_4H === true;
 
-  const hasSignalD =
-    Object.prototype.hasOwnProperty.call(msg || {}, "signal_D");
+  const explicitSignalD =
+    msg?.signal_D === true;
 
-  const hasSignalH4 =
-    Object.prototype.hasOwnProperty.call(msg || {}, "signal_4H");
+  const explicitSignalH4 =
+    msg?.signal_4H === true;
 
-  let signalD =
-    hasSignalD
-      ? msg.signal_D === true
-      : null;
-
-  let signalH4 =
-    hasSignalH4
-      ? msg.signal_4H === true
-      : null;
-
-  const legacyProductionSignal =
+  const aggregateSignal =
     msg?.signal === true ||
     msg?.signal_any === true ||
     msg?.trigger_any === true;
 
-  // Restore the established Daily path.
-  // Do not assign this aggregate signal to H4.
-  if (
-    signalD !== true &&
-    setupD === true &&
-    setupH4 === false &&
-    legacyProductionSignal === true
-  ){
-    signalD = true;
+  let signalD = explicitSignalD;
+  let signalH4 = explicitSignalH4;
+
+  // Compatibility bridge:
+  // attribute aggregate signal only to the sole active setup timeframe.
+  if (!explicitSignalD && !explicitSignalH4 && aggregateSignal) {
+    if (setupD && !setupH4) {
+      signalD = true;
+    }
+    else if (setupH4 && !setupD) {
+      signalH4 = true;
+    }
   }
 
   const matchedSignalD =
-    setupD === true &&
-    signalD === true;
+    setupD && signalD;
 
   const matchedSignalH4 =
-    setupH4 === true &&
-    signalH4 === true;
+    setupH4 && signalH4;
 
   const setup =
-    setupD === true ||
-    setupH4 === true;
+    setupD || setupH4;
 
   const sig =
-    matchedSignalD ||
-    matchedSignalH4;
+    matchedSignalD || matchedSignalH4;
 
   let glow = "grey";
 
