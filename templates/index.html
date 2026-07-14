@@ -3793,7 +3793,7 @@ function showPillTip(cell){
 
   const dump = document.getElementById("cr-dump")?.dataset?.rawDump || "";
   let currentParsed = parseArrDump(dump);
-  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed); currentParsed = parseArrDump(dump);
+  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed);
   const current = currentParsed?.[tf]?.[lane] || [];
   const historian = readHistorianLane(ref, tf, lane);
   const pm =
@@ -4061,16 +4061,73 @@ function openRailForSlot(slot){
   // Daily and H4 remain independent.
   // Aggregate values are for the node halo only.
   // ------------------------------------------------
-  const setupD  = msg?.setup_D === true;
-  const setupH4 = msg?.setup_4H === true;
+  // ------------------------------------------------
+  // TIMEFRAME-SEPARATED COMMISSION RAIL AUTHORITY
+  //
+  // Daily setup/signal stay paired.
+  // H4 setup/signal stay paired.
+  //
+  // Temporary bridge:
+  // the existing aggregate production signal is
+  // attributed to Daily only when Daily alone owns
+  // the active setup.
+  // ------------------------------------------------
+  const setupD =
+    msg?.setup_D === true &&
+    msg?.allow_D === true;
 
-  const signalD  = msg?.signal_D === true;
-  const signalH4 = msg?.signal_4H === true;
+  const setupH4 =
+    msg?.setup_4H === true &&
+    msg?.allow_4H === true;
+
+  const hasSignalD =
+    Object.prototype.hasOwnProperty.call(msg || {}, "signal_D");
+
+  const hasSignalH4 =
+    Object.prototype.hasOwnProperty.call(msg || {}, "signal_4H");
+
+  let signalD =
+    hasSignalD
+      ? msg.signal_D === true
+      : null;
+
+  let signalH4 =
+    hasSignalH4
+      ? msg.signal_4H === true
+      : null;
+
+  const legacyProductionSignal =
+    msg?.signal === true ||
+    msg?.signal_any === true ||
+    msg?.trigger_any === true;
+
+  // Restore the established Daily signal path only.
+  // Do not transfer aggregate authority to H4.
+  if (
+    signalD !== true &&
+    setupD === true &&
+    setupH4 === false &&
+    legacyProductionSignal === true
+  ){
+    signalD = true;
+  }
+
+  const matchedSignalD =
+    setupD === true &&
+    signalD === true;
+
+  const matchedSignalH4 =
+    setupH4 === true &&
+    signalH4 === true;
 
   // Optional legacy commissioning fields.
   // These elements may not exist in the current HTML.
   setSnap("cr-setup2", setupD || setupH4);
-  setSnap("cr-trigger2", signalD || signalH4);
+
+  setSnap(
+    "cr-trigger2",
+    matchedSignalD || matchedSignalH4
+  );
 
   const rail = document.getElementById("commission-rail");
   if (!rail) return;
@@ -4124,16 +4181,16 @@ function openRailForSlot(slot){
         : String(v);
   };
 
-   set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
-  set("cr-tf",       tf);
-  set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
-  set("cr-strategy", msg?.strategy);
-
   const fmtAuthority = v => {
     if (v === true) return "YES";
     if (v === false) return "NO";
     return "—";
   };
+
+  set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
+  set("cr-tf",       tf);
+  set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
+  set("cr-strategy", msg?.strategy);
 
   // Timeframe-separated setup display
   set(
@@ -4702,8 +4759,12 @@ function applyScadaStatus(msg){
   //   OR
   //   H4 setup + H4 signal
   //
-  // Never combine setup from one timeframe with
-  // signal from the other timeframe.
+  // Temporary Daily compatibility:
+  // Until split production fire is transported,
+  // the existing aggregate production signal may
+  // be attributed to Daily only when Daily alone
+  // owns the setup.
+  // ------------------------------------------------
   const setupD =
     msg?.setup_D === true &&
     msg?.allow_D === true;
@@ -4712,23 +4773,53 @@ function applyScadaStatus(msg){
     msg?.setup_4H === true &&
     msg?.allow_4H === true;
 
-  const signalD =
-    msg?.signal_D === true;
+  const hasSignalD =
+    Object.prototype.hasOwnProperty.call(msg || {}, "signal_D");
 
-  const signalH4 =
-    msg?.signal_4H === true;
+  const hasSignalH4 =
+    Object.prototype.hasOwnProperty.call(msg || {}, "signal_4H");
+
+  let signalD =
+    hasSignalD
+      ? msg.signal_D === true
+      : null;
+
+  let signalH4 =
+    hasSignalH4
+      ? msg.signal_4H === true
+      : null;
+
+  const legacyProductionSignal =
+    msg?.signal === true ||
+    msg?.signal_any === true ||
+    msg?.trigger_any === true;
+
+  // Restore the established Daily path.
+  // Do not assign this aggregate signal to H4.
+  if (
+    signalD !== true &&
+    setupD === true &&
+    setupH4 === false &&
+    legacyProductionSignal === true
+  ){
+    signalD = true;
+  }
 
   const matchedSignalD =
-    setupD && signalD;
+    setupD === true &&
+    signalD === true;
 
   const matchedSignalH4 =
-    setupH4 && signalH4;
+    setupH4 === true &&
+    signalH4 === true;
 
   const setup =
-    setupD || setupH4;
+    setupD === true ||
+    setupH4 === true;
 
   const sig =
-    matchedSignalD || matchedSignalH4;
+    matchedSignalD ||
+    matchedSignalH4;
 
   let glow = "grey";
 
@@ -4749,6 +4840,7 @@ function applyScadaStatus(msg){
     `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
     `setup_D:${setupD} signal_D:${signalD} matched_D:${matchedSignalD} ` +
     `setup_4H:${setupH4} signal_4H:${signalH4} matched_4H:${matchedSignalH4} ` +
+    `legacy_signal:${legacyProductionSignal} ` +
     `halo_setup:${setup} halo_signal:${sig}`;
 
   const slotNum = Number(slot);
