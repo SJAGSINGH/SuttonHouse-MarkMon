@@ -4242,7 +4242,7 @@ function openRailForSlot(slot){
     dumpEl.dataset.rawDump = dump || "";
   }
 
-   // ------------------------------------------------
+    // ------------------------------------------------
   // Store current node identity BEFORE rendering pills.
   // H4 historian authority requires the correct ref_id.
   // ------------------------------------------------
@@ -4259,19 +4259,17 @@ function openRailForSlot(slot){
   requestAnimationFrame(() => rail.classList.add("open"));
 }
 
-  rail.classList.remove("hidden");
-  requestAnimationFrame(() => rail.classList.add("open"));
-
-  rail.setAttribute("data-ref", ref);
-  rail.setAttribute("data-slot", String(slot));
-}
 function summariseDump(dump){
   const s = String(dump || "");
   if (!s) return "—";
-  const lanes = s.split("|").map(x => x.trim()).filter(Boolean);
+
+  const lanes = s
+    .split("|")
+    .map(x => x.trim())
+    .filter(Boolean);
+
   return `OK • ${s.length} chars • ${lanes.length} lanes`;
 }
-
 function closeRail(){
   hideTip();
 
@@ -4510,56 +4508,71 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
 
   const hasTicker = tkr !== "—";
 
-  // ============================================================
+   // ============================================================
   // NODE HALO + COLOUR + LOGO
   // ============================================================
   if (node){
     // Ensure base class never gets lost
     node.classList.add("stock-node");
 
-    // reset state classes only
-    node.classList.remove("grey","orange","green","lime","red","halo-on","halo-signal");
+    // Reset state classes only
+    node.classList.remove(
+      "grey",
+      "orange",
+      "green",
+      "lime",
+      "red",
+      "halo-on",
+      "halo-signal"
+    );
 
-    // base face colour class
+    // Base face colour class
     node.classList.add(glow || "grey");
 
-    // halo appears for setup OR signal
+    // Halo appears for setup or matched signal
     const haloOn = !!(isSetup || isSignal);
-    if (haloOn) node.classList.add("halo-on");
-    if (isSignal) node.classList.add("halo-signal");
 
-// ------------------------------------------------
-// COMPANY LOGO
-// Logos remain visible independently of halo state.
-// Halo state controls only the surrounding glow.
-// ------------------------------------------------
-const existingImg = node.querySelector("img");
-const shouldShowLogo = hasTicker && !!logoUrl;
+    if (haloOn){
+      node.classList.add("halo-on");
+    }
 
-if (shouldShowLogo){
-  if (!existingImg){
-    const img = document.createElement("img");
+    if (isSignal){
+      node.classList.add("halo-signal");
+    }
 
-    img.alt = tkr;
-    img.src = logoUrl;
+    // ------------------------------------------------
+    // COMPANY LOGO
+    // Logos remain visible independently of halo state.
+    // Halo state controls only the surrounding glow.
+    // ------------------------------------------------
+    const existingImg = node.querySelector("img");
+    const shouldShowLogo = hasTicker && !!logoUrl;
 
-    img.onerror = () => {
-      try {
-        img.remove();
-      } catch(e){}
-    };
+    if (shouldShowLogo){
+      if (!existingImg){
+        const img = document.createElement("img");
 
-    node.appendChild(img);
+        img.alt = tkr;
+        img.src = logoUrl;
+
+        img.onerror = () => {
+          try {
+            img.remove();
+          }
+          catch(e){}
+        };
+
+        node.appendChild(img);
+      }
+      else if (existingImg.getAttribute("src") !== logoUrl){
+        existingImg.setAttribute("src", logoUrl);
+        existingImg.alt = tkr;
+      }
+    }
+    else if (existingImg){
+      existingImg.remove();
+    }
   }
-  else if (existingImg.getAttribute("src") !== logoUrl){
-    existingImg.setAttribute("src", logoUrl);
-    existingImg.alt = tkr;
-  }
-}
-else if (existingImg){
-  existingImg.remove();
-}
- }
 
     // ============================================================
   // MSA DISPLAY
