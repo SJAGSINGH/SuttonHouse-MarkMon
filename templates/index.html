@@ -4513,24 +4513,38 @@ function setNode(refId, glow, ticker, msaText, rawSrc, isSetup, isSignal, logoUr
     if (haloOn) node.classList.add("halo-on");
     if (isSignal) node.classList.add("halo-signal");
 
-    // LOGO inside node: show when setup OR signal
-    const existingImg = node.querySelector("img");
-    const shouldShowLogo = haloOn;
+// ------------------------------------------------
+// COMPANY LOGO
+// Logos remain visible independently of halo state.
+// Halo state controls only the surrounding glow.
+// ------------------------------------------------
+const existingImg = node.querySelector("img");
+const shouldShowLogo = hasTicker && !!logoUrl;
 
-    if (shouldShowLogo && logoUrl){
-      if (!existingImg){
-        const img = document.createElement("img");
-        img.alt = hasTicker ? tkr : "";
-        img.src = logoUrl;
-        img.onerror = () => { try { img.remove(); } catch(e) {} };
-        node.appendChild(img);
-      } else if (existingImg.getAttribute("src") !== logoUrl) {
-        existingImg.setAttribute("src", logoUrl);
-      }
-    } else {
-      if (existingImg) existingImg.remove();
-    }
+if (shouldShowLogo){
+  if (!existingImg){
+    const img = document.createElement("img");
+
+    img.alt = tkr;
+    img.src = logoUrl;
+
+    img.onerror = () => {
+      try {
+        img.remove();
+      } catch(e){}
+    };
+
+    node.appendChild(img);
   }
+  else if (existingImg.getAttribute("src") !== logoUrl){
+    existingImg.setAttribute("src", logoUrl);
+    existingImg.alt = tkr;
+  }
+}
+else if (existingImg){
+  existingImg.remove();
+}
+ }
 
     // ============================================================
   // MSA DISPLAY
@@ -4754,18 +4768,19 @@ function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-    // ------------------------------------------------
-  // NODE HALO AUTHORITY — RESTORE WORKING DAILY PATH
+  // ------------------------------------------------
+  // TIMEFRAME-SEPARATED NODE AUTHORITY
   //
-  // Setup truth:
-  //   use timeframe-separated pill setup fields.
+  // Orange:
+  //   Daily setup OR H4 setup
   //
-  // Signal truth:
-  //   use split signal fields when available.
-  //   otherwise attribute the established aggregate
-  //   signal only to the one active setup timeframe.
+  // Green:
+  //   Daily setup + Daily signal
+  //   OR
+  //   H4 setup + H4 signal
   //
-  // Green requires setup + signal on same timeframe.
+  // Aggregate signal may only be assigned to the
+  // sole active setup timeframe.
   // ------------------------------------------------
   const setupD =
     msg?.pill_setup_D === true ||
@@ -4791,41 +4806,46 @@ function applyScadaStatus(msg){
   let signalD = explicitSignalD;
   let signalH4 = explicitSignalH4;
 
-  // Compatibility bridge:
-  // attribute aggregate signal only to the sole active setup timeframe.
-  if (!explicitSignalD && !explicitSignalH4 && aggregateSignal) {
-    if (setupD && !setupH4) {
+  // Temporary compatibility bridge.
+  // Never cross Daily setup with H4 signal or vice versa.
+  if (
+    explicitSignalD === false &&
+    explicitSignalH4 === false &&
+    aggregateSignal === true
+  ){
+    if (setupD === true && setupH4 === false){
       signalD = true;
     }
-    else if (setupH4 && !setupD) {
+    else if (setupH4 === true && setupD === false){
       signalH4 = true;
     }
   }
 
   const matchedSignalD =
-    setupD && signalD;
+    setupD === true &&
+    signalD === true;
 
   const matchedSignalH4 =
-    setupH4 && signalH4;
+    setupH4 === true &&
+    signalH4 === true;
 
   const setup =
-    setupD || setupH4;
+    setupD === true ||
+    setupH4 === true;
 
   const sig =
-    matchedSignalD || matchedSignalH4;
+    matchedSignalD ||
+    matchedSignalH4;
 
   let glow = "grey";
 
-  if (sig) {
+  if (sig){
     glow = "lime";
   }
-  else if (setup) {
+  else if (setup){
     glow = "orange";
   }
 
-  // ----------------------------
-  // MSA LABEL
-  // ----------------------------
   const { msa, srcRaw } = normaliseMsaLabel(msg);
 
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
@@ -4833,10 +4853,11 @@ function applyScadaStatus(msg){
     `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
     `setup_D:${setupD} signal_D:${signalD} matched_D:${matchedSignalD} ` +
     `setup_4H:${setupH4} signal_4H:${signalH4} matched_4H:${matchedSignalH4} ` +
-    `legacy_signal:${legacyProductionSignal} ` +
+    `aggregate_signal:${aggregateSignal} ` +
     `halo_setup:${setup} halo_signal:${sig}`;
 
   const slotNum = Number(slot);
+
   const logoIndex =
     slotNum >= 1 && slotNum <= 20
       ? slotNum
