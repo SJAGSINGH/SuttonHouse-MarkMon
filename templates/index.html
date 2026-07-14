@@ -4124,21 +4124,27 @@ function openRailForSlot(slot){
         : String(v);
   };
 
-  set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
+   set("cr-src",      sc ? "SCADA" : (wa ? "WATCH" : "—"));
   set("cr-tf",       tf);
   set("cr-msa",      formatMSA(msg?.msa_src, msg?.msa_ok));
   set("cr-strategy", msg?.strategy);
 
+  const fmtAuthority = v => {
+    if (v === true) return "YES";
+    if (v === false) return "NO";
+    return "—";
+  };
+
   // Timeframe-separated setup display
   set(
     "cr-setup",
-    `D:${setupD ? "YES" : "NO"} • 4H:${setupH4 ? "YES" : "NO"}`
+    `D:${fmtAuthority(setupD)} • 4H:${fmtAuthority(setupH4)}`
   );
 
   // Timeframe-separated signal display
   set(
     "cr-signal",
-    `D:${signalD ? "YES" : "NO"} • 4H:${signalH4 ? "YES" : "NO"}`
+    `D:${fmtAuthority(signalD)} • 4H:${fmtAuthority(signalH4)}`
   );
 
   set(
@@ -4685,53 +4691,72 @@ function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
 
-  // ----------------------------
-  // NODE STATE (separate lanes)
-  // ----------------------------
-   // ------------------------------------------------
-  // TIMEFRAME-SEPARATED AUTHORITY
-  // Daily and H4 must never contaminate each other.
-  // Aggregates below are for the node halo only.
   // ------------------------------------------------
+  // TIMEFRAME-SEPARATED NODE AUTHORITY
+  //
+  // Orange:
+  //   Daily setup OR H4 setup
+  //
+  // Green:
+  //   Daily setup + Daily signal
+  //   OR
+  //   H4 setup + H4 signal
+  //
+  // Never combine setup from one timeframe with
+  // signal from the other timeframe.
   const setupD =
-    msg.setup_D === true &&
-    msg.allow_D === true;
+    msg?.setup_D === true &&
+    msg?.allow_D === true;
 
   const setupH4 =
-    msg.setup_4H === true &&
-    msg.allow_4H === true;
+    msg?.setup_4H === true &&
+    msg?.allow_4H === true;
 
   const signalD =
-    msg.signal_D === true;
+    msg?.signal_D === true;
 
   const signalH4 =
-    msg.signal_4H === true;
+    msg?.signal_4H === true;
 
-  // Node halo only
-  const setup = setupD || setupH4;
-  const sig = signalD || signalH4;
+  const matchedSignalD =
+    setupD && signalD;
+
+  const matchedSignalH4 =
+    setupH4 && signalH4;
+
+  const setup =
+    setupD || setupH4;
+
+  const sig =
+    matchedSignalD || matchedSignalH4;
 
   let glow = "grey";
-  if (sig) glow = "lime";
-  else if (setup) glow = "orange";
+
+  if (sig) {
+    glow = "lime";
+  }
+  else if (setup) {
+    glow = "orange";
+  }
 
   // ----------------------------
-  // MSA LABEL (separate lane)
+  // MSA LABEL
   // ----------------------------
   const { msa, srcRaw } = normaliseMsaLabel(msg);
 
-  // store reason for tooltip (KEY IT BY REF_ID, not slot)
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(msg.ref_id)] =
-    `src:${String(msg.type || "—").toUpperCase()} tf:${(msg.tf || "—")} ` +
-    `msa_src:${(srcRaw || "—")} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
-    `setup_D:${msg.setup_D} setup_4H:${msg.setup_4H} ` +
-    `signal_D:${msg.signal_D} signal_4H:${msg.signal_4H} ` +
+    `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
+    `setup_D:${setupD} signal_D:${signalD} matched_D:${matchedSignalD} ` +
+    `setup_4H:${setupH4} signal_4H:${signalH4} matched_4H:${matchedSignalH4} ` +
     `halo_setup:${setup} halo_signal:${sig}`;
 
-  // Slot-based logo url
   const slotNum = Number(slot);
-  const logoIndex = (slotNum >= 1 && slotNum <= 20) ? slotNum : (slotNum + 1);
+  const logoIndex =
+    slotNum >= 1 && slotNum <= 20
+      ? slotNum
+      : slotNum + 1;
+
   const logoUrl = `/static/logos/${logoIndex}.png`;
 
   setNode(
