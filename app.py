@@ -3554,147 +3554,37 @@ def webhook():
                 # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
-                #
-                # Daily and H4 authority remain separate.
-                # Aggregate truth is used for the node halo only.
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
-
-                    # ------------------------------------------------
-                    # DAILY SETUP AUTHORITY
-                    # Daily remains live and independent.
-                    # ------------------------------------------------
-                    setup_d = (
-                        _truthy(out.get("setup_jr_D")) or
-                        _truthy(out.get("setup_mv_D")) or
-                        _truthy(out.get("pill_setup_jr_D")) or
-                        _truthy(out.get("pill_setup_mv_D"))
+                    setup_truth = (
+                        _truthy(out.get("setup_any")) or
+                        _truthy(out.get("pill_setup_any"))
                     )
 
-                    # ------------------------------------------------
-                    # H4 SETUP AUTHORITY
-                    # H4 remains independent from Daily.
-                    # ------------------------------------------------
-                    setup_4h = (
-                        _truthy(out.get("setup_jr_4H")) or
-                        _truthy(out.get("setup_mv_4H")) or
-                        _truthy(out.get("pill_setup_jr_4H")) or
-                        _truthy(out.get("pill_setup_mv_4H"))
+                    out["setup"] = bool(setup_truth)
+                    # Live signal authority = production fire only
+                    mv_fire_d  = _truthy(out.get("mvFire_D"))
+                    mv_fire_4h = _truthy(out.get("mvFire_4H"))
+                    jr_fire_d  = _truthy(out.get("jrFire_D"))
+                    jr_fire_4h = _truthy(out.get("jrFire_4H"))
+
+                    live_signal = (
+                        mv_fire_d or
+                        mv_fire_4h or
+                        jr_fire_d or
+                        jr_fire_4h
                     )
 
-                    # Compatibility fallback for older payloads that
-                    # do not yet contain timeframe-separated setup fields.
-                    setup_split_present = any(
-                        k in out
-                        for k in (
-                            "setup_jr_D",
-                            "setup_mv_D",
-                            "pill_setup_jr_D",
-                            "pill_setup_mv_D",
-                            "setup_jr_4H",
-                            "setup_mv_4H",
-                            "pill_setup_jr_4H",
-                            "pill_setup_mv_4H",
-                        )
-                    )
-
-                    if not setup_split_present:
-                        legacy_setup = (
-                            _truthy(out.get("setup_any")) or
-                            _truthy(out.get("pill_setup_any"))
-                        )
-
-                        # Legacy setup can support the aggregate halo,
-                        # but must not be assigned to either timeframe row.
-                        setup_any = bool(legacy_setup)
-                    else:
-                        setup_any = bool(setup_d or setup_4h)
-
-                    # Store timeframe-separated setup truth.
-                    out["setup_D"] = bool(setup_d)
-                    out["setup_4H"] = bool(setup_4h)
-
-                    # Aggregate setup is for the node halo only.
-                    out["setup"] = bool(setup_any)
-                    out["setup_any"] = bool(setup_any)
-
-                    # ------------------------------------------------
-                    # DAILY SIGNAL AUTHORITY
-                    # Daily production fire only.
-                    # ------------------------------------------------
-                    daily_fire_present = any(
-                        k in out
-                        for k in (
-                            "mvFire_D",
-                            "jrFire_D",
-                        )
-                    )
-
-                    if daily_fire_present:
-                        signal_d = (
-                            _truthy(out.get("mvFire_D")) or
-                            _truthy(out.get("jrFire_D"))
-                        )
-                    else:
-                        signal_d = False
-
-                    # ------------------------------------------------
-                    # H4 SIGNAL AUTHORITY
-                    # H4 production fire only.
-                    # ------------------------------------------------
-                    h4_fire_present = any(
-                        k in out
-                        for k in (
-                            "mvFire_4H",
-                            "jrFire_4H",
-                        )
-                    )
-
-                    if h4_fire_present:
-                        signal_4h = (
-                            _truthy(out.get("mvFire_4H")) or
-                            _truthy(out.get("jrFire_4H"))
-                        )
-                    else:
-                        signal_4h = False
-
-                    split_fire_present = (
-                        daily_fire_present or
-                        h4_fire_present
-                    )
-
-                    if split_fire_present:
-                        live_signal = bool(signal_d or signal_4h)
-                    else:
-                        # Compatibility fallback for the previous
-                        # aggregate production contract.
-                        #
-                        # This may drive the node halo only.
-                        # It must not be assigned to Daily or H4.
-                        live_signal = (
-                            _truthy(out.get("signal")) or
-                            _truthy(out.get("signal_any")) or
-                            _truthy(out.get("trigger_any"))
-                        )
-
-                    # Store timeframe-separated production truth.
-                    out["signal_D"] = bool(signal_d)
-                    out["signal_4H"] = bool(signal_4h)
-
-                    # Aggregate signal is for the node halo only.
                     out["signal"] = bool(live_signal)
                     out["signal_any"] = bool(live_signal)
                     out["trigger_any"] = bool(live_signal)
+                  
 
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
 
                     if master_cycle_120 is not None or master_cycle is not None:
-                        out["cycle_120"] = (
-                            master_cycle_120
-                            if master_cycle_120 is not None
-                            else master_cycle
-                        )
+                        out["cycle_120"] = master_cycle_120 if master_cycle_120 is not None else master_cycle
                         out["cycle"] = master_cycle
 
                         if STATE.get("regime") is not None:
@@ -3714,15 +3604,8 @@ def webhook():
                             out["s3_allowed"] = STATE.get("s3_allowed")
                     else:
                         for k in (
-                            "cycle_120",
-                            "cycle",
-                            "regime",
-                            "vol",
-                            "s1_allowed",
-                            "s2_allowed",
-                            "s3_watch",
-                            "s3_armed",
-                            "s3_allowed",
+                            "cycle_120", "cycle", "regime", "vol",
+                            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
                         ):
                             out.pop(k, None)
 
