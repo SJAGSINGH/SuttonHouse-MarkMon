@@ -225,6 +225,10 @@ STATE: Dict[str, Any] = {
 
     "pill_memory": {
         "by_ref": {},
+    },
+    # Authoritative H4 X/Y strings from the dedicated Pine screener.
+    "xy_h4": {
+        "by_ref": {},
     },    
     # ============================================================
     # MARKET ANCHORS
@@ -1736,9 +1740,32 @@ def _append_pill_record(ref_id, tf_key, record):
     return node
 
 
+def _valid_xy_bits(value) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[01]{8}", value.strip()) is not None
+
+
+def _bits_to_lane(bits: str) -> str:
+    return ";".join(list(bits))
+
+
+def _overlay_newest_bit(bits: str, live_value) -> str:
+    if not _valid_xy_bits(bits):
+        return "0000000" + str(_bool01(live_value))
+    return bits[:7] + str(_bool01(live_value))
+
+
 def _rebuild_pill_lanes(node):
     daily = node.get("daily") or []
     h4 = node.get("h4") or []
+    xy = node.get("xy_h4") if isinstance(node.get("xy_h4"), dict) else {}
+
+    display_x = xy.get("display_x")
+    display_y = xy.get("display_y")
+
+    # H4 X/Y authority comes only from the dedicated Pine XY screener.
+    # Historian records remain available for DIV and diagnostics.
+    h4_x_lane = _bits_to_lane(display_x) if _valid_xy_bits(display_x) else "0;0;0;0;0;0;0;0"
+    h4_y_lane = _bits_to_lane(display_y) if _valid_xy_bits(display_y) else "0;0;0;0;0;0;0;0"
 
     return {
         "D": {
@@ -1747,11 +1774,133 @@ def _rebuild_pill_lanes(node):
             "Indicator_DIV_D": _lane_from_records(daily, "xdiv"),
         },
         "H4": {
-            "Indicator_X_4H": _lane_from_records(h4, "x"),
-            "Indicator_Y_4H": _lane_from_records(h4, "y"),
+            "Indicator_X_4H": h4_x_lane,
+            "Indicator_Y_4H": h4_y_lane,
             "Indicator_DIV_4H": _lane_from_records(h4, "xdiv"),
         },
     }
+
+
+def _handle_xy_h4_node(data):
+    ref_id = _int_or_none(data.get("ref_id"))
+    if ref_id is None:
+        return None
+
+    x_bits = str(data.get("x") or "").strip()
+    y_bits = str(data.get("y") or "").strip()
+    if not _valid_xy_bits(x_bits) or not _valid_xy_bits(y_bits):
+        return None
+
+    ticker = str(data.get("ticker") or "").strip().upper()
+    tickerid = str(data.get("tickerid") or "").strip().upper()
+    now_ms = int(time.time() * 1000)
+    ref_key = str(ref_id)
+
+    # Strict node/ticker guard where a canonical node identity already exists.
+    existing_node = (((STATE.get("nodes") or {}).get("by_ref") or {}).get(ref_key) or {})
+    existing_ticker = _clean_msa_symbol(existing_node.get("ticker_id") or existing_node.get("ticker") or "")
+    incoming_ticker = _clean_msa_symbol(tickerid or ticker)
+    if existing_ticker and incoming_ticker and existing_ticker != incoming_ticker:
+        print(
+            f"[XY_H4 REJECT] ref={ref_id} ticker mismatch "
+            f"expected={existing_ticker} incoming={incoming_ticker}",
+            flush=True,
+        )
+        return None
+
+    xy_store = STATE.setdefault("xy_h4", {}).setdefault("by_ref", {})
+    xy_rec = {
+        "ref_id": ref_id,
+        "ticker": ticker,
+        "tickerid": tickerid,
+        "tf": "4H",
+        "ts": _int_or_none(data.get("ts")),
+        "confirmed_x": x_bits,
+        "confirmed_y": y_bits,
+        "display_x": x_bits,
+        "display_y": y_bits,
+        "x_now": bool(_truthy(data.get("x_now"))),
+        "y_now": bool(_truthy(data.get("y_now"))),
+        "vix_msa": _float_or_none(data.get("vix_msa")),
+        "gvz_msa": _float_or_none(data.get("gvz_msa")),
+        "provisional": False,
+        "source": str(data.get("src") or "PINE_LOCAL"),
+        "_server_ts": now_ms,
+    }
+    xy_store[ref_key] = xy_rec
+
+    pm = STATE.setdefault("pill_memory", {}).setdefault("by_ref", {})
+    pm_node = pm.setdefault(ref_key, {
+        "ref_id": ref_id,
+        "ticker": ticker or tickerid,
+        "daily": [],
+        "h4": [],
+        "_server_ts": now_ms,
+    })
+    pm_node["xy_h4"] = copy.deepcopy(xy_rec)
+    pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
+    pm_node["_server_ts"] = now_ms
+
+    nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
+    node_rec = nodes.setdefault(ref_key, {"ref_id": ref_id})
+    node_rec["ref_id"] = ref_id
+    node_rec["ticker"] = tickerid or ticker or node_rec.get("ticker")
+    node_rec["xy_h4"] = copy.deepcopy(xy_rec)
+    node_rec["pill_memory"] = copy.deepcopy(pm_node)
+
+    return {
+        "type": "XY_H4_NODE",
+        "ref_id": ref_id,
+        "ticker": ticker,
+        "tickerid": tickerid,
+        "tf": "4H",
+        "ts": xy_rec["ts"],
+        "x": x_bits,
+        "y": y_bits,
+        "x_now": xy_rec["x_now"],
+        "y_now": xy_rec["y_now"],
+        "provisional": False,
+        "lanes": copy.deepcopy(pm_node["lanes"]),
+        "xy_h4": copy.deepcopy(xy_rec),
+        "_server_ts": now_ms,
+    }
+
+
+def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
+    ref_key = str(ref_id)
+    xy_rec = (((STATE.get("xy_h4") or {}).get("by_ref") or {}).get(ref_key))
+    if not isinstance(xy_rec, dict):
+        return None
+
+    confirmed_x = str(xy_rec.get("confirmed_x") or "")
+    confirmed_y = str(xy_rec.get("confirmed_y") or "")
+    if not _valid_xy_bits(confirmed_x) or not _valid_xy_bits(confirmed_y):
+        return None
+
+    now_ms = int(time.time() * 1000)
+    xy_rec["display_x"] = _overlay_newest_bit(confirmed_x, live_x)
+    xy_rec["display_y"] = _overlay_newest_bit(confirmed_y, live_y)
+    xy_rec["provisional"] = (
+        xy_rec["display_x"] != confirmed_x or
+        xy_rec["display_y"] != confirmed_y
+    )
+    xy_rec["live_x_D"] = bool(_truthy(live_x))
+    xy_rec["live_y_D"] = bool(_truthy(live_y))
+    xy_rec["_server_ts"] = now_ms
+
+    pm_node = (((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(ref_key))
+    if isinstance(pm_node, dict):
+        pm_node["xy_h4"] = copy.deepcopy(xy_rec)
+        pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
+        pm_node["_server_ts"] = now_ms
+
+    node_rec = (((STATE.get("nodes") or {}).get("by_ref") or {}).get(ref_key))
+    if isinstance(node_rec, dict):
+        node_rec["xy_h4"] = copy.deepcopy(xy_rec)
+        if isinstance(pm_node, dict):
+            node_rec["pill_memory"] = copy.deepcopy(pm_node)
+
+    return copy.deepcopy(xy_rec)
 
 
 def _active_vix(raw, trigger):
@@ -2110,6 +2259,8 @@ def _load_state_from_disk() -> None:
             # -----------------------------------------
             if isinstance(cached.get("pill_memory"), dict):
                 STATE["pill_memory"] = cached.get("pill_memory")
+            if isinstance(cached.get("xy_h4"), dict):
+                STATE["xy_h4"] = cached.get("xy_h4")
             print(
                 "LOAD pill_memory refs =",
                 list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
@@ -3463,6 +3614,19 @@ def webhook():
                 else:
                     abort(400)
 
+            elif typ == "XY_H4_NODE":
+                out = _handle_xy_h4_node(data)
+                if out is None:
+                    abort(400)
+
+                _update_monitor_lane(_extract_meta(out))
+
+                do_save = True
+                force_save = True
+
+                emit_event = "stock_update"
+                emit_payload = out
+
             elif typ == "PILL_MEMORY":
                 out = _handle_pill_memory_payload(data)
                 if out is None:
@@ -3551,6 +3715,24 @@ def webhook():
                         or out.get("chart_tf")
                         or ""
                     )
+                # ----------------------------------------------------
+                # H4 X/Y provisional display overlay
+                # Uses current Daily live truth from Master Pine only.
+                # Confirmed 8-bit authority remains XY_H4_NODE.
+                # ----------------------------------------------------
+                if typ == "SCADA_STATUS":
+                    xy_overlay = _apply_live_xy_h4_overlay(
+                        ref_id,
+                        out.get("live_x_D"),
+                        out.get("live_y_D"),
+                    )
+                    if isinstance(xy_overlay, dict):
+                        out["xy_h4"] = xy_overlay
+                        pm_node = (((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(str(ref_id)))
+                        if isinstance(pm_node, dict):
+                            out["pill_memory"] = copy.deepcopy(pm_node)
+                            out["pill_lanes"] = copy.deepcopy(pm_node.get("lanes") or {})
+
                 # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
