@@ -1814,33 +1814,69 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
 
     return "|".join(out_parts)
 
+def _canonical_ref_for_ticker(tickerid, ticker, fallback_ref):
+    incoming = _clean_msa_symbol(tickerid or ticker)
 
+    if not incoming:
+        return fallback_ref
+
+    nodes = ((STATE.get("nodes") or {}).get("by_ref") or {})
+    matches = []
+
+    for ref_key, rec in nodes.items():
+        if not isinstance(rec, dict):
+            continue
+
+        existing = _clean_msa_symbol(
+            rec.get("ticker_id") or
+            rec.get("ticker") or
+            ""
+        )
+
+        if existing and existing == incoming:
+            try:
+                matches.append(int(ref_key))
+            except Exception:
+                pass
+
+    # Only remap when ticker identity gives exactly one node.
+    if len(matches) == 1:
+        return matches[0]
+
+    return fallback_ref
+    
 def _handle_xy_h4_node(data):
-    ref_id = _int_or_none(data.get("ref_id"))
-    if ref_id is None:
+    incoming_ref_id = _int_or_none(data.get("ref_id"))
+    if incoming_ref_id is None:
         return None
 
     x_bits = str(data.get("x") or "").strip()
     y_bits = str(data.get("y") or "").strip()
+
     if not _valid_xy_bits(x_bits) or not _valid_xy_bits(y_bits):
         return None
 
     ticker = str(data.get("ticker") or "").strip().upper()
     tickerid = str(data.get("tickerid") or "").strip().upper()
+
+    ref_id = _canonical_ref_for_ticker(
+        tickerid,
+        ticker,
+        incoming_ref_id,
+    )
+
+    if ref_id != incoming_ref_id:
+        print(
+            f"[XY_H4 REMAP] incoming_ref={incoming_ref_id} "
+            f"canonical_ref={ref_id} ticker={tickerid or ticker}",
+        flush=True,
+    )
+
+
     now_ms = int(time.time() * 1000)
     ref_key = str(ref_id)
 
-    # Strict node/ticker guard where a canonical node identity already exists.
-    existing_node = (((STATE.get("nodes") or {}).get("by_ref") or {}).get(ref_key) or {})
-    existing_ticker = _clean_msa_symbol(existing_node.get("ticker_id") or existing_node.get("ticker") or "")
-    incoming_ticker = _clean_msa_symbol(tickerid or ticker)
-    if existing_ticker and incoming_ticker and existing_ticker != incoming_ticker:
-        print(
-            f"[XY_H4 REJECT] ref={ref_id} ticker mismatch "
-            f"expected={existing_ticker} incoming={incoming_ticker}",
-            flush=True,
-        )
-        return None
+    
 
     xy_store = STATE.setdefault("xy_h4", {}).setdefault("by_ref", {})
     xy_rec = {
@@ -3753,6 +3789,16 @@ def webhook():
                         or out.get("chart_tf")
                         or ""
                     )
+                if typ == "SCADA_STATUS":
+                    out["last_scada_tx_ts"] = out["_server_ts"]
+                    out["last_scada_tx_date"] = _iso(out["_server_ts"])
+                    out["last_scada_tf"] = str(
+                        out.get("tf")
+                        or out.get("timeframe")
+                        or out.get("chart_tf")
+                        or ""
+                    )
+
                 # ----------------------------------------------------
                 # H4 X/Y provisional display overlay
                 # Uses current Daily live truth from Master Pine only.
@@ -3760,37 +3806,42 @@ def webhook():
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
                     xy_overlay = _apply_live_xy_h4_overlay(
-                    ref_id,
-                    out.get("live_x_D"),
-                    out.get("live_y_D"),
-                )
-
-                if isinstance(xy_overlay, dict):
-                    out["xy_h4"] = xy_overlay
-
-                    pm_node = (
-                        ((STATE.get("pill_memory") or {}).get("by_ref") or {})
-                        .get(str(ref_id))
+                        ref_id,
+                        out.get("live_x_D"),
+                        out.get("live_y_D"),
                     )
 
-                    if isinstance(pm_node, dict):
-                        resolved_lanes = copy.deepcopy(pm_node.get("lanes") or {})
+                    if isinstance(xy_overlay, dict):
+                        out["xy_h4"] = xy_overlay
 
-                        out["pill_memory"] = copy.deepcopy(pm_node)
-                        out["pill_lanes"] = resolved_lanes
-
-                        # ====================================================
-                        # H4 X/Y AUTHORITY BRIDGE
-                        #
-                        # Existing index reads arr_dump.
-                        # Replace only H4 Indicator X/Y with dedicated
-                        # XY_H4_NODE truth before SCADA_STATUS is stored/emitted.
-                        # All other arr_dump lanes remain untouched.
-                        # ====================================================
-                        out["arr_dump"] = _patch_arr_dump_h4_xy(
-                            out.get("arr_dump"),
-                            resolved_lanes,
+                        pm_node = (
+                            ((STATE.get("pill_memory") or {}).get("by_ref") or {})
+                            .get(str(ref_id))
                         )
+
+                        if isinstance(pm_node, dict):
+                            resolved_lanes = copy.deepcopy(
+                                pm_node.get("lanes") or {}
+                            )
+
+                            out["pill_memory"] = copy.deepcopy(pm_node)
+                            out["pill_lanes"] = resolved_lanes
+
+                            # H4 X/Y authority bridge into existing arr_dump.
+                            out["arr_dump"] = _patch_arr_dump_h4_xy(
+                                out.get("arr_dump"),
+                                resolved_lanes,
+                            )
+
+                # ----------------------------------------------------
+                # SCADA_STATUS setup/signal authority normalisation
+                # SCADA_STATUS only. WATCH stores only.
+                # ----------------------------------------------------
+                if typ == "SCADA_STATUS":
+                    setup_truth = (
+                        _truthy(out.get("setup_any")) or
+                        _truthy(out.get("pill_setup_any"))
+                    )
 
                 # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
