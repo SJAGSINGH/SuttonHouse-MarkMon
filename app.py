@@ -1780,6 +1780,40 @@ def _rebuild_pill_lanes(node):
         },
     }
 
+def _patch_arr_dump_h4_xy(arr_dump, lanes):
+    """
+    Replace only H4 Indicator X/Y inside the existing SCADA arr_dump.
+
+    Authority:
+      Indicator_X_4H / Indicator_Y_4H -> dedicated XY_H4_NODE
+      Everything else                -> untouched Master Pine arr_dump
+    """
+    if not isinstance(arr_dump, str) or not arr_dump:
+        return arr_dump
+
+    if not isinstance(lanes, dict):
+        return arr_dump
+
+    h4 = lanes.get("H4")
+    if not isinstance(h4, dict):
+        return arr_dump
+
+    x_lane = h4.get("Indicator_X_4H")
+    y_lane = h4.get("Indicator_Y_4H")
+
+    parts = arr_dump.split("|")
+    out_parts = []
+
+    for part in parts:
+        if part.startswith("Indicator_X_4H;") and x_lane:
+            out_parts.append("Indicator_X_4H;" + str(x_lane))
+        elif part.startswith("Indicator_Y_4H;") and y_lane:
+            out_parts.append("Indicator_Y_4H;" + str(y_lane))
+        else:
+            out_parts.append(part)
+
+    return "|".join(out_parts)
+
 
 def _handle_xy_h4_node(data):
     ref_id = _int_or_none(data.get("ref_id"))
@@ -3726,16 +3760,37 @@ def webhook():
                 # ----------------------------------------------------
                 if typ == "SCADA_STATUS":
                     xy_overlay = _apply_live_xy_h4_overlay(
-                        ref_id,
-                        out.get("live_x_D"),
-                        out.get("live_y_D"),
+                    ref_id,
+                    out.get("live_x_D"),
+                    out.get("live_y_D"),
+                )
+
+                if isinstance(xy_overlay, dict):
+                    out["xy_h4"] = xy_overlay
+
+                    pm_node = (
+                        ((STATE.get("pill_memory") or {}).get("by_ref") or {})
+                        .get(str(ref_id))
                     )
-                    if isinstance(xy_overlay, dict):
-                        out["xy_h4"] = xy_overlay
-                        pm_node = (((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(str(ref_id)))
-                        if isinstance(pm_node, dict):
-                            out["pill_memory"] = copy.deepcopy(pm_node)
-                            out["pill_lanes"] = copy.deepcopy(pm_node.get("lanes") or {})
+
+                    if isinstance(pm_node, dict):
+                        resolved_lanes = copy.deepcopy(pm_node.get("lanes") or {})
+
+                        out["pill_memory"] = copy.deepcopy(pm_node)
+                        out["pill_lanes"] = resolved_lanes
+
+                        # ====================================================
+                        # H4 X/Y AUTHORITY BRIDGE
+                        #
+                        # Existing index reads arr_dump.
+                        # Replace only H4 Indicator X/Y with dedicated
+                        # XY_H4_NODE truth before SCADA_STATUS is stored/emitted.
+                        # All other arr_dump lanes remain untouched.
+                        # ====================================================
+                        out["arr_dump"] = _patch_arr_dump_h4_xy(
+                            out.get("arr_dump"),
+                            resolved_lanes,
+                        )
 
                 # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
