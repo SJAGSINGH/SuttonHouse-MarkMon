@@ -3780,15 +3780,7 @@ def webhook():
 
                 out["_server_ts"] = int(time.time() * 1000)
                 
-                if typ == "SCADA_STATUS":
-                    out["last_scada_tx_ts"] = out["_server_ts"]
-                    out["last_scada_tx_date"] = _iso(out["_server_ts"])
-                    out["last_scada_tf"] = str(
-                    out.get("tf")
-                        or out.get("timeframe")
-                        or out.get("chart_tf")
-                        or ""
-                    )
+
                 if typ == "SCADA_STATUS":
                     out["last_scada_tx_ts"] = out["_server_ts"]
                     out["last_scada_tx_date"] = _iso(out["_server_ts"])
