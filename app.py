@@ -1848,6 +1848,9 @@ def _handle_xy_h4_node(data):
     node_rec["xy_h4"] = copy.deepcopy(xy_rec)
     node_rec["pill_memory"] = copy.deepcopy(pm_node)
 
+    # Canonical resolved pill lanes for UI / node display
+    node_rec["pill_lanes"] = copy.deepcopy(pm_node["lanes"])
+
     return {
         "type": "XY_H4_NODE",
         "ref_id": ref_id,
@@ -1896,10 +1899,11 @@ def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
 
     node_rec = (((STATE.get("nodes") or {}).get("by_ref") or {}).get(ref_key))
     if isinstance(node_rec, dict):
-        node_rec["xy_h4"] = copy.deepcopy(xy_rec)
-        if isinstance(pm_node, dict):
-            node_rec["pill_memory"] = copy.deepcopy(pm_node)
+    node_rec["xy_h4"] = copy.deepcopy(xy_rec)
 
+    if isinstance(pm_node, dict):
+        node_rec["pill_memory"] = copy.deepcopy(pm_node)
+        node_rec["pill_lanes"] = copy.deepcopy(pm_node["lanes"])
     return copy.deepcopy(xy_rec)
 
 
