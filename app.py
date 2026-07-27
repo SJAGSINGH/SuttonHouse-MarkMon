@@ -1859,18 +1859,7 @@ def _handle_xy_h4_node(data):
     ticker = str(data.get("ticker") or "").strip().upper()
     tickerid = str(data.get("tickerid") or "").strip().upper()
 
-    ref_id = _canonical_ref_for_ticker(
-        tickerid,
-        ticker,
-        incoming_ref_id,
-    )
-
-    if ref_id != incoming_ref_id:
-        print(
-            f"[XY_H4 REMAP] incoming_ref={incoming_ref_id} "
-            f"canonical_ref={ref_id} ticker={tickerid or ticker}",
-        flush=True,
-    )
+    ref_id = incoming_ref_id
 
 
     now_ms = int(time.time() * 1000)
@@ -1940,42 +1929,80 @@ def _handle_xy_h4_node(data):
 
 
 def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
+    """
+    H4 X/Y display rule:
+
+    - XY_H4_NODE owns all 8 confirmed H4 bits.
+    - SCADA_STATUS may change ONLY the current/newest display bit.
+    - confirmed_x / confirmed_y are NEVER modified here.
+    """
+
     ref_key = str(ref_id)
-    xy_rec = (((STATE.get("xy_h4") or {}).get("by_ref") or {}).get(ref_key))
+
+    xy_rec = (
+        ((STATE.get("xy_h4") or {}).get("by_ref") or {})
+        .get(ref_key)
+    )
+
     if not isinstance(xy_rec, dict):
         return None
 
     confirmed_x = str(xy_rec.get("confirmed_x") or "")
     confirmed_y = str(xy_rec.get("confirmed_y") or "")
+
     if not _valid_xy_bits(confirmed_x) or not _valid_xy_bits(confirmed_y):
         return None
 
     now_ms = int(time.time() * 1000)
-    xy_rec["display_x"] = _overlay_newest_bit(confirmed_x, live_x)
-    xy_rec["display_y"] = _overlay_newest_bit(confirmed_y, live_y)
-    xy_rec["provisional"] = (
-        xy_rec["display_x"] != confirmed_x or
-        xy_rec["display_y"] != confirmed_y
-    )
+
+    # ----------------------------------------------------
+    # SCADA may touch ONLY the current/newest H4 pill.
+    # First seven bits remain dedicated Pine H4 history.
+    # ----------------------------------------------------
+    display_x = _overlay_newest_bit(confirmed_x, live_x)
+    display_y = _overlay_newest_bit(confirmed_y, live_y)
+
+    xy_rec["display_x"] = display_x
+    xy_rec["display_y"] = display_y
+
     xy_rec["live_x_D"] = bool(_truthy(live_x))
     xy_rec["live_y_D"] = bool(_truthy(live_y))
+
+    xy_rec["provisional"] = (
+        display_x != confirmed_x or
+        display_y != confirmed_y
+    )
+
     xy_rec["_server_ts"] = now_ms
 
-    pm_node = (((STATE.get("pill_memory") or {}).get("by_ref") or {}).get(ref_key))
+    # ----------------------------------------------------
+    # Rebuild display lanes.
+    # H4 X/Y comes from display_x/display_y only.
+    # DIV remains historian.
+    # ----------------------------------------------------
+    pm_node = (
+        ((STATE.get("pill_memory") or {}).get("by_ref") or {})
+        .get(ref_key)
+    )
+
     if isinstance(pm_node, dict):
         pm_node["xy_h4"] = copy.deepcopy(xy_rec)
         pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
         pm_node["_server_ts"] = now_ms
 
-    node_rec = (((STATE.get("nodes") or {}).get("by_ref") or {}).get(ref_key))
+    node_rec = (
+        ((STATE.get("nodes") or {}).get("by_ref") or {})
+        .get(ref_key)
+    )
+
     if isinstance(node_rec, dict):
         node_rec["xy_h4"] = copy.deepcopy(xy_rec)
 
-    if isinstance(pm_node, dict):
-        node_rec["pill_memory"] = copy.deepcopy(pm_node)
-        node_rec["pill_lanes"] = copy.deepcopy(pm_node["lanes"])
-    return copy.deepcopy(xy_rec)
+        if isinstance(pm_node, dict):
+            node_rec["pill_memory"] = copy.deepcopy(pm_node)
+            node_rec["pill_lanes"] = copy.deepcopy(pm_node["lanes"])
 
+    return copy.deepcopy(xy_rec)
 
 def _active_vix(raw, trigger):
     return 1 if (raw is not None and trigger is not None and raw >= trigger) else 0
