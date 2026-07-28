@@ -2296,6 +2296,99 @@ def _normalise_server_ts(ts) -> Optional[int]:
     except Exception:
         return None
 
+def _rehydrate_xy_h4_warm_start():
+    """
+    Rebuild H4 X/Y display state after server restart.
+
+    Authority:
+      XY_H4_NODE confirmed_x / confirmed_y = persistent H4 truth.
+
+    On restart:
+      - use confirmed history as display history
+      - no provisional SCADA bit until a fresh SCADA_STATUS arrives
+      - rebuild pill lanes
+      - patch the saved SCADA arr_dump so the UI paints correctly immediately
+    """
+
+    xy_store = (
+        ((STATE.get("xy_h4") or {}).get("by_ref") or {})
+    )
+
+    pm_store = (
+        ((STATE.get("pill_memory") or {}).get("by_ref") or {})
+    )
+
+    nodes = (
+        ((STATE.get("nodes") or {}).get("by_ref") or {})
+    )
+
+    stocks = STATE.setdefault("stocks", {})
+    last_scada = stocks.setdefault("last_scada_by_ref", {})
+
+    for ref_key, xy_rec in xy_store.items():
+        if not isinstance(xy_rec, dict):
+            continue
+
+        confirmed_x = str(xy_rec.get("confirmed_x") or "")
+        confirmed_y = str(xy_rec.get("confirmed_y") or "")
+
+        if not _valid_xy_bits(confirmed_x):
+            continue
+        if not _valid_xy_bits(confirmed_y):
+            continue
+
+        # ----------------------------------------------------
+        # Restart has no fresh live SCADA truth yet.
+        # Start from confirmed Pine H4 history only.
+        # ----------------------------------------------------
+        xy_rec["display_x"] = confirmed_x
+        xy_rec["display_y"] = confirmed_y
+        xy_rec["provisional"] = False
+
+        # ----------------------------------------------------
+        # Restore pill-memory attachment and rebuild lanes.
+        # ----------------------------------------------------
+        pm_node = pm_store.get(ref_key)
+
+        if not isinstance(pm_node, dict):
+            pm_node = {
+                "ref_id": _int_or_none(ref_key),
+                "ticker": xy_rec.get("ticker"),
+                "daily": [],
+                "h4": [],
+            }
+            pm_store[ref_key] = pm_node
+
+        pm_node["xy_h4"] = copy.deepcopy(xy_rec)
+        pm_node["lanes"] = _rebuild_pill_lanes(pm_node)
+
+        resolved_lanes = copy.deepcopy(pm_node["lanes"])
+
+        # ----------------------------------------------------
+        # Restore node-facing state.
+        # ----------------------------------------------------
+        node_rec = nodes.get(ref_key)
+
+        if isinstance(node_rec, dict):
+            node_rec["xy_h4"] = copy.deepcopy(xy_rec)
+            node_rec["pill_memory"] = copy.deepcopy(pm_node)
+            node_rec["pill_lanes"] = copy.deepcopy(resolved_lanes)
+
+        # ----------------------------------------------------
+        # Patch saved SCADA packet used for UI warm start.
+        # ----------------------------------------------------
+        scada = last_scada.get(ref_key)
+
+        if isinstance(scada, dict):
+            scada["xy_h4"] = copy.deepcopy(xy_rec)
+            scada["pill_memory"] = copy.deepcopy(pm_node)
+            scada["pill_lanes"] = copy.deepcopy(resolved_lanes)
+
+            scada["arr_dump"] = _patch_arr_dump_h4_xy(
+                scada.get("arr_dump"),
+                resolved_lanes,
+            )
+
 
 def _load_state_from_disk() -> None:
     try:
@@ -2362,11 +2455,16 @@ def _load_state_from_disk() -> None:
                 STATE["pill_memory"] = cached.get("pill_memory")
             if isinstance(cached.get("xy_h4"), dict):
                 STATE["xy_h4"] = cached.get("xy_h4")
+            # -----------------------------------------
+            # H4 X/Y warm-start reconciliation
+            # -----------------------------------------
+            _rehydrate_xy_h4_warm_start()    
             print(
                 "LOAD pill_memory refs =",
                 list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
                 flush=True
-            )    
+            ) 
+           
             # -----------------------------------------
             # Market anchors
             # -----------------------------------------
