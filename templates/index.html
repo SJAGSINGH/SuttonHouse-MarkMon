@@ -4640,31 +4640,44 @@ function applyScadaStatus(msg){
     msg.setup_4H === true ||
     msg.pill_setup_4H === true;
 
+  // Permission must remain matched to its own timeframe.
+  const allowD =
+    msg.allow_D === true;
+
+  const allowH4 =
+    msg.allow_4H === true;
+
   // Daily signal:
-  // use explicit split signal when available,
-  // otherwise use the existing Daily trigger truth.
+  // technical trigger truth AND Daily permission.
   const signalD =
-    msg.signal_D === true ||
+    allowD &&
     (
-      setupD === true &&
-      msg.trigger_sma10x_D === true &&
-      msg.trigger_armed === true
+      msg.signal_D === true ||
+      (
+        setupD === true &&
+        msg.trigger_sma10x_D === true &&
+        msg.trigger_armed === true
+      )
     );
 
-  // H4 signal remains separate.
+  // H4 signal:
+  // technical trigger truth AND H4 permission.
   const signalH4 =
-    msg.signal_4H === true ||
+    allowH4 &&
     (
-      setupH4 === true &&
-      msg.trigger_sma10x_4H === true &&
-      msg.trigger_armed === true
+      msg.signal_4H === true ||
+      (
+        setupH4 === true &&
+        msg.trigger_sma10x_4H === true &&
+        msg.trigger_armed === true
+      )
     );
 
-  // Orange = setup on either timeframe
+  // Orange = technical setup on either timeframe.
   const setup =
     setupD || setupH4;
 
-  // Green = setup + signal on the same timeframe
+  // Lime = permitted signal on the same timeframe.
   const sig =
     (setupD && signalD) ||
     (setupH4 && signalH4);
@@ -4688,10 +4701,11 @@ function applyScadaStatus(msg){
   window.__NODE_REASON__[String(msg.ref_id)] =
     `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
     `msa_src:${srcRaw || "—"} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
-    `setup_D:${setupD} signal_D:${signalD} ` +
-    `setup_4H:${setupH4} signal_4H:${signalH4} ` +
+    `setup_D:${setupD} signal_D:${signalD} allow_D:${allowD} ` +
+    `setup_4H:${setupH4} signal_4H:${signalH4} allow_4H:${allowH4} ` +
     `trigger_D:${msg.trigger_sma10x_D} trigger_4H:${msg.trigger_sma10x_4H} ` +
     `trigger_armed:${msg.trigger_armed} ` +
+    `mode:${msg.mode || "—"} block_reason:${msg.block_reason || "—"} ` +
     `halo_setup:${setup} halo_signal:${sig}`;
 
   // Slot-based logo URL
