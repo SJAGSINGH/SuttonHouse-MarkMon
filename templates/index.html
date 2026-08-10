@@ -6043,33 +6043,41 @@ function rscSetComms(source, payload){
   elSrc.textContent = `SOURCE: ${source || '—'}`;
 
 if (!Number.isFinite(ts)){
-  elLast.textContent = `LAST: —`;
-  elAge.textContent  = `AGE: —`;
-  setTerminalStatus('OFFLINE');     // <--- ADD
+  // Ignore payloads that do not carry a valid comms timestamp.
+  // They must not change terminal health.
   return;
 }
 
-  const dt = new Date(ts);
-  elLast.textContent = `LAST: ${dt.toISOString()}`;
+const dt = new Date(ts);
+elLast.textContent = `LAST: ${dt.toISOString()}`;
 
- const tick = () => {
-  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+const tick = () => {
+  const s = Math.max(
+    0,
+    Math.floor((Date.now() - ts) / 1000)
+  );
+
   elAge.textContent = `AGE: ${s}s`;
 
-  // status logic
-  if (s <= 1200) setTerminalStatus('OK');
-  else if (s <= 4500) setTerminalStatus('WARN');
-  else setTerminalStatus('OFFLINE');
-};
-  tick();
-
-  clearInterval(window.__RSC_AGE_TMR);
-  window.__RSC_AGE_TMR = setInterval(tick, 1000);
-
-  if (wrap){
-    wrap.classList.add('flash');
-    setTimeout(() => wrap.classList.remove('flash'), 250);
+  // Terminal health is based only on age of last valid update.
+  // <= 35 minutes = ACTIVE
+  // > 35 minutes  = OFFLINE
+  if (s <= 2100) {
+    setTerminalStatus('OK');
+  } else {
+    setTerminalStatus('OFFLINE');
   }
+};
+
+tick();
+
+clearInterval(window.__RSC_AGE_TMR);
+window.__RSC_AGE_TMR = setInterval(tick, 1000);
+
+if (wrap){
+  wrap.classList.add('flash');
+  setTimeout(() => wrap.classList.remove('flash'), 250);
+}
 }
 
 // ============================
