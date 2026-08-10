@@ -3497,17 +3497,26 @@ function readHistorianLane(ref, tf, laneKey){
 function applyH4GlobalHistorianAuthority(ref, parsed){
   if (!ref || !parsed || !parsed.H4) return parsed;
 
-  // H4 X/Y authority now comes from the dedicated XY_H4_NODE path
-  // already injected into arr_dump by app.py.
+  // ============================================================
+  // H4 AUTHORITY
   //
-  // Historian remains authority for H4 DIV only.
+  // IND_X / IND_Y:
+  //   Dedicated XY_H4_NODE truth has already been injected
+  //   into arr_dump by app.py.
+  //
+  // INDX_DIV:
+  //   Historian remains authority for now.
+  // ============================================================
 
   const hd = readHistorianLane(ref, "H4", "INDX_DIV");
 
-  if (hd) parsed.H4.INDX_DIV = hd;
+  if (hd) {
+    parsed.H4.INDX_DIV = hd;
+  }
 
   return parsed;
 }
+
     
 function pickMacroPayload(x){
   if (!x || typeof x !== "object") return null;
@@ -3780,12 +3789,23 @@ function showPillTip(cell){
   const tf = tfLabel === "4H" ? "H4" : "D";
   const lane = cell.dataset.lane || "—";
 
-  const dump = document.getElementById("cr-dump")?.dataset?.rawDump || "";
-  let currentParsed = parseArrDump(dump);
-  currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed);
-  const current = currentParsed?.[tf]?.[lane] || [];
-  const historian = readHistorianLane(ref, tf, lane);
-  const pm =
+ const dump =
+  document.getElementById("cr-dump")?.dataset?.rawDump || "";
+
+let currentParsed = parseArrDump(dump);
+
+// H4 IND_X / IND_Y remain from patched arr_dump.
+// Historian may still override H4 DIV only.
+currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed);
+
+const current = currentParsed?.[tf]?.[lane] || [];
+
+// Historian is now comparison/diagnostic only for X/Y.
+// It remains authority only where applyH4GlobalHistorianAuthority()
+// explicitly uses it, currently H4 DIV.
+const historian = readHistorianLane(ref, tf, lane);
+
+const pm =
   window.__RSC_LAST?.nodes?.by_ref?.[String(ref)]?.pill_memory ||
   window.__RSC_LAST?.pill_memory?.by_ref?.[String(ref)] ||
   null;
