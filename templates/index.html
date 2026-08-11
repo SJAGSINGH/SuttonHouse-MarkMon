@@ -3552,10 +3552,34 @@ function closeMacroRail(){
 }
 
 function openMacroRail(){
+
+  // Founder-only rail.
+  // One successful password unlock remains valid for this browser session.
+  if (!isFounderUnlocked()){
+    const modal = document.getElementById("password-modal");
+    const input = document.getElementById("pass-input");
+
+    if (modal){
+      modal.style.display = "flex";
+    }
+
+    if (input){
+      input.value = "";
+      setTimeout(() => input.focus(), 50);
+    }
+
+    return;
+  }
+
   const rail = document.getElementById("macro-rail");
   if (!rail) return;
 
-  const p = window.__MACRO_LAST__ || pickMacroPayload(window.__RSC_LAST) || window.__RSC_LAST || null;
+  const p =
+    window.__MACRO_LAST__ ||
+    pickMacroPayload(window.__RSC_LAST) ||
+    window.__RSC_LAST ||
+    null;
+
   paintMacroRail(p);
 
   rail.classList.remove("hidden");
