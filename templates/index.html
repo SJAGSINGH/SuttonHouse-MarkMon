@@ -3037,6 +3037,8 @@ function updateMsaAudit(state) {
 }
    
 function openMsaRailForRef(ref){
+  if (!founderAccessRequired()) return;
+
   const key = String(ref);
   const sc = (window.__SCADA_STORE__ || {})[key] || null;
   const wa = (window.__WATCH_STORE__ || {})[key] || null;
@@ -3154,6 +3156,8 @@ function updateFounderTools(){
   setWarBadge(getInstitutionalConfirmed(state));
 }
 async function exportMsaLibTxt(){
+  if (!founderAccessRequired()) return;
+
   try{
     const r = await fetch("/api/export_msa_lib", { cache: "no-store" });
     if (!r.ok) throw new Error("Export route failed");
@@ -3278,6 +3282,8 @@ function toggleStrategyRail(ref){
 }
     
 function openStrategyRailForRef(ref){
+  if (!founderAccessRequired()) return;
+
   const key = String(ref);
 
   const sc = (window.__SCADA_STORE__ || {})[key] || null;
@@ -5117,7 +5123,26 @@ function renderGcGauge(hostId, gc, s2Allowed){
   // ----------------------------
 // FOUNDER SESSION GATE
 // ----------------------------
+function founderAccessRequired(){
+  if (founderMode === true || isFounderUnlocked()){
+    return true;
+  }
 
+  // Use the existing password modal
+  const modal = document.getElementById("password-modal");
+  const input = document.getElementById("pass-input");
+
+  if (modal){
+    modal.style.display = "flex";
+  }
+
+  if (input){
+    input.value = "";
+    setTimeout(() => input.focus(), 50);
+  }
+
+  return false;
+}
 const FOUNDER_KEY = "SH_FOUNDER_UNLOCKED"; // session-only
 
 function isFounderUnlocked(){
