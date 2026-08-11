@@ -2215,8 +2215,32 @@ def _update_message_from_scada(out: Dict[str, Any]) -> None:
         return
 
     # Otherwise, only clear message lane if it was tracking this same ref/ticker.
+    # Otherwise, clear stale Message System state first.
     cur = STATE.get("message") or {}
-    if (ref_id is not None and cur.get("ref_id") == ref_id) or (ticker and cur.get("ticker") == ticker):
+
+    cur_ts = cur.get("_ts")
+
+    is_stale = (
+        isinstance(cur_ts, (int, float))
+        and (now - cur_ts) > (35 * 60 * 1000)
+    )
+
+    if is_stale:
+        STATE["message"] = {
+            "setup": False,
+            "trigger": "—",
+            "ticker": "",
+            "ref_id": None,
+            "_ts": now,
+        }
+        cur = STATE["message"]
+
+    # Then preserve the existing same-ref/ticker clear behaviour.
+    if (
+        (ref_id is not None and cur.get("ref_id") == ref_id)
+        or
+        (ticker and cur.get("ticker") == ticker)
+    ):
         STATE["message"].update({
             "setup": False,
             "trigger": "—",
