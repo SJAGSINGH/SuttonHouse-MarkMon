@@ -4682,13 +4682,18 @@ function applyScadaStatus(msg){
   // ----------------------------
   // NODE STATE (timeframe truth)
   // ----------------------------
+  // Canonical governed setup truth.
+  // Prefer pill_setup fields whenever Pine supplies them.
+  // Fall back to setup_D/setup_4H only for older payloads.
   const setupD =
-    msg.setup_D === true ||
-    msg.pill_setup_D === true;
+    ("pill_setup_D" in msg)
+      ? msg.pill_setup_D === true
+      : msg.setup_D === true;
 
   const setupH4 =
-    msg.setup_4H === true ||
-    msg.pill_setup_4H === true;
+    ("pill_setup_4H" in msg)
+      ? msg.pill_setup_4H === true
+      : msg.setup_4H === true;
 
   // Permission must remain matched to its own timeframe.
   const allowD =
