@@ -4123,8 +4123,28 @@ def webhook():
 
                             node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
 
-                            # Production fire authority.
-                            # trigger_any is NOT signal authority.
+                            # ------------------------------------------------------------
+                            # SETUP AUTHORITY — setup must exist before signal can exist.
+                            #
+                            # Prefer governed pill_setup_any when supplied.
+                            # Fall back to setup_any only for older payloads.
+                            # ------------------------------------------------------------
+                            if "pill_setup_any" in src:
+                                node_setup = _truthy(src.get("pill_setup_any"))
+                            else:
+                                node_setup = _truthy(src.get("setup_any"))
+
+
+                            # ------------------------------------------------------------
+                            # PRODUCTION SIGNAL AUTHORITY
+                            #
+                            # Absolute rule:
+                            #   NO SETUP = NO SIGNAL
+                            #
+                            # Prefer split production-fire fields when supplied.
+                            # Fall back to legacy aggregate signal only for older payloads,
+                            # but it is still gated by node_setup.
+                            # ------------------------------------------------------------
                             fire_fields_present = any(k in src for k in (
                                 "mvFire_D",
                                 "mvFire_4H",
@@ -4132,21 +4152,19 @@ def webhook():
                                 "jrFire_4H",
                             ))
 
-                            node_signal = (
-                                _truthy(src.get("mvFire_D")) or
-                                _truthy(src.get("mvFire_4H")) or
-                                _truthy(src.get("jrFire_D")) or
-                                _truthy(src.get("jrFire_4H"))
-                            )
+                            if fire_fields_present:
+                                production_fire = (
+                                    _truthy(src.get("mvFire_D")) or
+                                    _truthy(src.get("mvFire_4H")) or
+                                    _truthy(src.get("jrFire_D")) or
+                                    _truthy(src.get("jrFire_4H"))
+                                )
+                            else:
+                                production_fire = _truthy(src.get("signal"))
 
-                            # Fallback only for older payloads that do not yet carry fire fields.
-                            if not fire_fields_present:
-                                node_signal = _truthy(src.get("signal"))
-
-                            # Setup memory / armed state.
-                            node_setup = (
-                                _truthy(src.get("setup_any")) or
-                                _truthy(src.get("pill_setup_any"))
+                            node_signal = bool(
+                                node_setup and
+                                production_fire
                             )
 
                             if node_signal:
