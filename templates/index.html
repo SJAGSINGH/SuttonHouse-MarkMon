@@ -5048,6 +5048,68 @@ function rscApplyClockOffset(rawCount){
       ${metaHtml}`;
     host.style.display='block';
   }
+
+function showDominantPressureGauge(id, buy, sell){
+  const host = document.getElementById(id);
+  if (!host) return;
+
+  const dBuyVal  = Number(buy?.value);
+  const dSellVal = Number(sell?.value);
+
+  const h4BuyVal  = Number(buy?.h4?.value);
+  const h4SellVal = Number(sell?.h4?.value);
+
+  const dBuyDominant =
+    Number.isFinite(dBuyVal) &&
+    Number.isFinite(dSellVal) &&
+    dBuyVal >= dSellVal;
+
+  const h4BuyDominant =
+    Number.isFinite(h4BuyVal) &&
+    Number.isFinite(h4SellVal) &&
+    h4BuyVal >= h4SellVal;
+
+  const dLevel = dBuyDominant
+    ? (Number(buy?.level) || 0)
+    : (Number(sell?.level) || 0);
+
+  const h4Level = h4BuyDominant
+    ? (Number(buy?.h4?.level) || 0)
+    : (Number(sell?.h4?.level) || 0);
+
+  const dLabel = dBuyDominant ? "BUY" : "SELL";
+  const h4Label = h4BuyDominant ? "BUY" : "SELL";
+
+  const dPalette = dBuyDominant ? BUY_COL : SELL_COL;
+  const h4Palette = h4BuyDominant ? BUY_COL : SELL_COL;
+
+  const dBars = mkSingleBars(dLevel, dPalette);
+  const h4Bars = mkSingleBars(h4Level, h4Palette);
+
+  host.innerHTML = `
+    <div class="gauge">
+      <div class="gauge-title">PRESSURE</div>
+
+      <div style="width:100%;">
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">D</div>
+          <div style="min-width:42px;font-size:10px;color:#fff;letter-spacing:1.5px;text-transform:uppercase;">${dLabel}</div>
+          <div class="gauge-bars">${dBars}</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="min-width:42px;font-size:10px;color:#8a8a8a;letter-spacing:2px;text-transform:uppercase;">H4</div>
+          <div style="min-width:42px;font-size:10px;color:#fff;letter-spacing:1.5px;text-transform:uppercase;">${h4Label}</div>
+          <div class="gauge-bars">${h4Bars}</div>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  host.style.display = 'block';
+}    
 function gcStateColor(state){
   const s = String(state || "").toUpperCase();
   if (s === "GREEN")  return "var(--lime)";
@@ -5695,12 +5757,36 @@ function applySecretFromState(data){
     (sell.value !== null && sell.value !== undefined)
       ? String(sell.value)
       : '—';
+  const h4BuyVal =
+  (buy?.h4?.value !== null && buy?.h4?.value !== undefined)
+    ? String(buy.h4.value)
+    : '—';
 
-  setText('val-3', `BUY ${buyVal} / SELL ${sellVal}`);
+const h4SellVal =
+  (sell?.h4?.value !== null && sell?.h4?.value !== undefined)
+    ? String(sell.h4.value)
+    : '—';
+  
+  setText(
+  'val-3',
+  `D BUY ${buyVal} / SELL ${sellVal}\nH4 BUY ${h4BuyVal} / SELL ${h4SellVal}`
+  );
+
+  const dBuyDominant =
+    Number(buy.value) >= Number(sell.value);
+
+  const h4BuyDominant =
+    Number(buy?.h4?.value) >= Number(sell?.h4?.value);
+
+  const dDominantText =
+    dBuyDominant ? 'D BUY DOMINANT' : 'D SELL DOMINANT';
+
+  const h4DominantText =
+    h4BuyDominant ? 'H4 BUY DOMINANT' : 'H4 SELL DOMINANT';
 
   setText(
     'sub-3',
-    `${(buy.state || 'BUYING')} • ${(sell.state || 'SELLING')}${vold.state ? (' • ' + vold.state) : ''}`.trim()
+    `${dDominantText} • ${h4DominantText}`
   );
 
   if (v3) v3.style.color = 'var(--text)';
