@@ -5057,6 +5057,88 @@ function showDominantPressureGauge(id, buy, sell){
   const host = document.getElementById(id);
   if (!host) return;
 
+  const dBuyVal   = Number(buy?.value);
+  const dSellVal  = Number(sell?.value);
+  const h4BuyVal  = Number(buy?.h4?.value);
+  const h4SellVal = Number(sell?.h4?.value);
+
+  const dHasData =
+    Number.isFinite(dBuyVal) &&
+    Number.isFinite(dSellVal);
+
+  const h4HasData =
+    Number.isFinite(h4BuyVal) &&
+    Number.isFinite(h4SellVal);
+
+  const dBuyDominant =
+    dHasData && dBuyVal >= dSellVal;
+
+  const h4BuyDominant =
+    h4HasData && h4BuyVal >= h4SellVal;
+
+  const dLabel =
+    !dHasData ? "—" :
+    dBuyDominant ? "BUY" : "SELL";
+
+  const h4Label =
+    !h4HasData ? "—" :
+    h4BuyDominant ? "BUY" : "SELL";
+
+  const dLevel =
+    !dHasData ? 0 :
+    dBuyDominant
+      ? Number(buy?.level) || 0
+      : Number(sell?.level) || 0;
+
+  const h4Level =
+    !h4HasData ? 0 :
+    h4BuyDominant
+      ? Number(buy?.h4?.level) || 0
+      : Number(sell?.h4?.level) || 0;
+
+  const dPalette =
+    dBuyDominant ? BUY_COL : SELL_COL;
+
+  const h4Palette =
+    h4BuyDominant ? BUY_COL : SELL_COL;
+
+  const dBars =
+    mkSingleBars(dLevel, dPalette);
+
+  const h4Bars =
+    mkSingleBars(h4Level, h4Palette);
+
+  host.innerHTML = `
+    <div class="gauge">
+      <div class="gauge-title">PRESSURE</div>
+
+      <div style="width:100%;">
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
+            D ${dLabel}
+          </div>
+          <div class="gauge-bars">${dBars}</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
+            H4 ${h4Label}
+          </div>
+          <div class="gauge-bars">${h4Bars}</div>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  host.style.display = 'block';
+}
+    
+function showDominantPressureGauge(id, buy, sell){
+  const host = document.getElementById(id);
+  if (!host) return;
+
   const dBuyVal  = Number(buy?.value);
   const dSellVal = Number(sell?.value);
 
@@ -5812,16 +5894,11 @@ const h4SellVal =
       ? Number(sell.level)
       : 0;
 
-  showDualGauge(
-    'gauge-3',
-    buyL,
-    sellL,
-    'PRESSURE',
-    [
-      `<strong>Institutional Buyers / Sellers</strong>`,
-      `BUY_L: ${buy.level ?? '—'} • SELL_L: ${sell.level ?? '—'}`
-    ]
-  );
+  showDominantPressureGauge(
+  'gauge-3',
+  buy,
+  sell
+);
 
   // ============================================================
   // HIDE PUBLIC-ONLY MACRO V2 LINES IN SECRET MODE
