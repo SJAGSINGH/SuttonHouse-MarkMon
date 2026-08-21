@@ -185,6 +185,16 @@ STATE: Dict[str, Any] = {
     "card2": {
         "state": None,
         "text": None,
+
+        # Live [0] / confirmed [1] Cycle Event monitoring
+        "state_live": None,
+        "state_confirmed": None,
+        "jr_k_live": None,
+        "jr_k_confirmed": None,
+        "event_weakness_confirmed": None,
+        "event_improving_live": None,
+        "event_reset_confirmed": None,
+
         "event_status": None,
         "event_weeks": None,
         "event_ref_min_weeks": None,
@@ -2834,12 +2844,22 @@ def _parse_card_payload(data: Dict[str, Any]) -> None:
         if data.get("value") not in (None, "na", "NA", ""):
             value = _safe_float(data.get("value"))
 
+        h4_in = data.get("h4") if isinstance(data.get("h4"), dict) else {}
+
+        h4_pack = {
+            "value": _safe_float(h4_in.get("value")),
+            "level": _safe_int(h4_in.get("level")),
+            "state": _normalise_str(h4_in.get("state")) or "",
+            "panic": bool(_truthy(h4_in.get("panic"))),
+        }
+
         pack = {
             "name": (_normalise_str(data.get("name")) or "").upper(),
             "symbol": _normalise_str(data.get("symbol")) or "",
             "state": _normalise_str(data.get("state")) or "",
             "level": level,
             "value": value,
+            "h4": h4_pack,
         }
 
         if card_n == 5:
