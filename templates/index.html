@@ -6328,18 +6328,43 @@ function applyAllFromState(data) {
       v2.textContent = "SHORT-TERM PREFERENCE REMAINS";
 
       const c2obj = (data && typeof data.card2 === "object" && data.card2) ? data.card2 : null;
-      const s2 = String(c2obj?.state || "").toUpperCase();
 
-      let cls  = "card2-neutral";
-      let text = "UNCLEAR — MONITORING";
+    const s2 = String(c2obj?.state || "").toUpperCase();
 
-      if (s2 === "GREEN") {
-        cls = "card2-green";
-        text = "CONSISTENT WITH MACRO CONDITIONS";
-      } else if (s2 === "RED") {
-        cls = "card2-red";
-        text = "AGAINST MACRO CONDITIONS";
-      }
+    const eventStatus =
+      String(c2obj?.event_status || "").toUpperCase();
+
+    const eventImproving =
+      c2obj?.event_improving_live === true ||
+      String(c2obj?.event_improving_live).toLowerCase() === "true";
+
+    const eventResetConfirmed =
+      c2obj?.event_reset_confirmed === true ||
+      String(c2obj?.event_reset_confirmed).toLowerCase() === "true";
+
+    const eventInProgress =
+      eventStatus === "ACTIVE" ||
+      eventStatus === "CONFIRMED";
+
+    let cls  = "card2-neutral";
+    let text = "UNCLEAR — MONITORING";
+
+    // ------------------------------------------------------------
+    // CYCLE EVENT — LIVE [0] OBSERVATION ONLY
+    // Confirmed [1] still owns event age/status/reset authority.
+    // ------------------------------------------------------------
+  if (eventInProgress && eventImproving && !eventResetConfirmed) {
+    cls = "card2-green";
+    text = "IMPROVING • WEEKLY CONFIRMATION PENDING";
+  }
+  else if (s2 === "GREEN") {
+    cls = "card2-green";
+    text = "CONSISTENT WITH MACRO CONDITIONS";
+  }
+  else if (s2 === "RED") {
+    cls = "card2-red";
+    text = "AGAINST MACRO CONDITIONS";
+  }
 
       v2b.textContent = text;
       v2b.classList.remove("card2-green", "card2-red", "card2-neutral");
