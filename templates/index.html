@@ -78,6 +78,7 @@ window.__SETUP_STORE__ = window.__SETUP_STORE__ || {};
   .card2-green{ color: var(--lime); }
   .card2-red{ color: var(--red); }
   .card2-neutral{ color: rgba(255,255,255,0.65); }
+  .card2-improving{ color: var(--orange); }
 
   body{
     background:var(--bg); color:var(--text);
@@ -6354,7 +6355,7 @@ function applyAllFromState(data) {
     // Confirmed [1] still owns event age/status/reset authority.
     // ------------------------------------------------------------
   if (eventInProgress && eventImproving && !eventResetConfirmed) {
-    cls = "card2-green";
+    cls = "card2-improving";
     text = "IMPROVING • WEEKLY CONFIRMATION PENDING";
   }
   else if (s2 === "GREEN") {
@@ -6367,7 +6368,7 @@ function applyAllFromState(data) {
   }
 
       v2b.textContent = text;
-      v2b.classList.remove("card2-green", "card2-red", "card2-neutral");
+      v2b.classList.remove("card2-green","card2-red","card2-neutral","card2-improving");
       v2b.classList.add(cls);
 
       c2.classList.remove(
