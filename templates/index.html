@@ -5107,32 +5107,50 @@ function showDominantPressureGauge(id, buy, sell){
 
   const h4Bars =
     mkSingleBars(h4Level, h4Palette);
+  
+  const dPanic =
+    String(sell?.state || "").toUpperCase() === "PANIC SELLING";
 
-  host.innerHTML = `
-    <div class="gauge">
-      <div class="gauge-title">PRESSURE</div>
+  const h4Panic =
+    sell?.h4?.panic === true ||
+    String(sell?.h4?.panic).toLowerCase() === "true";
 
-      <div style="width:100%;">
+  const panicText =
+    dPanic && h4Panic ? "D + H4 PANIC SELLING" :
+    dPanic            ? "D PANIC SELLING" :
+    h4Panic           ? "H4 PANIC SELLING" :
+                      "NO PANIC SELLING";
+host.innerHTML = `
+  <div class="gauge">
+    <div class="gauge-title">PRESSURE</div>
 
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
-            D ${dLabel}
-          </div>
-          <div class="gauge-bars">${dBars}</div>
+    <div style="width:100%;">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
+          D ${dLabel}
         </div>
-
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
-            H4 ${h4Label}
-          </div>
-          <div class="gauge-bars">${h4Bars}</div>
-        </div>
-
+        <div class="gauge-bars">${dBars}</div>
       </div>
-    </div>
-  `;
 
-  host.style.display = 'block';
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="min-width:48px;font-size:10px;color:#8a8a8a;letter-spacing:1.5px;text-transform:uppercase;">
+          H4 ${h4Label}
+        </div>
+        <div class="gauge-bars">${h4Bars}</div>
+      </div>
+
+      <!-- Institutional Z commissioning description -->
+      <div class="gauge-meta" style="margin-top:12px;">
+        <strong>INSTITUTIONAL Z</strong><br>
+        ${panicText}
+      </div>
+
+    </div>
+  </div>
+`;
+
+host.style.display = 'block';
 }
     
 function showDominantPressureGauge(id, buy, sell){
