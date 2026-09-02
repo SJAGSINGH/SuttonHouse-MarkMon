@@ -2054,14 +2054,16 @@ def _apply_live_xy_h4_overlay(ref_id, live_x, live_y, live_z=None):
 
     xy_rec["live_x_D"] = bool(_truthy(live_x))
     xy_rec["live_y_D"] = bool(_truthy(live_y))
+
     if live_z is not None:
-    xy_rec["live_z_4H"] = bool(_truthy(live_z))
-        
+        xy_rec["live_z_4H"] = bool(_truthy(live_z))
+
     xy_rec["provisional"] = (
         display_x != confirmed_x or
         display_y != confirmed_y or
         display_z != confirmed_z
     )
+
     xy_rec["_server_ts"] = now_ms
 
     # ----------------------------------------------------
