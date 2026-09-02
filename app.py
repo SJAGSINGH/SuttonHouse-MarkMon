@@ -1771,32 +1771,54 @@ def _rebuild_pill_lanes(node):
 
     display_x = xy.get("display_x")
     display_y = xy.get("display_y")
+    display_z = xy.get("display_z")
 
-    # H4 X/Y authority comes only from the dedicated Pine XY screener.
-    # Historian records remain available for DIV and diagnostics.
-    h4_x_lane = _bits_to_lane(display_x) if _valid_xy_bits(display_x) else "0;0;0;0;0;0;0;0"
-    h4_y_lane = _bits_to_lane(display_y) if _valid_xy_bits(display_y) else "0;0;0;0;0;0;0;0"
+    zero_lane = "0;0;0;0;0;0;0;0"
+
+    # Confirmed H4 X/Y/Z authority comes from the dedicated
+    # H4 X/Y/Z Pine transmitter. The display values may contain
+    # a provisional newest bit but never alter confirmed history.
+    h4_x_lane = (
+        _bits_to_lane(display_x)
+        if _valid_xy_bits(display_x)
+        else zero_lane
+    )
+
+    h4_y_lane = (
+        _bits_to_lane(display_y)
+        if _valid_xy_bits(display_y)
+        else zero_lane
+    )
+
+    h4_z_lane = (
+        _bits_to_lane(display_z)
+        if _valid_xy_bits(display_z)
+        else zero_lane
+    )
 
     return {
         "D": {
             "Indicator_X_D": _lane_from_records(daily, "x"),
             "Indicator_Y_D": _lane_from_records(daily, "y"),
-            "Indicator_DIV_D": _lane_from_records(daily, "xdiv"),
+            "Indicator_Z_D": _lane_from_records(daily, "z"),
         },
         "H4": {
             "Indicator_X_4H": h4_x_lane,
             "Indicator_Y_4H": h4_y_lane,
-            "Indicator_DIV_4H": _lane_from_records(h4, "xdiv"),
+            "Indicator_Z_4H": h4_z_lane,
         },
     }
-
+    
 def _patch_arr_dump_h4_xy(arr_dump, lanes):
     """
-    Replace only H4 Indicator X/Y inside the existing SCADA arr_dump.
+    Replace H4 X/Y/Z lanes inside the existing SCADA arr_dump.
 
     Authority:
-      Indicator_X_4H / Indicator_Y_4H -> dedicated XY_H4_NODE
-      Everything else                -> untouched Master Pine arr_dump
+      Indicator_X_4H -> dedicated H4 X/Y/Z transmitter
+      Indicator_Y_4H -> dedicated H4 X/Y/Z transmitter
+      Indicator_Z_4H -> dedicated H4 X/Y/Z transmitter
+
+    All local MSA/JR/SMA10X lanes remain untouched.
     """
     if not isinstance(arr_dump, str) or not arr_dump:
         return arr_dump
@@ -1810,17 +1832,41 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
 
     x_lane = h4.get("Indicator_X_4H")
     y_lane = h4.get("Indicator_Y_4H")
+    z_lane = h4.get("Indicator_Z_4H")
 
     parts = arr_dump.split("|")
     out_parts = []
 
+    found_x = False
+    found_y = False
+    found_z = False
+
     for part in parts:
         if part.startswith("Indicator_X_4H;") and x_lane:
             out_parts.append("Indicator_X_4H;" + str(x_lane))
+            found_x = True
         elif part.startswith("Indicator_Y_4H;") and y_lane:
             out_parts.append("Indicator_Y_4H;" + str(y_lane))
+            found_y = True
+        elif (
+            part.startswith("Indicator_Z_4H;") or
+            part.startswith("Indicator_DIV_4H;")
+        ) and z_lane:
+            out_parts.append("Indicator_Z_4H;" + str(z_lane))
+            found_z = True
         else:
             out_parts.append(part)
+
+    # Safe rollout support when the incoming arr_dump does not yet
+    # contain all three environmental H4 lanes.
+    if x_lane and not found_x:
+        out_parts.append("Indicator_X_4H;" + str(x_lane))
+
+    if y_lane and not found_y:
+        out_parts.append("Indicator_Y_4H;" + str(y_lane))
+
+    if z_lane and not found_z:
+        out_parts.append("Indicator_Z_4H;" + str(z_lane))
 
     return "|".join(out_parts)
 
@@ -1863,7 +1909,19 @@ def _handle_xy_h4_node(data):
     x_bits = str(data.get("x") or "").strip()
     y_bits = str(data.get("y") or "").strip()
 
-    if not _valid_xy_bits(x_bits) or not _valid_xy_bits(y_bits):
+    z_supplied = data.get("z") is not None
+    z_bits = str(data.get("z") or "").strip()
+
+    # Backward-compatible rollout:
+    # old XY transmitters have no Z field and therefore default to zero.
+    if not z_supplied:
+        z_bits = "00000000"
+    
+    if (
+        not _valid_xy_bits(x_bits) or
+        not _valid_xy_bits(y_bits) or
+        not _valid_xy_bits(z_bits)
+    ):
         return None
 
     ticker = str(data.get("ticker") or "").strip().upper()
@@ -1886,12 +1944,16 @@ def _handle_xy_h4_node(data):
         "ts": _int_or_none(data.get("ts")),
         "confirmed_x": x_bits,
         "confirmed_y": y_bits,
+        "confirmed_z": z_bits,
         "display_x": x_bits,
         "display_y": y_bits,
+        "display_z": z_bits,
         "x_now": bool(_truthy(data.get("x_now"))),
         "y_now": bool(_truthy(data.get("y_now"))),
+        "z_now": bool(_truthy(data.get("z_now"))),
         "vix_msa": _float_or_none(data.get("vix_msa")),
         "gvz_msa": _float_or_none(data.get("gvz_msa")),
+        "sell_panic_h4": _float_or_none(data.get("sell_panic_h4")),
         "provisional": False,
         "source": str(data.get("src") or "PINE_LOCAL"),
         "_server_ts": now_ms,
@@ -1929,8 +1991,11 @@ def _handle_xy_h4_node(data):
         "ts": xy_rec["ts"],
         "x": x_bits,
         "y": y_bits,
+        "z": z_bits
         "x_now": xy_rec["x_now"],
         "y_now": xy_rec["y_now"],
+        "z_now": xy_rec["z_now"],
+        "sell_panic_h4": xy_rec["sell_panic_h4"],
         "provisional": False,
         "lanes": copy.deepcopy(pm_node["lanes"]),
         "xy_h4": copy.deepcopy(xy_rec),
@@ -1938,7 +2003,7 @@ def _handle_xy_h4_node(data):
     }
 
 
-def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
+def _apply_live_xy_h4_overlay(ref_id, live_x, live_y, live_z=None):
     """
     H4 X/Y display rule:
 
@@ -1959,8 +2024,13 @@ def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
 
     confirmed_x = str(xy_rec.get("confirmed_x") or "")
     confirmed_y = str(xy_rec.get("confirmed_y") or "")
-
-    if not _valid_xy_bits(confirmed_x) or not _valid_xy_bits(confirmed_y):
+    confirmed_z = str(xy_rec.get("confirmed_z") or "00000000")
+    
+    if (
+        not _valid_xy_bits(confirmed_x) or
+        not _valid_xy_bits(confirmed_y) or
+        not _valid_xy_bits(confirmed_z)
+    ):
         return None
 
     now_ms = int(time.time() * 1000)
@@ -1971,18 +2041,26 @@ def _apply_live_xy_h4_overlay(ref_id, live_x, live_y):
     # ----------------------------------------------------
     display_x = _overlay_newest_bit(confirmed_x, live_x)
     display_y = _overlay_newest_bit(confirmed_y, live_y)
-
+    # Prefer native live H4 Z. If absent, retain confirmed Z.
+    display_z = (
+        _overlay_newest_bit(confirmed_z, live_z)
+        if live_z is not None
+        else confirmed_z
+    )
     xy_rec["display_x"] = display_x
     xy_rec["display_y"] = display_y
+    xy_rec["display_z"] = display_z
 
     xy_rec["live_x_D"] = bool(_truthy(live_x))
     xy_rec["live_y_D"] = bool(_truthy(live_y))
-
+    if live_z is not None:
+    xy_rec["live_z_4H"] = bool(_truthy(live_z))
+        
     xy_rec["provisional"] = (
         display_x != confirmed_x or
-        display_y != confirmed_y
+        display_y != confirmed_y or
+        display_z != confirmed_z
     )
-
     xy_rec["_server_ts"] = now_ms
 
     # ----------------------------------------------------
@@ -3970,8 +4048,8 @@ def webhook():
                         ref_id,
                         out.get("live_x_D"),
                         out.get("live_y_D"),
-                    )
-
+                        out.get("live_z_4H"),
+                )
                     if isinstance(xy_overlay, dict):
                         out["xy_h4"] = xy_overlay
 
