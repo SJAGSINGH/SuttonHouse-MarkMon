@@ -1981,34 +1981,29 @@ def _handle_xy_h4_node(data):
 
     # Canonical resolved pill lanes for UI / node display
     node_rec["pill_lanes"] = copy.deepcopy(pm_node["lanes"])
-
-     return {
+    
+    return {
         "type": "XY_H4_NODE",
         "ref_id": ref_id,
         "ticker": ticker,
         "tickerid": tickerid,
         "tf": "4H",
         "ts": xy_rec["ts"],
-
         "x": x_bits,
         "y": y_bits,
         "z": z_bits,
-
         "x_now": xy_rec["x_now"],
         "y_now": xy_rec["y_now"],
         "z_now": xy_rec["z_now"],
-
         "vix_msa": xy_rec["vix_msa"],
         "gvz_msa": xy_rec["gvz_msa"],
         "sell_panic_h4": xy_rec["sell_panic_h4"],
-
         "provisional": False,
         "lanes": copy.deepcopy(pm_node["lanes"]),
         "xy_h4": copy.deepcopy(xy_rec),
         "_server_ts": now_ms,
     }
-
-
+    
 def _apply_live_xy_h4_overlay(ref_id, live_x, live_y, live_z=None):
     """
     H4 X/Y display rule:
