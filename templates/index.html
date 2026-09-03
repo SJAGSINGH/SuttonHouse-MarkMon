@@ -2786,6 +2786,7 @@ main.grid > #cr-dump-full{
   <div class="cr-box"><div class="k">TF</div><div id="cr-tf" class="v">—</div></div>
   <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
   <div class="cr-box"><div class="k">STRATEGY</div><div id="cr-strategy" class="v">—</div></div>
+  <div class="cr-box"><div class="k">CONTRIBUTOR</div><div id="cr-engine" class="v">—</div></div>
   <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
   <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
 
@@ -4782,11 +4783,12 @@ function applyScadaStatus(msg){
   // MSA LABEL (separate lane)
   // ----------------------------
   const { msa, srcRaw } = normaliseMsaLabel(msg);
-
+  const contributorLabel = resolveSetupContributorLabel(msg);
   // Store reason for tooltip
   window.__NODE_REASON__ = window.__NODE_REASON__ || {};
   window.__NODE_REASON__[String(msg.ref_id)] =
     `src:${String(msg.type || "—").toUpperCase()} tf:${msg.tf || "—"} ` +
+    `contributor:${contributorLabel} ` +
     `msa_src:${srcRaw || "—"} msa_ok:${msg.msa_ok} msa_inzone:${msg.msa_inzone} ` +
     `setup_D:${setupD} signal_D:${signalD} allow_D:${allowD} ` +
     `setup_4H:${setupH4} signal_4H:${signalH4} allow_4H:${allowH4} ` +
