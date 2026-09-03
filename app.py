@@ -2136,16 +2136,21 @@ def _handle_pill_memory_payload(data):
             "daily_close_time": _int_or_none(data.get("daily_close_time")),
 
             # Global context lanes only
+            # Global context lanes only
             "x": _active_vix(d_x_raw, d_x_trigger),
             "y": _active_gvz(d_y_raw, d_y_trigger),
-            "xdiv": _bool01(data.get("d_xdiv")),
+
+            # Confirmed Daily Z comes directly from the completed
+            # Daily Pine payload. Missing Z safely defaults to OFF
+            # during rollout; legacy X_DIV is not treated as Z truth.
+            "z": _bool01(data.get("d_z")),
 
             "raw": {
                 "x": d_x_raw,
                 "x_trigger": d_x_trigger,
                 "y": d_y_raw,
                 "y_trigger": d_y_trigger,
-                "xdiv": _bool01(data.get("d_xdiv")),
+                "z": _bool01(data.get("d_z")),
             },
 
             "_server_ts": now_ms,
@@ -2446,18 +2451,24 @@ def _rehydrate_xy_h4_warm_start():
 
         confirmed_x = str(xy_rec.get("confirmed_x") or "")
         confirmed_y = str(xy_rec.get("confirmed_y") or "")
-
+        confirmed_z = str(xy_rec.get("confirmed_z") or "00000000")
+        
         if not _valid_xy_bits(confirmed_x):
             continue
         if not _valid_xy_bits(confirmed_y):
             continue
-
+        # Backward-compatible warm start for state files written
+        # before confirmed Z existed.
+        if not _valid_xy_bits(confirmed_z):
+            confirmed_z = "00000000"
+            xy_rec["confirmed_z"] = confirmed_z
         # ----------------------------------------------------
         # Restart has no fresh live SCADA truth yet.
         # Start from confirmed Pine H4 history only.
         # ----------------------------------------------------
         xy_rec["display_x"] = confirmed_x
         xy_rec["display_y"] = confirmed_y
+        xy_rec["display_z"] = confirmed_z
         xy_rec["provisional"] = False
 
         # ----------------------------------------------------
