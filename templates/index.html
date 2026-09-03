@@ -3816,15 +3816,12 @@ function showPillTip(cell){
 
 let currentParsed = parseArrDump(dump);
 
-// H4 IND_X / IND_Y remain from patched arr_dump.
-// Historian may still override H4 DIV only.
+// Canonical X / Y / Z truth comes from the backend-patched arr_dump.
+// Historian is comparison / diagnostic only.
 currentParsed = applyH4GlobalHistorianAuthority(ref, currentParsed);
 
 const current = currentParsed?.[tf]?.[lane] || [];
 
-// Historian is now comparison/diagnostic only for X/Y.
-// It remains authority only where applyH4GlobalHistorianAuthority()
-// explicitly uses it, currently H4 DIV.
 const historian = readHistorianLane(ref, tf, lane);
 
 const pm =
@@ -4148,7 +4145,9 @@ function openRailForSlot(slot){
   const signalActive = !!msg?.signal;
 
   set("cr-signal", signalActive);
-  set("cr-engine", (msg?.setup_engine_D || msg?.setup_engine_4H) ?? "—");
+
+  const contributorLabel = resolveSetupContributorLabel(msg);
+  set("cr-engine", contributorLabel);
 
   // dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
@@ -4667,6 +4666,47 @@ function applyMsaClass(el, msa){
   else el.classList.add("msa-na");
 }
 
+function resolveSetupContributorLabel(msg){
+  if (!msg) return "—";
+
+  const dump = String(msg.arr_dump || "");
+  const parsed = parseArrDump(dump);
+
+  const readLast = (tf, lane) => {
+    const arr = parsed?.[tf]?.[lane];
+    if (!Array.isArray(arr) || !arr.length) return false;
+    return Number(arr[arr.length - 1]) !== 0;
+  };
+
+  const buildLabel = (tf, engine) => {
+    if (!engine) return null;
+
+    const eng = String(engine).trim().toUpperCase();
+
+    const contributors = [];
+    if (readLast(tf, "IND_X")) contributors.push("X");
+    if (readLast(tf, "IND_Y")) contributors.push("Y");
+    if (readLast(tf, "IND_Z")) contributors.push("Z");
+
+    if (!contributors.length) return eng;
+
+    return `${eng}_${contributors.join("+")}`;
+  };
+
+  const d =
+    msg.pill_setup_D === true || msg.setup_D === true
+      ? buildLabel("D", msg.setup_engine_D)
+      : null;
+
+  const h4 =
+    msg.pill_setup_4H === true || msg.setup_4H === true
+      ? buildLabel("H4", msg.setup_engine_4H)
+      : null;
+
+  if (d && h4) return `${d} | ${h4}`;
+  return d || h4 || "—";
+}
+    
 function applyScadaStatus(msg){
   const slot = getSlotForRef(msg.ref_id);
   if (slot === null) return;
@@ -7191,16 +7231,32 @@ function setupCommissionTooltips(){
   };
 
   const setupText = (msg) => {
-    if (!msg) return "—";
-    const parts = [];
-    if (msg.pill_setup_D != null)  parts.push(`pill_setup_D: ${msg.pill_setup_D ? "YES":"NO"}`);
-    if (msg.pill_setup_4H != null) parts.push(`pill_setup_4H: ${msg.pill_setup_4H ? "YES":"NO"}`);
-    if (msg.setup_any != null)     parts.push(`setup_any: ${msg.setup_any ? "YES":"NO"}`);
-    if (msg.setup_engine_D)        parts.push(`engine_D: ${msg.setup_engine_D}`);
-    if (msg.setup_engine_4H)       parts.push(`engine_4H: ${msg.setup_engine_4H}`);
-    return parts.length ? parts.join("\n") : "—";
-  };
+  if (!msg) return "—";
 
+  const parts = [];
+
+  if (msg.pill_setup_D != null)
+    parts.push(`pill_setup_D: ${msg.pill_setup_D ? "YES":"NO"}`);
+
+  if (msg.pill_setup_4H != null)
+    parts.push(`pill_setup_4H: ${msg.pill_setup_4H ? "YES":"NO"}`);
+
+  if (msg.setup_any != null)
+    parts.push(`setup_any: ${msg.setup_any ? "YES":"NO"}`);
+
+  if (msg.setup_engine_D)
+    parts.push(`engine_D: ${msg.setup_engine_D}`);
+
+  if (msg.setup_engine_4H)
+    parts.push(`engine_4H: ${msg.setup_engine_4H}`);
+
+  const contributor = resolveSetupContributorLabel(msg);
+
+  if (contributor !== "—")
+    parts.push(`contributor: ${contributor}`);
+
+  return parts.length ? parts.join("\n") : "—";
+};
   const signalText = (msg) => {
     if (!msg) return "—";
     const parts = [];
