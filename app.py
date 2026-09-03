@@ -1811,14 +1811,20 @@ def _rebuild_pill_lanes(node):
     
 def _patch_arr_dump_h4_xy(arr_dump, lanes):
     """
-    Replace H4 X/Y/Z lanes inside the existing SCADA arr_dump.
+    Bridge canonical X/Y/Z pill lanes into the existing SCADA arr_dump.
 
-    Authority:
+    Daily authority:
+      Indicator_X_D  -> confirmed Daily pill memory
+      Indicator_Y_D  -> confirmed Daily pill memory
+      Indicator_Z_D  -> confirmed Daily Z pill memory
+
+    H4 authority:
       Indicator_X_4H -> dedicated H4 X/Y/Z transmitter
       Indicator_Y_4H -> dedicated H4 X/Y/Z transmitter
       Indicator_Z_4H -> dedicated H4 X/Y/Z transmitter
 
-    All local MSA/JR/SMA10X lanes remain untouched.
+    Legacy DIV labels are accepted only as presentation slots and are
+    rewritten as Z. All local MSA/JR/SMA10X lanes remain untouched.
     """
     if not isinstance(arr_dump, str) or not arr_dump:
         return arr_dump
@@ -1826,47 +1832,45 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
     if not isinstance(lanes, dict):
         return arr_dump
 
-    h4 = lanes.get("H4")
-    if not isinstance(h4, dict):
-        return arr_dump
+    daily = lanes.get("D") if isinstance(lanes.get("D"), dict) else {}
+    h4 = lanes.get("H4") if isinstance(lanes.get("H4"), dict) else {}
 
-    x_lane = h4.get("Indicator_X_4H")
-    y_lane = h4.get("Indicator_Y_4H")
-    z_lane = h4.get("Indicator_Z_4H")
+    lane_map = {
+        "Indicator_X_D": daily.get("Indicator_X_D"),
+        "Indicator_Y_D": daily.get("Indicator_Y_D"),
+        "Indicator_Z_D": daily.get("Indicator_Z_D"),
+        "Indicator_X_4H": h4.get("Indicator_X_4H"),
+        "Indicator_Y_4H": h4.get("Indicator_Y_4H"),
+        "Indicator_Z_4H": h4.get("Indicator_Z_4H"),
+    }
+
+    legacy_to_canonical = {
+        "Indicator_DIV_D": "Indicator_Z_D",
+        "Indicator_XDIV_D": "Indicator_Z_D",
+        "Indicator_DIV_4H": "Indicator_Z_4H",
+        "Indicator_XDIV_4H": "Indicator_Z_4H",
+    }
 
     parts = arr_dump.split("|")
     out_parts = []
-
-    found_x = False
-    found_y = False
-    found_z = False
+    found = set()
 
     for part in parts:
-        if part.startswith("Indicator_X_4H;") and x_lane:
-            out_parts.append("Indicator_X_4H;" + str(x_lane))
-            found_x = True
-        elif part.startswith("Indicator_Y_4H;") and y_lane:
-            out_parts.append("Indicator_Y_4H;" + str(y_lane))
-            found_y = True
-        elif (
-            part.startswith("Indicator_Z_4H;") or
-            part.startswith("Indicator_DIV_4H;")
-        ) and z_lane:
-            out_parts.append("Indicator_Z_4H;" + str(z_lane))
-            found_z = True
+        label = part.split(";", 1)[0]
+        canonical = legacy_to_canonical.get(label, label)
+        lane = lane_map.get(canonical)
+
+        if lane:
+            out_parts.append(canonical + ";" + str(lane))
+            found.add(canonical)
         else:
             out_parts.append(part)
 
-    # Safe rollout support when the incoming arr_dump does not yet
-    # contain all three environmental H4 lanes.
-    if x_lane and not found_x:
-        out_parts.append("Indicator_X_4H;" + str(x_lane))
-
-    if y_lane and not found_y:
-        out_parts.append("Indicator_Y_4H;" + str(y_lane))
-
-    if z_lane and not found_z:
-        out_parts.append("Indicator_Z_4H;" + str(z_lane))
+    # Safe rollout support: append canonical lanes that Pine/older SCADA
+    # payloads do not yet contain. This never changes local setup lanes.
+    for canonical, lane in lane_map.items():
+        if lane and canonical not in found:
+            out_parts.append(canonical + ";" + str(lane))
 
     return "|".join(out_parts)
 
