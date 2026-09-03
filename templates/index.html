@@ -3423,8 +3423,8 @@ function readSingleLane(dump, laneName){
   
 function parseArrDump(dump){
   const out = {
-    D:  { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], INDX_DIV:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] },
-    H4: { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], INDX_DIV:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] }
+    D:  { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], IND_Z:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] },
+    H4: { IND_X:[0,0,0,0,0,0,0,0], IND_Y:[0,0,0,0,0,0,0,0], IND_Z:[0,0,0,0,0,0,0,0], MSA:[0,0,0,0,0,0,0,0], JR:[0,0,0,0,0,0,0,0] }
   };
   if (!dump) return out;
 
@@ -3449,7 +3449,11 @@ function parseArrDump(dump){
     // normalise lane names
     if (base.startsWith("INDICATOR_X")) base = "IND_X";
     else if (base.startsWith("INDICATOR_Y")) base = "IND_Y";
-    else if (base.startsWith("INDICATOR_DIV")) base = "INDX_DIV";
+    else if (
+      base.startsWith("INDICATOR_Z") ||
+      base.startsWith("INDICATOR_DIV") ||
+      base.startsWith("INDICATOR_XDIV")
+    ) base = "IND_Z";
     else if (base.startsWith("MSA")) base = "MSA";
     else if (base.startsWith("JR")) base = "JR";
     else continue;
@@ -3491,7 +3495,7 @@ function readHistorianLane(ref, tf, laneKey){
   const map = {
     IND_X: tf === "D" ? "Indicator_X_D" : "Indicator_X_4H",
     IND_Y: tf === "D" ? "Indicator_Y_D" : "Indicator_Y_4H",
-    INDX_DIV: tf === "D" ? "Indicator_DIV_D" : "Indicator_DIV_4H",
+    IND_Z: tf === "D" ? "Indicator_Z_D" : "Indicator_Z_4H",
     MSA: tf === "D" ? "MSA_D" : "MSA_4H",
     JR: tf === "D" ? "JR_D" : "JR_4H"
   };
@@ -3506,25 +3510,8 @@ function readHistorianLane(ref, tf, laneKey){
 
 
 function applyH4GlobalHistorianAuthority(ref, parsed){
-  if (!ref || !parsed || !parsed.H4) return parsed;
-
-  // ============================================================
-  // H4 AUTHORITY
-  //
-  // IND_X / IND_Y:
-  //   Dedicated XY_H4_NODE truth has already been injected
-  //   into arr_dump by app.py.
-  //
-  // INDX_DIV:
-  //   Historian remains authority for now.
-  // ============================================================
-
-  const hd = readHistorianLane(ref, "H4", "INDX_DIV");
-
-  if (hd) {
-    parsed.H4.INDX_DIV = hd;
-  }
-
+  // X / Y / Z H4 authority is already resolved by app.py.
+  // Frontend must not overwrite canonical backend truth.
   return parsed;
 }
 
@@ -3738,7 +3725,7 @@ function renderArraysToRail(arrDump){
   const lanes = [
     { key:"IND_X",    label:"IND_X" },
     { key:"IND_Y",    label:"IND_Y" },
-    { key:"INDX_DIV", label:"INDX_DIV" },
+    { key:"IND_Z", label:"IND_Z" },
     { key:"MSA",      label:"MSA" },
     { key:"JR",       label:"JR" },
   ];
