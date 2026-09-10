@@ -2708,7 +2708,7 @@ main.grid > #cr-dump-full{
     <div class="mw-rail" id="mw-wrap" style="display:none;">
       <div class="mw-fill" id="mw-fill"></div>
       <div class="mw-capline"></div>
-      <div class="mw-caplabel">35%</div>
+      <div class="mw-caplabel">30%</div>
     </div>
 
     <div class="card4-main">
@@ -6705,7 +6705,7 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
   const mwFill = document.getElementById("mw-fill");
   const mwVal  = document.getElementById("mw-val");
   const mwNote = document.getElementById("mw-note");
-
+  const mwReadout = document.querySelector("#card-4 .mw-readout");
   // Reset recession-only UI.
  // Rail and Market Weakness readout should NEVER appear
  // during Expansion or Stalling states.
@@ -6789,7 +6789,32 @@ let dd =
 
   if (mwFill) mwFill.style.height = pct + "%";
   if (mwVal) mwVal.innerText = `${dd.toFixed(1)}%`;
+  
+  if (mwReadout) {
+  const s3State =
+    data?.s3_confirmed === true ? "CONFIRMED" :
+    data?.s3_armed === true     ? "ARMED" :
+                                  "OFF";
 
+  const armAge =
+    Number.isFinite(Number(data?.s3_arm_age_weeks))
+      ? `${Number(data.s3_arm_age_weeks)} / 23 WEEKS`
+      : "—";
+
+  const high =
+    Number.isFinite(Number(data?.spx_cycle_high))
+      ? Number(data.spx_cycle_high).toFixed(2)
+      : "—";
+
+  mwReadout.title =
+    `S3 STATE: ${s3State}\n` +
+    `LIVE SPX DD: ${dd.toFixed(1)}%\n` +
+    `REF PEAK: ${high}\n` +
+    `ARM AGE: ${armAge}\n` +
+    `SAHM: ${Number.isFinite(s) ? s.toFixed(3) : "—"}\n` +
+    `ALLOWED: ${data?.s3_allowed === true ? "YES" : "NO"}\n` +
+    `ARM EXPIRED: ${data?.s3_arm_expired === true ? "YES" : "NO"}`;
+}
   if (mwNote) {
     mwNote.style.display = achieved ? "block" : "none";
     mwNote.innerText = achieved ? "ACHIEVED" : "";
