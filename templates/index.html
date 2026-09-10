@@ -2713,7 +2713,7 @@ main.grid > #cr-dump-full{
 
     <div class="card4-main">
       <div class="pulse-container">
-        <div id="led-node" class="pulse-node"></div>
+        <div id="led-node" class="pulse-node" data-tip="s3"></div>
       </div>
 
       <div class="mw-readout">
@@ -7281,7 +7281,11 @@ function setupCommissionTooltips(){
   if (!tip) return;
 
   const show = (x, y, title, body) => {
-    tip.innerHTML = `<div class="k">${title}</div><div class="v">${body}</div>`;
+    tip.innerHTML = `
+      <div class="k">${title}</div>
+      <div class="v">${body}</div>
+    `;
+
     tip.classList.remove("hidden");
 
     const pad = 14;
@@ -7291,49 +7295,71 @@ function setupCommissionTooltips(){
     let left = x + pad;
     let top  = y + pad;
 
-    if (left + w > window.innerWidth - 8) left = x - w - pad;
-    if (top + h > window.innerHeight - 8) top  = y - h - pad;
+    if (left + w > window.innerWidth - 8) {
+      left = x - w - pad;
+    }
 
-    tip.style.left = `${Math.max(8,left)}px`;
-    tip.style.top  = `${Math.max(8,top)}px`;
+    if (top + h > window.innerHeight - 8) {
+      top = y - h - pad;
+    }
+
+    tip.style.left = `${Math.max(8, left)}px`;
+    tip.style.top  = `${Math.max(8, top)}px`;
   };
 
-  const hide = () => tip.classList.add("hidden");
+  const hide = () => {
+    tip.classList.add("hidden");
+  };
 
   const getActiveMsg = () => {
     const rail = document.getElementById("commission-rail");
     const ref  = rail?.getAttribute("data-ref");
+
     if (!ref) return null;
-    return (window.__SCADA_STORE__ || {})[ref] || (window.__WATCH_STORE__ || {})[ref] || null;
+
+    return (
+      (window.__SCADA_STORE__ || {})[ref] ||
+      (window.__WATCH_STORE__ || {})[ref] ||
+      null
+    );
   };
 
   const setupText = (msg) => {
-  if (!msg) return "—";
+    if (!msg) return "—";
 
-  const parts = [];
+    const parts = [];
 
-  if (msg.pill_setup_D != null)
-    parts.push(`pill_setup_D: ${msg.pill_setup_D ? "YES":"NO"}`);
+    if (msg.pill_setup_D != null) {
+      parts.push(`pill_setup_D: ${msg.pill_setup_D ? "YES" : "NO"}`);
+    }
 
-  if (msg.pill_setup_4H != null)
-    parts.push(`pill_setup_4H: ${msg.pill_setup_4H ? "YES":"NO"}`);
+    if (msg.pill_setup_4H != null) {
+      parts.push(`pill_setup_4H: ${msg.pill_setup_4H ? "YES" : "NO"}`);
+    }
 
-  if (msg.setup_any != null)
-    parts.push(`setup_any: ${msg.setup_any ? "YES":"NO"}`);
+    if (msg.setup_any != null) {
+      parts.push(`setup_any: ${msg.setup_any ? "YES" : "NO"}`);
+    }
 
-  if (msg.setup_engine_D)
-    parts.push(`engine_D: ${msg.setup_engine_D}`);
+    if (msg.setup_engine_D) {
+      parts.push(`engine_D: ${msg.setup_engine_D}`);
+    }
 
-  if (msg.setup_engine_4H)
-    parts.push(`engine_4H: ${msg.setup_engine_4H}`);
+    if (msg.setup_engine_4H) {
+      parts.push(`engine_4H: ${msg.setup_engine_4H}`);
+    }
 
-  const contributor = resolveSetupContributorLabel(msg);
+    const contributor = resolveSetupContributorLabel(msg);
 
-  if (contributor !== "—")
-    parts.push(`contributor: ${contributor}`);
+    if (contributor !== "—") {
+      parts.push(`contributor: ${contributor}`);
+    }
 
-  return parts.length ? parts.join("\n") : "—";
-};
+    return parts.length ? parts.join("\n") : "—";
+  };
+
+
+  
   const signalText = (msg) => {
     if (!msg) return "—";
     const parts = [];
