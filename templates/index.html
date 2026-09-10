@@ -7397,7 +7397,19 @@ function setupCommissionTooltips(){
       const peak = Number.isFinite(Number(d.spx_cycle_high))
         ? Number(d.spx_cycle_high).toFixed(2)
         : "—";
+      const peakTs = Number(d.spx_cycle_high_time);
 
+      const peakDate =
+        Number.isFinite(peakTs)
+          ? new Date(peakTs).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              timeZone: "Europe/London"
+            }).toUpperCase()
+          : "—";
+
+      
       const age = Number.isFinite(Number(d.s3_arm_age_weeks))
         ? `${Number(d.s3_arm_age_weeks)} / 23 W`
         : "—";
@@ -7410,6 +7422,7 @@ function setupCommissionTooltips(){
         `STATE: ${state}<br>` +
         `SPX DD: ${dd}<br>` +
         `REF PEAK: ${peak}<br>` +
+        `PEAK DATE: ${peakDate}<br>` +
         `ARM AGE: ${age}<br>` +
         `SAHM: ${sahm}<br>` +
         `ALLOWED: ${d.s3_allowed === true ? "YES" : "NO"}<br>` +
