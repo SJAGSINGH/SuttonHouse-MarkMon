@@ -2602,8 +2602,8 @@ def _load_state_from_disk() -> None:
                     "mom",
                     "regime",
                 ):
-        if k in cached:
-            STATE[k] = cached.get(k)
+                    if k in cached:
+                        STATE[k] = cached.get(k)
             # -----------------------------------------
             # Macro V2
             # -----------------------------------------
