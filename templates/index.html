@@ -6772,11 +6772,49 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
   if (mwVal) {
     mwVal.innerText = "";
   }
-
+  
   // ============================================================
   // EXPANSION
   // ============================================================
+  // ============================================================
+  // S3 ARMED — DD30 FIRST
+  // Operational warning overrides ordinary Sahm colour state.
+  // ============================================================
 
+  if (data?.s3_armed === true) {
+    if (v4) v4.innerText = "S3: ARMED";
+    if (c4) c4.className = "card glow-danger";
+
+    if (node) {
+      node.className = "pulse-node pulse-fast";
+      node.style.background = "var(--red)";
+      node.style.boxShadow = "0 0 60px var(--red)";
+    }
+
+    // DD30 rail is relevant immediately once S3 is armed.
+    if (mwWrap) mwWrap.style.display = "block";
+
+    let dd = Number(data?.spx_dd_pct);
+
+    if (Number.isFinite(dd)) {
+      dd = Math.abs(dd);
+      if (dd <= 1) dd *= 100;
+
+      const CAP = 30;
+      const clipped = Math.min(CAP, dd);
+      const pct = Math.round((clipped / CAP) * 100);
+
+      if (mwFill) mwFill.style.height = pct + "%";
+      if (mwVal) mwVal.innerText = `${dd.toFixed(1)}%`;
+
+      if (mwNote) {
+        mwNote.style.display = dd >= CAP ? "block" : "none";
+        mwNote.innerText = dd >= CAP ? "ARMED" : "";
+      }
+    }
+
+    return;
+  }
   if (s < 0.35) {
     if (v4) v4.innerText = "Economic:EXPANSION";
     if (c4) c4.className = "card glow-lime";
