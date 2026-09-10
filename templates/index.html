@@ -5451,9 +5451,16 @@ function applyPublicFromState(data){
   const x = Number(data?.secret?.war?.x_level);
   const y = Number(data?.secret?.war?.y_level);
 
+  // Z — institutional panic-selling contributor.
+  // Accept native Daily or H4 Z truth transported by SCADA_STATUS.
+  const zD  = data?.live_z_D === true;
+  const zH4 = data?.live_z_4H === true;
+
   const institutionalConfirmed =
     (Number.isFinite(x) && x <= 4) ||
-    (Number.isFinite(y) && y <= 3);
+    (Number.isFinite(y) && y <= 3) ||
+    zD ||
+    zH4;
 
   document.body.classList.toggle('war-room', institutionalConfirmed);
   setWarBadge(institutionalConfirmed);
