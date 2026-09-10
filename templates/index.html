@@ -7353,7 +7353,51 @@ function setupCommissionTooltips(){
 
     const kind = target.getAttribute("data-tip");
     const msg  = getActiveMsg();
+    if (kind === "s3") {
+      if (!(founderMode === true || isFounderUnlocked())) return hide();
 
+      const d = window.__RSC_LAST || {};
+
+      const state =
+        d.s3_confirmed === true ? "CONFIRMED" :
+        d.s3_armed === true     ? "ARMED" :
+                                  "OFF";
+
+      const ddRaw = Number(d.spx_dd_pct);
+      const dd = Number.isFinite(ddRaw)
+        ? `${Math.abs(ddRaw) <= 1
+            ? (Math.abs(ddRaw) * 100).toFixed(1)
+            : Math.abs(ddRaw).toFixed(1)}%`
+        : "—";
+
+      const peak = Number.isFinite(Number(d.spx_cycle_high))
+        ? Number(d.spx_cycle_high).toFixed(2)
+        : "—";
+
+      const age = Number.isFinite(Number(d.s3_arm_age_weeks))
+        ? `${Number(d.s3_arm_age_weeks)} / 23 W`
+        : "—";
+
+      const sahm = Number.isFinite(Number(d.sahm))
+        ? Number(d.sahm).toFixed(3)
+        : "—";
+
+      const body =
+        `STATE: ${state}<br>` +
+        `SPX DD: ${dd}<br>` +
+        `REF PEAK: ${peak}<br>` +
+        `ARM AGE: ${age}<br>` +
+        `SAHM: ${sahm}<br>` +
+        `ALLOWED: ${d.s3_allowed === true ? "YES" : "NO"}<br>` +
+        `ARM EXPIRED: ${d.s3_arm_expired === true ? "YES" : "NO"}`;
+
+      return show(
+        e.clientX,
+        e.clientY,
+        "S3 • RECESSION PULSE",
+        body
+      );
+    }
     if (kind === "setup"){
       show(e.clientX, e.clientY, "SETUP TRUTH", setupText(msg));
     } else if (kind === "signal"){
