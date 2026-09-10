@@ -889,6 +889,30 @@ def process_sentinel_macro_logging(data):
             state=current,
         )
 
+    # s3 confirmed
+    if prev.get("s3_confirmed") is not None and prev.get("s3_confirmed") != current.get("s3_confirmed"):
+        _log_macro_transition(
+            "S3_CONFIRMED_ON" if current.get("s3_confirmed") else "S3_CONFIRMED_OFF",
+            "Recession framework confirmed by Sahm."
+            if current.get("s3_confirmed")
+            else "Recession confirmation cleared.",
+            severity="critical" if current.get("s3_confirmed") else "attention",
+            reason=["s3_confirmed_changed"],
+            state=current,
+        )
+
+    # s3 arm expiry
+    if prev.get("s3_arm_expired") is not None and prev.get("s3_arm_expired") != current.get("s3_arm_expired"):
+        _log_macro_transition(
+            "S3_ARM_EXPIRED" if current.get("s3_arm_expired") else "S3_ARM_EXPIRY_CLEARED",
+            "S3 DD30 arm expired without Sahm confirmation."
+            if current.get("s3_arm_expired")
+            else "S3 arm expiry state cleared.",
+            severity="attention" if current.get("s3_arm_expired") else "observe",
+            reason=["s3_arm_expired_changed"],
+            state=current,
+        )
+    
     # s3 allowed
     if prev.get("s3_allowed") is not None and prev.get("s3_allowed") != current.get("s3_allowed"):
         _log_macro_transition(
