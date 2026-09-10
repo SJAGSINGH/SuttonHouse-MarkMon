@@ -4714,6 +4714,48 @@ def webhook():
         _log_debug("/webhook", {"ok": False, "error": msg}, ok=False)
         return jsonify({"ok": False, "error": msg}), 400
 
+@app.route("/founder/recession-state", methods=["GET"])
+@login_required
+@founder_required
+def founder_recession_state():
+    with STATE_LOCK:
+        out = {
+            # -------------------------
+            # S3 macro authority
+            # -------------------------
+            "s3_watch": STATE.get("s3_watch"),
+            "s3_armed": STATE.get("s3_armed"),
+            "s3_confirmed": STATE.get("s3_confirmed"),
+            "s3_allowed": STATE.get("s3_allowed"),
+            "s3_arm_age_weeks": STATE.get("s3_arm_age_weeks"),
+            "s3_arm_expired": STATE.get("s3_arm_expired"),
+
+            # -------------------------
+            # SPX drawdown telemetry
+            # -------------------------
+            "spx_cycle_high": STATE.get("spx_cycle_high"),
+            "spx_cycle_high_time": STATE.get("spx_cycle_high_time"),
+            "spx_high_frozen": STATE.get("spx_high_frozen"),
+            "spx_dd_pct": STATE.get("spx_dd_pct"),
+            "spx_dd35": STATE.get("spx_dd35"),
+
+            # -------------------------
+            # Recession confirmation
+            # -------------------------
+            "macro_recession": STATE.get("macro_recession"),
+            "sahm": STATE.get("sahm"),
+
+            # -------------------------
+            # Context
+            # -------------------------
+            "cycle": STATE.get("cycle"),
+            "cycle_120": STATE.get("cycle_120"),
+            "regime": STATE.get("regime"),
+            "_server_ts": STATE.get("_server_ts"),
+        }
+
+    return jsonify(_json_safe(out)), 200
+
 
 @app.route("/node/<int:ref_id>", methods=["GET"])
 def node_debug(ref_id: int):
