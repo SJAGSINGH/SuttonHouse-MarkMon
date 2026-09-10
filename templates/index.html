@@ -6748,9 +6748,7 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
     `ALLOWED: ${data?.s3_allowed === true ? "YES" : "NO"}\n` +
     `ARM EXPIRED: ${data?.s3_arm_expired === true ? "YES" : "NO"}`;
 
-  if (node) {
-    node.title = founderTipOn ? s3Tip : "";
-  }
+ 
 
   // Canonical Pine authority — do not infer S3 state in frontend.
   window.__S3_ARMED = data?.s3_armed === true;
