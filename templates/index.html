@@ -6705,132 +6705,16 @@ Status: ${String(ev?.event_status || "—").toUpperCase()}"
   const mwFill = document.getElementById("mw-fill");
   const mwVal  = document.getElementById("mw-val");
   const mwNote = document.getElementById("mw-note");
-  const mwReadout = document.querySelector("#card-4 .mw-readout");
+
+  // ============================================================
+  // FOUNDER S3 TOOLTIP
+  // Available from the pulse node in ALL economic states.
+  // No visible Card 4 footprint change.
+  // ============================================================
 
   const founderTipOn =
-  founderMode === true || isFounderUnlocked();
+    founderMode === true || isFounderUnlocked();
 
-const s3State =
-  data?.s3_confirmed === true ? "CONFIRMED" :
-  data?.s3_armed === true     ? "ARMED" :
-                                "OFF";
-
-const armAge =
-  Number.isFinite(Number(data?.s3_arm_age_weeks))
-    ? `${Number(data.s3_arm_age_weeks)} / 23 WEEKS`
-    : "—";
-
-const high =
-  Number.isFinite(Number(data?.spx_cycle_high))
-    ? Number(data.spx_cycle_high).toFixed(2)
-    : "—";
-
-const liveDdRaw = Number(data?.spx_dd_pct);
-
-const liveDd =
-  Number.isFinite(liveDdRaw)
-    ? `${Math.abs(liveDdRaw) <= 1
-        ? (Math.abs(liveDdRaw) * 100).toFixed(1)
-        : Math.abs(liveDdRaw).toFixed(1)}%`
-    : "—";
-
-const s3Tip =
-  `S3 STATE: ${s3State}\n` +
-  `LIVE SPX DD: ${liveDd}\n` +
-  `REF PEAK: ${high}\n` +
-  `ARM AGE: ${armAge}\n` +
-  `SAHM: ${Number.isFinite(s) ? s.toFixed(3) : "—"}\n` +
-  `ALLOWED: ${data?.s3_allowed === true ? "YES" : "NO"}\n` +
-  `ARM EXPIRED: ${data?.s3_arm_expired === true ? "YES" : "NO"}`;
-
-if (node) {
-  node.title = founderTipOn ? s3Tip : "";
-}
-  // Reset recession-only UI.
- // Rail and Market Weakness readout should NEVER appear
- // during Expansion or Stalling states.
-
- if (mwWrap) mwWrap.style.display = "none";
-
- if (mwNote) {
-   mwNote.style.display = "none";
-   mwNote.innerText = "";
- }
-
- if (mwFill) {
-   mwFill.style.height = "0%";
- }
-
- if (mwVal) {
-   mwVal.innerText = "";
- }
-
-  window.__S3_ARMED = false;
-
-  if (s < 0.35) {
-    if (v4) v4.innerText = "Economic:EXPANSION";
-    if (c4) c4.className = "card glow-lime";
-    if (node) {
-      node.className = "pulse-node pulse-slow";
-      node.style.background = "var(--lime)";
-      node.style.boxShadow = "0 0 40px var(--lime)";
-    }
-    return;
-  }
-
-  if (s < 0.50) {
-    if (v4) v4.innerText = "Economy:STALLING";
-    if (c4) c4.className = "card glow-warning";
-    if (node) {
-      node.className = "pulse-node pulse-mid";
-      node.style.background = "var(--orange)";
-      node.style.boxShadow = "0 0 40px var(--orange)";
-    }
-    return;
-  }
-
- if (v4) v4.innerText = "Economic:CONTRACTION";
-if (c4) c4.className = "card glow-danger";
-if (node) {
-  node.className = "pulse-node pulse-fast";
-  node.style.background = "var(--red)";
-  node.style.boxShadow = "0 0 60px var(--red)";
-}
-
-// CONTRACTION ONLY: show recession drawdown rail/readout
-if (mwWrap) mwWrap.style.display = "block";
-
-let dd =
-  data.spx_dd_pct ??
-  data.spx_dd ??
-  data.spxDrawdown ??
-  data.dd ??
-  data.drawdown ??
-  null;
-
-  if (typeof dd === "string") dd = Number(dd);
-
-  if (typeof dd !== "number" || !Number.isFinite(dd)) {
-    if (mwVal) mwVal.innerText = "—";
-    if (mwNote) {
-      mwNote.style.display = "none";
-      mwNote.innerText = "";
-    }
-    return;
-  }
-
-  dd = Math.abs(dd);
-  if (dd <= 1) dd *= 100;
-
-  const CAP = 35;
-  const clipped = Math.min(CAP, dd);
-  const pct = Math.round((clipped / CAP) * 100);
-  const achieved = dd >= CAP;
-
-  if (mwFill) mwFill.style.height = pct + "%";
-  if (mwVal) mwVal.innerText = `${dd.toFixed(1)}%`;
-  
-  if (mwReadout) {
   const s3State =
     data?.s3_confirmed === true ? "CONFIRMED" :
     data?.s3_armed === true     ? "ARMED" :
@@ -6846,22 +6730,143 @@ let dd =
       ? Number(data.spx_cycle_high).toFixed(2)
       : "—";
 
-  mwReadout.title =
+  const liveDdRaw = Number(data?.spx_dd_pct);
+
+  const liveDd =
+    Number.isFinite(liveDdRaw)
+      ? `${Math.abs(liveDdRaw) <= 1
+          ? (Math.abs(liveDdRaw) * 100).toFixed(1)
+          : Math.abs(liveDdRaw).toFixed(1)}%`
+      : "—";
+
+  const s3Tip =
     `S3 STATE: ${s3State}\n` +
-    `LIVE SPX DD: ${dd.toFixed(1)}%\n` +
+    `LIVE SPX DD: ${liveDd}\n` +
     `REF PEAK: ${high}\n` +
     `ARM AGE: ${armAge}\n` +
     `SAHM: ${Number.isFinite(s) ? s.toFixed(3) : "—"}\n` +
     `ALLOWED: ${data?.s3_allowed === true ? "YES" : "NO"}\n` +
     `ARM EXPIRED: ${data?.s3_arm_expired === true ? "YES" : "NO"}`;
-}
+
+  if (node) {
+    node.title = founderTipOn ? s3Tip : "";
+  }
+
+  // Canonical Pine authority — do not infer S3 state in frontend.
+  window.__S3_ARMED = data?.s3_armed === true;
+
+  // ============================================================
+  // RESET RECESSION-ONLY UI
+  // Rail/readout remain hidden during Expansion and Stalling.
+  // ============================================================
+
+  if (mwWrap) mwWrap.style.display = "none";
+
+  if (mwNote) {
+    mwNote.style.display = "none";
+    mwNote.innerText = "";
+  }
+
+  if (mwFill) {
+    mwFill.style.height = "0%";
+  }
+
+  if (mwVal) {
+    mwVal.innerText = "";
+  }
+
+  // ============================================================
+  // EXPANSION
+  // ============================================================
+
+  if (s < 0.35) {
+    if (v4) v4.innerText = "Economic:EXPANSION";
+    if (c4) c4.className = "card glow-lime";
+
+    if (node) {
+      node.className = "pulse-node pulse-slow";
+      node.style.background = "var(--lime)";
+      node.style.boxShadow = "0 0 40px var(--lime)";
+    }
+
+    return;
+  }
+
+  // ============================================================
+  // STALLING
+  // ============================================================
+
+  if (s < 0.50) {
+    if (v4) v4.innerText = "Economy:STALLING";
+    if (c4) c4.className = "card glow-warning";
+
+    if (node) {
+      node.className = "pulse-node pulse-mid";
+      node.style.background = "var(--orange)";
+      node.style.boxShadow = "0 0 40px var(--orange)";
+    }
+
+    return;
+  }
+
+  // ============================================================
+  // CONTRACTION
+  // ============================================================
+
+  if (v4) v4.innerText = "Economic:CONTRACTION";
+  if (c4) c4.className = "card glow-danger";
+
+  if (node) {
+    node.className = "pulse-node pulse-fast";
+    node.style.background = "var(--red)";
+    node.style.boxShadow = "0 0 60px var(--red)";
+  }
+
+  // Contraction only: show drawdown rail/readout.
+  if (mwWrap) mwWrap.style.display = "block";
+
+  let dd =
+    data.spx_dd_pct ??
+    data.spx_dd ??
+    data.spxDrawdown ??
+    data.dd ??
+    data.drawdown ??
+    null;
+
+  if (typeof dd === "string") dd = Number(dd);
+
+  if (typeof dd !== "number" || !Number.isFinite(dd)) {
+    if (mwVal) mwVal.innerText = "—";
+
+    if (mwNote) {
+      mwNote.style.display = "none";
+      mwNote.innerText = "";
+    }
+
+    return;
+  }
+
+  dd = Math.abs(dd);
+  if (dd <= 1) dd *= 100;
+
+  // Canonical DD30 threshold.
+  const CAP = 30;
+
+  const clipped = Math.min(CAP, dd);
+  const pct = Math.round((clipped / CAP) * 100);
+  const achieved = dd >= CAP;
+
+  if (mwFill) {
+    mwFill.style.height = pct + "%";
+  }
+
+  if (mwVal) {
+    mwVal.innerText = `${dd.toFixed(1)}%`;
+  }
+
   if (mwNote) {
     mwNote.style.display = achieved ? "block" : "none";
     mwNote.innerText = achieved ? "ACHIEVED" : "";
-  }
-
-  if (achieved) {
-    window.__S3_ARMED = true;
   }
 })();
 
