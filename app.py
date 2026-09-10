@@ -4199,14 +4199,31 @@ def webhook():
                             out["s2_allowed"] = STATE.get("s2_allowed")
                         if STATE.get("s3_watch") is not None:
                             out["s3_watch"] = STATE.get("s3_watch")
+
                         if STATE.get("s3_armed") is not None:
                             out["s3_armed"] = STATE.get("s3_armed")
+
+                        if STATE.get("s3_confirmed") is not None:
+                            out["s3_confirmed"] = STATE.get("s3_confirmed")
+
                         if STATE.get("s3_allowed") is not None:
                             out["s3_allowed"] = STATE.get("s3_allowed")
+
+                        if STATE.get("s3_arm_age_weeks") is not None:
+                            out["s3_arm_age_weeks"] = STATE.get("s3_arm_age_weeks")
+
+                        if STATE.get("s3_arm_expired") is not None:
+                            out["s3_arm_expired"] = STATE.get("s3_arm_expired")
                     else:
                         for k in (
                             "cycle_120", "cycle", "regime", "vol",
-                            "s1_allowed", "s2_allowed", "s3_watch", "s3_armed", "s3_allowed"
+                            "s1_allowed", "s2_allowed",
+                            "s3_watch",
+                            "s3_armed",
+                            "s3_confirmed",
+                            "s3_allowed",
+                            "s3_arm_age_weeks",
+                            "s3_arm_expired",
                         ):
                             out.pop(k, None)
 
