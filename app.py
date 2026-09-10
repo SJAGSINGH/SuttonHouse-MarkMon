@@ -2572,10 +2572,38 @@ def _load_state_from_disk() -> None:
             # Core macro state
             # -----------------------------------------
             if not state_is_stale:
-                for k in ("cycle", "vol", "flow", "count", "sahm", "monitor", "_server_ts"):
-                    if k in cached:
-                        STATE[k] = cached.get(k)
+                for k in (
+                    "cycle",
+                    "vol",
+                    "flow",
+                    "count",
+                    "sahm",
+                    "monitor",
+                    "_server_ts",
 
+                    # Pine macro authority
+                    "macro_recession",
+                    "s1_allowed",
+                    "s2_allowed",
+                    "s3_watch",
+                    "s3_armed",
+                    "s3_confirmed",
+                    "s3_allowed",
+                    "s3_arm_age_weeks",
+                    "s3_arm_expired",
+
+                    # SPX / S3 macro telemetry
+                    "spx_cycle_high",
+                    "spx_cycle_high_time",
+                    "spx_high_frozen",
+                    "spx_dd_pct",
+                    "spx_dd35",
+                    "cycle_120",
+                    "mom",
+                    "regime",
+                ):
+        if k in cached:
+            STATE[k] = cached.get(k)
             # -----------------------------------------
             # Macro V2
             # -----------------------------------------
