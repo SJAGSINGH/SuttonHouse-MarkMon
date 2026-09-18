@@ -2924,9 +2924,19 @@ function getInstitutionalConfirmed(data){
   const x = Number(data?.secret?.vix?.level);
   const y = Number(data?.secret?.gvz?.level);
 
+  // Z — institutional panic-selling contributor.
+  // Read live SCADA_STATUS state from the node store.
+  const scada = window.__SCADA_STORE__ || {};
+
+  const zActive = Object.values(scada).some(msg =>
+    msg?.live_z_D === true ||
+    msg?.live_z_4H === true
+  );
+
   return (
     (Number.isFinite(x) && x <= 4) ||
-    (Number.isFinite(y) && y <= 3)
+    (Number.isFinite(y) && y <= 3) ||
+    zActive
   );
 }
     
