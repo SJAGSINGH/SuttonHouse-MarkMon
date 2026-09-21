@@ -4197,7 +4197,7 @@ def webhook():
                         out.get("live_x_D"),
                         out.get("live_y_D"),
                         out.get("live_z_4H"),
-                )
+                          )
                     if isinstance(xy_overlay, dict):
                         out["xy_h4"] = xy_overlay
 
@@ -4220,8 +4220,7 @@ def webhook():
                                 resolved_lanes,
                             )
 
-
-                               # ----------------------------------------------------
+                # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
                 # ----------------------------------------------------
@@ -4230,54 +4229,45 @@ def webhook():
                     out["setup"] = bool(setup_truth)
 
                     # ------------------------------------------------
-                    # SIGNAL AUTHORITY — RESTORE WORKING CONTRACT
+                    # S2 SIGNAL AUTHORITY — TIMEFRAME BOUND
                     #
-                    # Prefer split production-fire fields when Pine
-                    # actually supplies them.
+                    # A trigger is NOT a signal by itself.
                     #
-                    # Otherwise preserve the established aggregate
-                    # signal/trigger authority already sent by Pine.
+                    # Daily:
+                    #   Daily setup + Daily SMA10 trigger = signal_D
+                    #
+                    # H4:
+                    #   H4 setup + H4 SMA10 trigger = signal_4H
+                    #
+                    # Setup and trigger must belong to the SAME TF.
                     # ------------------------------------------------
-                    incoming_signal = (
-                        _truthy(out.get("signal")) or
-                        _truthy(out.get("signal_any")) or
-                        _truthy(out.get("trigger_any"))
+                    setup_D = _truthy(out.get("setup_D"))
+                    setup_4H = _truthy(out.get("setup_4H"))
+
+                    trigger_D = _truthy(out.get("trigger_sma10x_D"))
+                    trigger_4H = _truthy(out.get("trigger_sma10x_4H"))
+
+                    signal_D = bool(setup_D and trigger_D)
+                    signal_4H = bool(setup_4H and trigger_4H)
+
+                    signal_any = bool(signal_D or signal_4H)
+
+                    # Preserve timeframe provenance.
+                    out["signal_D"] = signal_D
+                    out["signal_4H"] = signal_4H
+
+                    # Overall signal authority.
+                    out["signal_any"] = signal_any
+                    out["signal"] = signal_any
+
+                    # Trigger remains diagnostic only.
+                    out["trigger_any"] = bool(
+                        trigger_D or trigger_4H
                     )
 
-                    fire_keys = (
-                        "mvFire_D",
-                        "mvFire_4H",
-                        "jrFire_D",
-                        "jrFire_4H",
-                    )
-
-                    split_fire_present = any(
-                        key in out
-                        for key in fire_keys
-                    )
-
-                    if split_fire_present:
-                        production_fire = (
-                            _truthy(out.get("mvFire_D")) or
-                            _truthy(out.get("mvFire_4H")) or
-                            _truthy(out.get("jrFire_D")) or
-                            _truthy(out.get("jrFire_4H"))
-                        )
-                    else:
-                        # Backward compatibility with older Pine payloads.
-                        production_fire = incoming_signal
-
-                    # ------------------------------------------------
-                    # ABSOLUTE S2 AUTHORITY
-                    #
-                    # NO SETUP = NO SIGNAL
-                    # ------------------------------------------------
-                    live_signal = bool(setup_truth and production_fire)
-
-                    out["signal"] = live_signal
-                    out["signal_any"] = live_signal
-                    out["trigger_any"] = live_signal
-                  
+                    # Armed means a valid same-timeframe
+                    # setup + trigger combination exists.
+                    out["trigger_armed"] = signal_any
 
                     master_cycle_120 = STATE.get("cycle_120")
                     master_cycle = STATE.get("cycle")
