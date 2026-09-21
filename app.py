@@ -1828,6 +1828,11 @@ def _rebuild_pill_lanes(node):
             "Indicator_X_D": _lane_from_records(daily, "x"),
             "Indicator_Y_D": _lane_from_records(daily, "y"),
             "Indicator_Z_D": _lane_from_records(daily, "z"),
+
+            # Daily local structure is rebuilt from confirmed
+            # Daily PILL_MEMORY records, oldest -> newest.
+            "MSA_D": _lane_from_records(daily, "msa"),
+            "JR_D": _lane_from_records(daily, "jr"),
         },
         "H4": {
             "Indicator_X_4H": h4_x_lane,
@@ -1863,9 +1868,16 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
     h4 = lanes.get("H4") if isinstance(lanes.get("H4"), dict) else {}
 
     lane_map = {
+        # Daily global contributors
         "Indicator_X_D": daily.get("Indicator_X_D"),
         "Indicator_Y_D": daily.get("Indicator_Y_D"),
         "Indicator_Z_D": daily.get("Indicator_Z_D"),
+
+        # Daily local structure
+        "MSA_D": daily.get("MSA_D"),
+        "JR_D": daily.get("JR_D"),
+
+        # H4 global contributors
         "Indicator_X_4H": h4.get("Indicator_X_4H"),
         "Indicator_Y_4H": h4.get("Indicator_Y_4H"),
         "Indicator_Z_4H": h4.get("Indicator_Z_4H"),
