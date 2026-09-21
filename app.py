@@ -4209,13 +4209,14 @@ def webhook():
                             )
 
 
-                # ----------------------------------------------------
+                               # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
                 # ----------------------------------------------------
-               if typ == "SCADA_STATUS":
+                if typ == "SCADA_STATUS":
                     setup_truth = _resolve_scada_setup_from_arr_dump(out)
                     out["setup"] = bool(setup_truth)
+
                     # ------------------------------------------------
                     # SIGNAL AUTHORITY — RESTORE WORKING CONTRACT
                     #
@@ -4230,7 +4231,6 @@ def webhook():
                         _truthy(out.get("signal_any")) or
                         _truthy(out.get("trigger_any"))
                     )
-
                     fire_keys = (
                         "mvFire_D",
                         "mvFire_4H",
