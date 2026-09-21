@@ -1936,7 +1936,7 @@ def _resolve_scada_setup_from_arr_dump(out):
         vals = bits[1:]
 
         if vals:
-            lanes[label] = _truthy(vals[-1])
+            lanes[label] = any(_truthy(v) for v in vals[-8:])
 
     # Daily
     x_d = lanes.get("Indicator_X_D", False)
