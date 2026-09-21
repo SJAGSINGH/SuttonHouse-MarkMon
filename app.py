@@ -4243,6 +4243,7 @@ def webhook():
                         _truthy(out.get("signal_any")) or
                         _truthy(out.get("trigger_any"))
                     )
+
                     fire_keys = (
                         "mvFire_D",
                         "mvFire_4H",
@@ -4256,19 +4257,26 @@ def webhook():
                     )
 
                     if split_fire_present:
-                        live_signal = (
+                        production_fire = (
                             _truthy(out.get("mvFire_D")) or
                             _truthy(out.get("mvFire_4H")) or
                             _truthy(out.get("jrFire_D")) or
                             _truthy(out.get("jrFire_4H"))
                         )
                     else:
-                        # Original working Pine aggregate authority.
-                        live_signal = incoming_signal
+                        # Backward compatibility with older Pine payloads.
+                        production_fire = incoming_signal
 
-                    out["signal"] = bool(live_signal)
-                    out["signal_any"] = bool(live_signal)
-                    out["trigger_any"] = bool(live_signal)
+                    # ------------------------------------------------
+                    # ABSOLUTE S2 AUTHORITY
+                    #
+                    # NO SETUP = NO SIGNAL
+                    # ------------------------------------------------
+                    live_signal = bool(setup_truth and production_fire)
+
+                    out["signal"] = live_signal
+                    out["signal_any"] = live_signal
+                    out["trigger_any"] = live_signal
                   
 
                     master_cycle_120 = STATE.get("cycle_120")
