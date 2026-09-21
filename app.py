@@ -1901,6 +1901,69 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
 
     return "|".join(out_parts)
 
+
+def _resolve_scada_setup_from_arr_dump(out):
+    """
+    Resolve S2 setup from the final authoritative pill matrix.
+
+    S2 setup:
+      (X OR Y OR Z) AND (MSA OR JR)
+
+    The newest/rightmost pill is current truth.
+    """
+
+    dump = str(out.get("arr_dump") or "")
+    lanes = {}
+
+    for part in dump.split("|"):
+        bits = part.split(";")
+        if len(bits) < 2:
+            continue
+
+        label = bits[0].strip()
+        vals = bits[1:]
+
+        if vals:
+            lanes[label] = _truthy(vals[-1])
+
+    # Daily
+    x_d = lanes.get("Indicator_X_D", False)
+    y_d = lanes.get("Indicator_Y_D", False)
+    z_d = lanes.get("Indicator_Z_D", False)
+    msa_d = lanes.get("MSA_D", False)
+    jr_d = lanes.get("JR_D", False)
+
+    # H4
+    x_h4 = lanes.get("Indicator_X_4H", False)
+    y_h4 = lanes.get("Indicator_Y_4H", False)
+    z_h4 = lanes.get("Indicator_Z_4H", False)
+    msa_h4 = lanes.get("MSA_4H", False)
+    jr_h4 = lanes.get("JR_4H", False)
+
+    global_d = x_d or y_d or z_d
+    global_h4 = x_h4 or y_h4 or z_h4
+
+    setup_d = global_d and (msa_d or jr_d)
+    setup_h4 = global_h4 and (msa_h4 or jr_h4)
+
+    # Engine provenance
+    engine_d = "MV" if setup_d and msa_d else ("jR" if setup_d and jr_d else "")
+    engine_h4 = "MV" if setup_h4 and msa_h4 else ("jR" if setup_h4 and jr_h4 else "")
+
+    out["setup_D"] = bool(setup_d)
+    out["setup_4H"] = bool(setup_h4)
+
+    out["pill_setup_D"] = bool(setup_d)
+    out["pill_setup_4H"] = bool(setup_h4)
+
+    out["setup_engine_D"] = engine_d
+    out["setup_engine_4H"] = engine_h4
+
+    out["setup_any"] = bool(setup_d or setup_h4)
+    out["pill_setup_any"] = bool(setup_d or setup_h4)
+
+    return bool(setup_d or setup_h4)
+
 def _canonical_ref_for_ticker(tickerid, ticker, fallback_ref):
     incoming = _clean_msa_symbol(tickerid or ticker)
 
@@ -4145,28 +4208,15 @@ def webhook():
                                 resolved_lanes,
                             )
 
-                # ----------------------------------------------------
-                # SCADA_STATUS setup/signal authority normalisation
-                # SCADA_STATUS only. WATCH stores only.
-                # ----------------------------------------------------
-                if typ == "SCADA_STATUS":
-                    setup_truth = (
-                        _truthy(out.get("setup_any")) or
-                        _truthy(out.get("pill_setup_any"))
-                    )
 
                 # ----------------------------------------------------
                 # SCADA_STATUS setup/signal authority normalisation
                 # SCADA_STATUS only. WATCH stores only.
                 # ----------------------------------------------------
-                if typ == "SCADA_STATUS":
-                    setup_truth = (
-                        _truthy(out.get("setup_any")) or
-                        _truthy(out.get("pill_setup_any"))
-                    )
-
+               if typ == "SCADA_STATUS":
+                    setup_truth = _resolve_scada_setup_from_arr_dump(out)
                     out["setup"] = bool(setup_truth)
-                                       # ------------------------------------------------
+                    # ------------------------------------------------
                     # SIGNAL AUTHORITY — RESTORE WORKING CONTRACT
                     #
                     # Prefer split production-fire fields when Pine
