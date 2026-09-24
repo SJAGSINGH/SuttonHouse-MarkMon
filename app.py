@@ -1635,6 +1635,88 @@ def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if out.get("ticker") is not None:
         out["ticker"] = str(out["ticker"]).strip().upper()
 
+    # ============================================================
+    # S1 MASTER PINE AUTHORITY BRIDGE
+    #
+    # Master Pine owns S1 truth.
+    # Python normalises / transports only.
+    #
+    # IMPORTANT:
+    # - Do NOT derive s1_setup / s1_signal from generic S2 setup.
+    # - Do NOT derive them from trigger_sma10x_D.
+    # - Do NOT reconstruct stage logic here.
+    # ============================================================
+
+    if typ == "SCADA_STATUS":
+
+        # Integer state.
+        if "s1_stage" in out:
+            out["s1_stage"] = _int_or_none(out.get("s1_stage"))
+
+        if "s1_samples" in out:
+            out["s1_samples"] = _int_or_none(out.get("s1_samples"))
+
+        if "s1_samples_target" in out:
+            out["s1_samples_target"] = _int_or_none(
+                out.get("s1_samples_target")
+            )
+
+        if "s1_reset_regime_months" in out:
+            out["s1_reset_regime_months"] = _int_or_none(
+                out.get("s1_reset_regime_months")
+            )
+
+        if "s1_reset_regime_limit_months" in out:
+            out["s1_reset_regime_limit_months"] = _int_or_none(
+                out.get("s1_reset_regime_limit_months")
+            )
+
+        if "s1_capital_authority_pct" in out:
+            out["s1_capital_authority_pct"] = _int_or_none(
+                out.get("s1_capital_authority_pct")
+            )
+
+        # Numeric AOI state.
+        if "s1_aoi_level" in out:
+            out["s1_aoi_level"] = _float_or_none(
+                out.get("s1_aoi_level")
+            )
+
+        # Pine-owned boolean authority.
+        for key in (
+            "s1_enabled",
+            "s1_aoi_frozen",
+            "s1_jr_fire_D",
+            "s1_mv_fire_D",
+            "s1_fire_any_D",
+            "s1_price_at_aoi",
+            "s1_ratio_compression_live",
+            "s1_ratio_compression_seen",
+            "s1_structure_break",
+            "s1_clock140",
+            "s1_reset_regime_active",
+            "s1_reset_regime_resolved",
+            "s1_review_required",
+            "s1_trend_required",
+            "s1_weekly_up",
+            "s1_local_jr_setup_D",
+            "s1_local_mv_setup_D",
+            "s1_local_setup_D",
+            "s1_local_jr_signal_D",
+            "s1_local_mv_signal_D",
+            "s1_local_signal_D",
+            "s1_stage2_setup",
+            "s1_stage2_signal",
+            "s1_stage3_setup",
+            "s1_stage3_signal",
+            "s1_stage4_setup",
+            "s1_stage4_signal",
+            "s1_setup",
+            "s1_signal",
+        ):
+            if key in out:
+                out[key] = bool(_truthy(out.get(key)))
+
     # server timestamp passthrough / stamp
     out["_server_ts"] = int(out.get("_server_ts") or (time.time() * 1000))
 
