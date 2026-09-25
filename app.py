@@ -1269,6 +1269,147 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
                 or ""
             )
         # ============================================================
+        # S1 NODE STATE — MASTER PINE AUTHORITY
+        #
+        # Pine owns all S1 strategy truth.
+        # Python stores / exposes only.
+        # No S1 strategy logic is recreated here.
+        # ============================================================
+        if typ == "SCADA_STATUS":
+            try:
+                rec["s1"] = {
+                    # --------------------------------------------
+                    # Core state
+                    # --------------------------------------------
+                    "enabled": data.get("s1_enabled"),
+                    "stage": data.get("s1_stage"),
+                    "stage_name": data.get("s1_stage_name"),
+
+                    # --------------------------------------------
+                    # AOI construction
+                    # --------------------------------------------
+                    "samples": data.get("s1_samples"),
+                    "samples_target": data.get("s1_samples_target"),
+                    "aoi_frozen": data.get("s1_aoi_frozen"),
+                    "aoi_level": data.get("s1_aoi_level"),
+                    "aoi_created_ts": data.get("s1_aoi_created_ts"),
+
+                    # --------------------------------------------
+                    # Complete RAW Daily fire truth
+                    # --------------------------------------------
+                    "jr_fire_D": data.get("s1_jr_fire_D"),
+                    "mv_fire_D": data.get("s1_mv_fire_D"),
+                    "fire_any_D": data.get("s1_fire_any_D"),
+                    "price_at_aoi": data.get("s1_price_at_aoi"),
+
+                    # --------------------------------------------
+                    # Stage progression
+                    # --------------------------------------------
+                    "ratio_compression_live": data.get(
+                        "s1_ratio_compression_live"
+                    ),
+                    "ratio_compression_seen": data.get(
+                        "s1_ratio_compression_seen"
+                    ),
+                    "ratio_compression_ts": data.get(
+                        "s1_ratio_compression_ts"
+                    ),
+
+                    "structure_break": data.get("s1_structure_break"),
+                    "structure_break_ts": data.get(
+                        "s1_structure_break_ts"
+                    ),
+                    "structure_break_src": data.get(
+                        "s1_structure_break_src"
+                    ),
+
+                    # --------------------------------------------
+                    # Clock 140 / resolution regime
+                    # --------------------------------------------
+                    "clock140": data.get("s1_clock140"),
+                    "reset_regime_active": data.get(
+                        "s1_reset_regime_active"
+                    ),
+                    "reset_regime_start_ts": data.get(
+                        "s1_reset_regime_start_ts"
+                    ),
+                    "reset_regime_months": data.get(
+                        "s1_reset_regime_months"
+                    ),
+                    "reset_regime_limit_months": data.get(
+                        "s1_reset_regime_limit_months"
+                    ),
+                    "reset_regime_resolved": data.get(
+                        "s1_reset_regime_resolved"
+                    ),
+                    "reset_regime_end_ts": data.get(
+                        "s1_reset_regime_end_ts"
+                    ),
+                    "regime_at_140": data.get("s1_regime_at_140"),
+                    "review_required": data.get(
+                        "s1_review_required"
+                    ),
+
+                    # --------------------------------------------
+                    # Capital / operating mode
+                    # --------------------------------------------
+                    "capital_authority_pct": data.get(
+                        "s1_capital_authority_pct"
+                    ),
+                    "setup_mode": data.get("s1_setup_mode"),
+                    "signal_mode": data.get("s1_signal_mode"),
+                    "trend_required": data.get(
+                        "s1_trend_required"
+                    ),
+                    "weekly_up": data.get("s1_weekly_up"),
+
+                    # --------------------------------------------
+                    # Local jR / MV authority
+                    # --------------------------------------------
+                    "local_jr_setup_D": data.get(
+                        "s1_local_jr_setup_D"
+                    ),
+                    "local_mv_setup_D": data.get(
+                        "s1_local_mv_setup_D"
+                    ),
+                    "local_setup_D": data.get(
+                        "s1_local_setup_D"
+                    ),
+
+                    "local_jr_signal_D": data.get(
+                        "s1_local_jr_signal_D"
+                    ),
+                    "local_mv_signal_D": data.get(
+                        "s1_local_mv_signal_D"
+                    ),
+                    "local_signal_D": data.get(
+                        "s1_local_signal_D"
+                    ),
+
+                    # --------------------------------------------
+                    # Stage-specific authority
+                    # --------------------------------------------
+                    "stage2_setup": data.get("s1_stage2_setup"),
+                    "stage2_signal": data.get("s1_stage2_signal"),
+
+                    "stage3_setup": data.get("s1_stage3_setup"),
+                    "stage3_signal": data.get("s1_stage3_signal"),
+
+                    "stage4_setup": data.get("s1_stage4_setup"),
+                    "stage4_signal": data.get("s1_stage4_signal"),
+
+                    # --------------------------------------------
+                    # Final Pine authority
+                    # --------------------------------------------
+                    "setup": data.get("s1_setup"),
+                    "signal": data.get("s1_signal"),
+
+                    "_server_ts": now,
+                }
+
+            except Exception:
+                pass     
+        # ============================================================
         # MSA STORAGE (D + 4H packs)
         # ============================================================
         if typ == "SCADA_STATUS":
