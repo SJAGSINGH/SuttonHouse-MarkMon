@@ -918,6 +918,13 @@ body.secret-mode #val-3{
   font-weight:600;
   text-transform:uppercase;
 }
+
+.strategy-authority-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}  
   #password-modal{
     display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,.95); z-index:10000;
@@ -2397,16 +2404,19 @@ main.grid > #cr-dump-full{
     <div class="strategy-authority" id="strategy-authority">
       <div class="strategy-authority-title">STRATEGY AUTHORITY</div>
 
-      <div class="strategy-authority-boxes">
-        <div class="strategy-authority-box" id="strategy-box-s1">S1</div>
-        <div class="strategy-authority-box" id="strategy-box-s2">S2</div>
-        <div class="strategy-authority-box" id="strategy-box-s3">S3</div>
-        <div class="strategy-authority-box" id="strategy-box-s4">S4</div>
+      <div class="strategy-authority-row">
+        <div class="strategy-authority-boxes">
+          <div class="strategy-authority-box" id="strategy-box-s1">S1</div>
+          <div class="strategy-authority-box" id="strategy-box-s2">S2</div>
+          <div class="strategy-authority-box" id="strategy-box-s3">S3</div>
+          <div class="strategy-authority-box" id="strategy-box-s4">S4</div>
+        </div>
+
+        <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
       </div>
     </div>
 
     <!-- Hidden comms (JS integrity) -->
-
   
     <div id="scada-comms" class="mono scada-comms-hidden">
       <span id="scada-age">AGE: —</span>
@@ -2414,7 +2424,7 @@ main.grid > #cr-dump-full{
       <span id="scada-last">LAST: —</span>
     </div>
 
-    <button id="dbg-toggle" class="dbg-btn">DEBUG</button>
+  
   </div>
 <!-- RIGHT: SCADA Man -->
 <div class="scada-slot">
