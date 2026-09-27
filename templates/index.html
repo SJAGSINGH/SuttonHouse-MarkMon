@@ -227,7 +227,54 @@ body.secret-mode #val-3{
   filter:brightness(1.35);
 }
 
+/* ============================
+   STRATEGY AUTHORITY — HEADER
+============================ */
 
+.strategy-authority{
+  margin-top:5px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+
+.strategy-authority-title{
+  font-size:7px;
+  line-height:1;
+  letter-spacing:1.4px;
+  font-weight:500;
+  color:rgba(255,255,255,0.25);
+  text-transform:uppercase;
+}
+
+.strategy-authority-boxes{
+  display:grid;
+  grid-template-columns:repeat(4, 30px);
+  gap:5px;
+}
+
+.strategy-authority-box{
+  width:30px;
+  height:17px;
+  box-sizing:border-box;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:2px;
+
+  font-size:8px;
+  line-height:1;
+  font-weight:700;
+  letter-spacing:.5px;
+
+  color:rgba(255,255,255,0.35);
+  background:rgba(255,255,255,0.015);
+}
 /* ============================
    SCADA MAN — PNG canonical asset (LOCK v4)
    Original image retained
