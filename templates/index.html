@@ -5723,7 +5723,66 @@ function applyPublicFromState(data){
           }
         }
 
-        if (s3) s3.innerText = `MATURITY: ${pct}%`;
+         if (s3) s3.innerText = `MATURITY: ${pct}%`;
+
+        // ========================================================
+        // CLOCK-GOVERNED STRATEGY AUTHORITY
+        // Uses actual Cycle Clock count — NOT maturity %
+        // ========================================================
+        const clockStrategy =
+          document.getElementById('clock-strategy-status');
+
+        if (clockStrategy) {
+
+          clockStrategy.classList.remove(
+            'clock-active',
+            'clock-caution',
+            'clock-closed'
+          );
+
+          if (count >= 120) {
+
+            clockStrategy.innerText =
+              'S1 · AOI BUILD | S4 · INITIAL HARVEST';
+
+            clockStrategy.classList.add('clock-active');
+
+          } else if (count > 100) {
+
+            clockStrategy.innerText =
+              'NO CLOCK STRATEGY AUTHORISED';
+
+            clockStrategy.classList.add('clock-closed');
+
+          } else if (count >= 76) {
+
+            clockStrategy.innerText =
+              'S2 · PORTFOLIO ACCUMULATION · CAUTION';
+
+            clockStrategy.classList.add('clock-caution');
+
+          } else if (count >= 41) {
+
+            clockStrategy.innerText =
+              'S2 · PORTFOLIO ACCUMULATION · SELECTIVE';
+
+            clockStrategy.classList.add('clock-active');
+
+          } else if (count >= 1) {
+
+            clockStrategy.innerText =
+              'S2 · PORTFOLIO ACCUMULATION · AGGRESSIVE';
+
+            clockStrategy.classList.add('clock-active');
+
+          } else {
+
+            clockStrategy.innerText =
+              'NO CLOCK STRATEGY AUTHORISED';
+
+            clockStrategy.classList.add('clock-closed');
+          }
+        }
 
         const stage = rscClockStage(pct) || 'INITIATING';
         const dir = rscRegimeDirection(data?.regime || data?.card1);
