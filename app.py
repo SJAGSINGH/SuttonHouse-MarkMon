@@ -2087,19 +2087,19 @@ def _patch_arr_dump_h4_xy(arr_dump, lanes):
     if not isinstance(lanes, dict):
         return arr_dump
 
-    daily = lanes.get("D") if isinstance(lanes.get("D"), dict) else {}
+  
     h4 = lanes.get("H4") if isinstance(lanes.get("H4"), dict) else {}
 
     lane_map = {
-        # Daily global contributors
-        "Indicator_X_D": daily.get("Indicator_X_D"),
-        "Indicator_Y_D": daily.get("Indicator_Y_D"),
-        "Indicator_Z_D": daily.get("Indicator_Z_D"),
-
-        # Daily local structure
-        "MSA_D": daily.get("MSA_D"),
-        "JR_D": daily.get("JR_D"),
-
+        
+        # ========================================================
+    # H4 ONLY — CONFIRMED WORKING AUTHORITY
+    # ========================================================
+    # Daily X/Y/Z/MSA/JR are transported directly by Pine
+    # inside arr_dump and MUST pass through unchanged.
+    #
+    # Do not reconstruct or overwrite Daily truth here.
+    # ========================================================
         # H4 global contributors
         "Indicator_X_4H": h4.get("Indicator_X_4H"),
         "Indicator_Y_4H": h4.get("Indicator_Y_4H"),
