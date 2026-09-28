@@ -280,6 +280,16 @@ body.secret-mode #clock-strategy-authority{
   color:rgba(255,255,255,0.35);
   background:rgba(255,255,255,0.015);
 }
+
+/* ACTIVE STRATEGY AUTHORITY */
+.strategy-authority-box.active{
+  color:var(--lime);
+  border-color:var(--lime);
+  background:rgba(50,205,50,0.06);
+  box-shadow:
+    0 0 5px rgba(50,205,50,0.35),
+    inset 0 0 4px rgba(50,205,50,0.08);
+}  
 /* ============================
    SCADA MAN — PNG canonical asset (LOCK v4)
    Original image retained
@@ -6636,11 +6646,30 @@ function applySentinelFromState(data) {
   }
   __lastSentinelMsg = msg;
 }
-   
+function applyStrategyAuthority(data){
+
+  const setAuthority = (id, active) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    el.classList.toggle('active', active === true);
+  };
+
+  setAuthority('strategy-box-s1', data?.s1_allowed === true);
+  setAuthority('strategy-box-s2', data?.s2_allowed === true);
+  setAuthority('strategy-box-s3', data?.s3_allowed === true);
+
+  // S4 not yet commissioned — remain inactive.
+  setAuthority('strategy-box-s4', false);
+}
+    
 function applyAllFromState(data) {
   lastState = data || {};
   window.lastState = lastState;
   window.__LAST = lastState;
+
+   // --- Strategy Authority ---
+  applyStrategyAuthority(data);
 
   // --- WAR badge ---
   const warActive = !!(data && data.secret && data.secret.war && data.secret.war.active);
