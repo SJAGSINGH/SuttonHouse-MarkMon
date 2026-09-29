@@ -1408,7 +1408,102 @@ def _store_node_payload(data: Dict[str, Any]) -> None:
                 }
 
             except Exception:
-                pass     
+                pass
+
+        # ============================================================
+        # S4 NODE STATE — MASTER PINE AUTHORITY
+        #
+        # Pine owns all S4 Harvest truth.
+        # Python stores / exposes only.
+        # No S4 strategy logic is recreated here.
+        # ============================================================
+        if typ == "SCADA_STATUS":
+            try:
+                rec["s4"] = {
+                    # --------------------------------------------
+                    # Clock / Daily authority
+                    # --------------------------------------------
+                    "clock": data.get("s4_clock"),
+                    "daily_tick": data.get("s4_daily_tick"),
+
+                    # --------------------------------------------
+                    # Raw observation authority
+                    # --------------------------------------------
+                    "stock_top_D": data.get("s4_stock_top_D"),
+                    "vix_double_low_D": data.get(
+                        "s4_vix_double_low_D"
+                    ),
+                    "vix_green3_D": data.get(
+                        "s4_vix_green3_D"
+                    ),
+                    "vix_long_D": data.get("s4_vix_long_D"),
+
+                    "jr_raw_D": data.get("s4_jr_raw_D"),
+                    "mv_raw_D": data.get("s4_mv_raw_D"),
+
+                    # --------------------------------------------
+                    # Observation pulses
+                    # --------------------------------------------
+                    "jr": data.get("s4_jr"),
+                    "mv": data.get("s4_mv"),
+                    "observation": data.get("s4_observation"),
+
+                    # --------------------------------------------
+                    # Basket state
+                    # --------------------------------------------
+                    "slot": data.get("s4_slot"),
+                    "basket_count": data.get(
+                        "s4_basket_count"
+                    ),
+                    "basket_required": data.get(
+                        "s4_basket_required"
+                    ),
+                    "avg": data.get("s4_avg"),
+
+                    # --------------------------------------------
+                    # Operational state
+                    # --------------------------------------------
+                    "status": data.get("s4_status"),
+                    "rest_level": data.get("s4_rest_level"),
+                    "open_orders": data.get(
+                        "s4_open_orders"
+                    ),
+
+                    # --------------------------------------------
+                    # Harvest action
+                    # --------------------------------------------
+                    "release": data.get("s4_release"),
+                    "order": data.get("s4_order"),
+                    "last_action": data.get(
+                        "s4_last_action"
+                    ),
+                    "last_action_slot": data.get(
+                        "s4_last_action_slot"
+                    ),
+                    "last_action_level": data.get(
+                        "s4_last_action_level"
+                    ),
+
+                    # --------------------------------------------
+                    # Capital state
+                    # --------------------------------------------
+                    "harvested_pct": data.get(
+                        "s4_harvested_pct"
+                    ),
+                    "resting_pct": data.get(
+                        "s4_resting_pct"
+                    ),
+                    "committed_pct": data.get(
+                        "s4_committed_pct"
+                    ),
+                    "core_pct": data.get("s4_core_pct"),
+
+                    "_server_ts": now,
+                }
+
+            except Exception:
+                pass
+
         # ============================================================
         # MSA STORAGE (D + 4H packs)
         # ============================================================
@@ -1854,6 +1949,56 @@ def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "s1_stage4_signal",
             "s1_setup",
             "s1_signal",
+        ):
+                        if key in out:
+                out[key] = bool(_truthy(out.get(key)))
+
+        # ============================================================
+        # S4 MASTER PINE AUTHORITY BRIDGE
+        #
+        # Master Pine owns S4 truth.
+        # Python normalises / transports only.
+        # ============================================================
+
+        # Integer state.
+        for key in (
+            "s4_clock",
+            "s4_slot",
+            "s4_basket_count",
+            "s4_basket_required",
+            "s4_open_orders",
+            "s4_last_action_slot",
+        ):
+            if key in out:
+                out[key] = _int_or_none(out.get(key))
+
+        # Numeric state.
+        for key in (
+            "s4_avg",
+            "s4_rest_level",
+            "s4_last_action_level",
+            "s4_harvested_pct",
+            "s4_resting_pct",
+            "s4_committed_pct",
+            "s4_core_pct",
+        ):
+            if key in out:
+                out[key] = _float_or_none(out.get(key))
+
+        # Pine-owned boolean state.
+        for key in (
+            "s4_daily_tick",
+            "s4_stock_top_D",
+            "s4_vix_double_low_D",
+            "s4_vix_green3_D",
+            "s4_vix_long_D",
+            "s4_jr_raw_D",
+            "s4_mv_raw_D",
+            "s4_jr",
+            "s4_mv",
+            "s4_observation",
+            "s4_release",
+            "s4_order",
         ):
             if key in out:
                 out[key] = bool(_truthy(out.get(key)))
