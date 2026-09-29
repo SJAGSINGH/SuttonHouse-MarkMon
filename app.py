@@ -4593,7 +4593,16 @@ def webhook():
                                 continue
 
                             node_ticker = str(src.get("ticker") or rec.get("ticker") or "").strip().upper()
+                            # ------------------------------------------------------------
+                            # MESSAGE AUTHORITY GUARD — S2.1 IS OBSERVATION ONLY
+                            #
+                            # S2.1 remains fully visible at node level,
+                            # but has ZERO Global Message System authority.
+                            # ------------------------------------------------------------
+                            node_strategy = str(src.get("strategy") or "").strip().upper()
 
+                            if node_strategy == "S2.1":
+                                continue
                             # ------------------------------------------------------------
                             # SETUP AUTHORITY — setup must exist before signal can exist.
                             #
