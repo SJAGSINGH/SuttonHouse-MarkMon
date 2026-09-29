@@ -4271,12 +4271,44 @@ function openRailForSlot(slot){
   set("cr-lasttx",   msg?.last_scada_tx_date || sc?.last_scada_tx_date || "—");
   set("cr-lasttf",   msg?.last_scada_tf || sc?.last_scada_tf || "—");
   set("cr-lasttype", "SCADA_STATUS");
-  const setupActive  = !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
-  const signalActive = !!msg?.signal;
+  // ============================================================
+  // COMMISSION RAIL — STRATEGY-SPECIFIC TRUTH
+  // Diagnostic display only. Pine remains authority.
+  // ============================================================
+  let setupActive =
+    !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
 
+  let signalActive =
+    msg?.signal === true;
+
+  let strategyTruth = "S2";
+
+  if (msg?.s4_allowed === true) {
+    strategyTruth = "S4";
+    setupActive = msg?.s4_observation === true;
+    signalActive =
+      msg?.s4_release === true ||
+      msg?.s4_order === true;
+  }
+  else if (msg?.s3_allowed === true) {
+    strategyTruth = "S3";
+    setupActive = msg?.s3_global_xy === true;
+    signalActive = msg?.s3_signal === true;
+  }
+  else if (msg?.s1_allowed === true) {
+    strategyTruth = "S1";
+    setupActive = msg?.s1_setup === true;
+    signalActive = msg?.s1_signal === true;
+  }
+
+  set("cr-setup", setupActive);
   set("cr-signal", signalActive);
 
-  const contributorLabel = resolveSetupContributorLabel(msg);
+  const contributorLabel =
+    strategyTruth === "S2"
+      ? resolveSetupContributorLabel(msg)
+      : strategyTruth;
+
   set("cr-engine", contributorLabel);
 
   // dump summary
@@ -4914,8 +4946,13 @@ function applyScadaStatus(msg){
   let sig   = s2Signal;
 
   if (msg.s4_allowed === true) {
-    setup = msg.s4_setup === true;
-    sig   = msg.s4_signal === true;
+    // S4 Pine truth:
+    // observation = developing harvest setup
+    // release/order = completed harvest action
+    setup = msg.s4_observation === true;
+    sig =
+      msg.s4_release === true ||
+      msg.s4_order === true;
   }
   else if (msg.s3_allowed === true) {
     setup = msg.s3_global_xy === true;
