@@ -6728,7 +6728,7 @@ function applyStrategyAuthority(data){
   setAuthority('strategy-box-s1', data?.s1_allowed === true);
   setAuthority('strategy-box-s2', data?.s2_allowed === true);
   setAuthority('strategy-box-s3', data?.s3_allowed === true);
-  setAuthority('strategy-box-s4', data?.s4_allowed === true);
+  setAuthority('strategy-box-s4',Number(data?.s4_clock) >= 120);
 }
     
 function applyAllFromState(data) {
