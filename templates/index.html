@@ -6658,9 +6658,7 @@ function applyStrategyAuthority(data){
   setAuthority('strategy-box-s1', data?.s1_allowed === true);
   setAuthority('strategy-box-s2', data?.s2_allowed === true);
   setAuthority('strategy-box-s3', data?.s3_allowed === true);
-
-  // S4 not yet commissioned — remain inactive.
-  setAuthority('strategy-box-s4', false);
+  setAuthority('strategy-box-s4', data?.s4_allowed === true);
 }
     
 function applyAllFromState(data) {
