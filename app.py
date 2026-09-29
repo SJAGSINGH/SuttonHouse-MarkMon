@@ -1950,7 +1950,7 @@ def _handle_stock_payload(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "s1_setup",
             "s1_signal",
         ):
-                        if key in out:
+            if key in out:
                 out[key] = bool(_truthy(out.get(key)))
 
         # ============================================================
