@@ -2878,7 +2878,7 @@ main.grid > #cr-dump-full{
   </div>
 </div>
 
-   
+
     
  <div id="password-modal">
     <div class="modal-content">
@@ -2906,8 +2906,8 @@ main.grid > #cr-dump-full{
   <div class="cr-box"><div class="k">MSA</div><div id="cr-msa" class="v">—</div></div>
   <div class="cr-box"><div class="k">STRATEGY</div><div id="cr-strategy" class="v">—</div></div>
   <div class="cr-box"><div class="k">CONTRIBUTOR</div><div id="cr-engine" class="v">—</div></div>
+  <div class="cr-box"><div class="k">STRATEGY SIGNAL</div><div id="cr-strategy-signal" class="v">—</div></div>
   <div class="cr-box"><div class="k">SETUP</div><div id="cr-setup" class="v" data-tip="setup">—</div></div>
-  <div class="cr-box"><div class="k">SIGNAL</div><div id="cr-signal" class="v" data-tip="signal">—</div></div>
 
   <div class="cr-box"><div class="k">LAST SCADA TX</div><div id="cr-lasttx" class="v">—</div></div>
   <div class="cr-box"><div class="k">SCADA TF</div><div id="cr-lasttf" class="v">—</div></div>
@@ -4271,47 +4271,61 @@ function openRailForSlot(slot){
   set("cr-lasttx",   msg?.last_scada_tx_date || sc?.last_scada_tx_date || "—");
   set("cr-lasttf",   msg?.last_scada_tf || sc?.last_scada_tf || "—");
   set("cr-lasttype", "SCADA_STATUS");
-  // ============================================================
-  // COMMISSION RAIL — STRATEGY-SPECIFIC TRUTH
-  // Diagnostic display only. Pine remains authority.
-  // ============================================================
-  let setupActive =
-    !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
+// ============================================================
+// COMMISSION RAIL — STRATEGY-SPECIFIC TRUTH
+// Diagnostic display only. Pine remains authority.
+// ============================================================
+let setupActive =
+  !!(msg?.setup_any || msg?.setup_D || msg?.setup_4H);
 
-  let signalActive =
-    msg?.signal === true;
+let signalActive =
+  msg?.signal === true;
 
-  let strategyTruth = "S2";
+let strategyTruth = "S2";
 
-  if (msg?.s4_allowed === true) {
-    strategyTruth = "S4";
-    setupActive = msg?.s4_observation === true;
-    signalActive =
-      msg?.s4_release === true ||
-      msg?.s4_order === true;
-  }
-  else if (msg?.s3_allowed === true) {
-    strategyTruth = "S3";
-    setupActive = msg?.s3_global_xy === true;
-    signalActive = msg?.s3_signal === true;
-  }
-  else if (msg?.s1_allowed === true) {
-    strategyTruth = "S1";
-    setupActive = msg?.s1_setup === true;
-    signalActive = msg?.s1_signal === true;
-  }
+if (Number(msg?.s4_clock) >= 120) {
+  strategyTruth = "S4";
+  setupActive = msg?.s4_observation === true;
+  signalActive =
+    msg?.s4_release === true ||
+    msg?.s4_order === true;
+}
+else if (msg?.s3_allowed === true) {
+  strategyTruth = "S3";
+  setupActive = msg?.s3_global_xy === true;
+  signalActive = msg?.s3_signal === true;
+}
+else if (msg?.s1_allowed === true) {
+  strategyTruth = "S1";
+  setupActive = msg?.s1_setup === true;
+  signalActive = msg?.s1_signal === true;
+}
 
-  set("cr-setup", setupActive);
-  set("cr-signal", signalActive);
+set("cr-setup", setupActive);
+set("cr-signal", signalActive);
 
-  const contributorLabel =
-    strategyTruth === "S2"
-      ? resolveSetupContributorLabel(msg)
-      : strategyTruth;
+const contributorLabel =
+  strategyTruth === "S2"
+    ? resolveSetupContributorLabel(msg)
+    : strategyTruth;
 
-  set("cr-engine", contributorLabel);
+set("cr-engine", contributorLabel);
 
-  // dump summary
+// Human-readable commissioning output.
+let strategySignal = "—";
+
+if (signalActive) {
+  strategySignal =
+    `${strategyTruth} · ${contributorLabel} · SIGNAL`;
+}
+else if (setupActive) {
+  strategySignal =
+    `${strategyTruth} · ${contributorLabel} · SETUP`;
+}
+
+set("cr-strategy-signal", strategySignal);
+
+// dump summary
   set("cr-dump", dump ? summariseDump(dump) : "—");
   const dumpEl = document.getElementById("cr-dump");
   if (dumpEl) dumpEl.dataset.rawDump = dump || "";
