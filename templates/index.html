@@ -4890,15 +4890,48 @@ function applyScadaStatus(msg){
       )
     );
 
-  // Orange = technical setup on either timeframe.
-  const setup =
+  // ============================================================
+  // S2 NODE TRUTH
+  // Existing governed Daily / H4 path.
+  // ============================================================
+  const s2Setup =
     setupD || setupH4;
 
-  // Lime = permitted signal on the same timeframe.
-  const sig =
+  const s2Signal =
     (setupD && signalD) ||
     (setupH4 && signalH4);
 
+  // ============================================================
+  // STRATEGY-SPECIFIC NODE TRUTH
+  //
+  // Pine owns strategy truth.
+  // UI selects only — it does NOT recreate strategy logic.
+  //
+  // Priority follows active strategy authority:
+  // S4 -> S3 -> S1 -> S2
+  // ============================================================
+  let setup = s2Setup;
+  let sig   = s2Signal;
+
+  if (msg.s4_allowed === true) {
+    setup = msg.s4_setup === true;
+    sig   = msg.s4_signal === true;
+  }
+  else if (msg.s3_allowed === true) {
+    setup = msg.s3_global_xy === true;
+    sig   = msg.s3_signal === true;
+  }
+  else if (msg.s1_allowed === true) {
+    setup = msg.s1_setup === true;
+    sig   = msg.s1_signal === true;
+  }
+
+  // ============================================================
+  // NODE VISUAL GRAMMAR
+  // Dark   = no setup / signal
+  // Orange = strategy setup
+  // Lime   = strategy signal
+  // ============================================================
   let glow = "grey";
 
   if (sig) {
