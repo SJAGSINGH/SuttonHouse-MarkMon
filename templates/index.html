@@ -1230,28 +1230,49 @@ body.secret-mode #clock-strategy-authority{
   overflow:hidden;
 }
 
+/* ============================================================
+   CARD 1 — FINAL POSITIONING
+   A = supporting context directly below Structure State
+   B = Structure Awareness diagnostic upper-right
+   ============================================================ */
+
+#card-1{
+  position:relative;
+  overflow:hidden;
+}
+
+/* Main supporting context stays in normal left-hand flow */
 #card-1 #macro-v2-card1{
+  display:block;
   margin-top:10px;
-  display:grid;
-  grid-template-columns:minmax(0, 1fr) 122px;
-  gap:14px;
-  align-items:center;
+  padding-right:145px;
 }
 
 .card1-support-lines{
-  min-width:0;
   display:flex;
   flex-direction:column;
-  gap:5px;
+  gap:6px;
+
+  padding:0;
+  margin:0;
 }
 
+/* Structure Awareness sits independently in upper-right */
 .structure-awareness{
-  width:122px;
+  position:absolute;
+
+  right:34px;
+  top:58px;
+
+  width:116px;
+
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-start;
+
   gap:5px;
+  margin:0;
 }
 
 .structure-awareness-title{
@@ -5933,7 +5954,7 @@ function applyPublicFromState(data){
 
     const macroV2Card1 = document.getElementById('macro-v2-card1');
     if (macroV2Card1) {
-      macroV2Card1.style.display = secretMode ? 'none' : 'grid';
+      macroV2Card1.style.display = secretMode ? 'none' : 'block';
     }
 
     if (v1){
