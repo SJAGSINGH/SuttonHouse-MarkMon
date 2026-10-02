@@ -1222,7 +1222,125 @@ body.secret-mode #clock-strategy-authority{
 .macro-v2-warn{ color: var(--orange); }
 .macro-v2-bad{  color: var(--red); }
 .macro-v2-neutral{ color: rgba(255,255,255,0.60); }
- 
+ /* ============================================================
+   CARD 1 — STRUCTURE AWARENESS
+   ============================================================ */
+
+#card-1{
+  overflow:hidden;
+}
+
+#card-1 #macro-v2-card1{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 122px;
+  gap:14px;
+  align-items:center;
+}
+
+.card1-support-lines{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.structure-awareness{
+  width:122px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+
+.structure-awareness-title{
+  font-size:7px;
+  line-height:1;
+  letter-spacing:1.4px;
+  font-weight:600;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.34);
+  white-space:nowrap;
+}
+
+.structure-tile-shell{
+  width:116px;
+  height:94px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+
+  border-radius:8px;
+  background:rgba(0,0,0,0.18);
+
+  transition:
+    filter .35s ease,
+    opacity .35s ease;
+}
+
+#structure-tile-img{
+  display:none;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  border-radius:8px;
+}
+
+/* Neutral / no structural boundary currently active */
+.structure-tile-idle{
+  display:flex;
+  width:100%;
+  height:100%;
+  align-items:center;
+  justify-content:center;
+
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:8px;
+
+  color:rgba(255,255,255,0.30);
+  font-size:8px;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+}
+
+/* Active continuation halo */
+.structure-tile-shell.structure-continuation{
+  filter:
+    drop-shadow(0 0 6px rgba(50,205,50,.55))
+    drop-shadow(0 0 14px rgba(50,205,50,.24));
+}
+
+/* Active correction halo */
+.structure-tile-shell.structure-correction{
+  filter:
+    drop-shadow(0 0 6px rgba(255,68,68,.58))
+    drop-shadow(0 0 14px rgba(255,68,68,.25));
+}
+
+.structure-boundary-text{
+  width:122px;
+  min-height:18px;
+
+  font-size:7px;
+  line-height:1.25;
+  letter-spacing:1px;
+  font-weight:600;
+
+  text-align:center;
+  text-transform:uppercase;
+
+  color:rgba(255,255,255,0.42);
+}
+
+.structure-boundary-text.continuation{
+  color:var(--lime);
+}
+
+.structure-boundary-text.correction{
+  color:var(--red);
+}
 /* ============================
    SENTINEL STRIP
 ============================ */
@@ -2779,18 +2897,74 @@ main.grid > #cr-dump-full{
 </div>
  
   <main class="grid">
-   <div class="card" id="card-1">
-    <h3 id="h3-1">Regime &amp; Volatility</h3>
-    <div class="primary-text" id="val-1">AWAITING</div>
-    <div class="secondary-text" id="sub-1"></div>
+<div class="card" id="card-1">
 
-   <div class="macro-v2-lines" id="macro-v2-card1">
-     <div class="macro-v2-line macro-v2-neutral" id="c1-liquidity">LIQUIDITY: —</div>
-     <div class="macro-v2-line macro-v2-neutral" id="c1-internal">INTERNAL: —</div>
-     <div class="macro-v2-line macro-v2-neutral" id="c1-fx">FX: —</div>
-   </div>
+  <h3 id="h3-1">Regime &amp; Structure</h3>
+
+  <div class="primary-text" id="val-1">
+    AWAITING
+  </div>
+
+  <div class="secondary-text" id="sub-1">
+    STRUCTURE STATE: —
+  </div>
+
+  <div class="macro-v2-lines" id="macro-v2-card1">
+
+    <!-- SUPPORTING MACRO CONTEXT -->
+    <div class="card1-support-lines">
+
+      <div
+        class="macro-v2-line macro-v2-neutral"
+        id="c1-liquidity">
+        LIQUIDITY: —
+      </div>
+
+      <div
+        class="macro-v2-line macro-v2-neutral"
+        id="c1-fx">
+        FX: —
+      </div>
+
+    </div>
+
+    <!-- STRUCTURE AWARENESS -->
+    <div class="structure-awareness" id="structure-awareness">
+
+      <div class="structure-awareness-title">
+        STRUCTURE AWARENESS
+      </div>
+
+      <div
+        class="structure-tile-shell"
+        id="structure-tile-shell">
+
+        <img
+          id="structure-tile-img"
+          src=""
+          alt="Structure Awareness"
+        />
+
+        <div
+          class="structure-tile-idle"
+          id="structure-tile-idle">
+          IN RANGE
+        </div>
+
+      </div>
+
+      <div
+        class="structure-boundary-text"
+        id="structure-boundary-text">
+        IN RANGE
+      </div>
+
+    </div>
+
+  </div>
 
   <div id="gauge-1" style="display:none;"></div>
+
 </div>
 
     <div class="card" id="card-2">
@@ -5758,7 +5932,9 @@ function applyPublicFromState(data){
     const dir = rscRegimeDirection(data?.regime || data?.card1);
 
     const macroV2Card1 = document.getElementById('macro-v2-card1');
-    if (macroV2Card1) macroV2Card1.style.display = 'flex';
+    if (macroV2Card1) {
+      macroV2Card1.style.display = secretMode ? 'none' : 'grid';
+    }
 
     if (v1){
       if (!regimeRaw){
@@ -5780,94 +5956,249 @@ function applyPublicFromState(data){
       else c1.classList.add('halo-bg-silver');
     }
 
-    const vol = String(data?.vol || '').toUpperCase();
-    const walclState = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
+    // ============================================================
+    // CARD 1 — STRUCTURE AWARENESS + LIQUIDITY + GBP/CAD
+    // ============================================================
 
+    const structureState =
+      String(data?.macro_v2?.structure?.state || '').toUpperCase();
+
+    const structureBoundaryRaw =
+      String(data?.macro_v2?.structure?.boundary || '').toUpperCase();
+
+    const structurePosition =
+      Number(data?.macro_v2?.structure?.position);
+
+    // ------------------------------------------------------------
+    // STRUCTURE STATE TEXT
+    // ------------------------------------------------------------
     if (s1){
-      if (!vol){
-        s1.innerText = '';
-        s1.style.color = 'var(--text)';
-      } else {
-        s1.innerText = `VOLATILITY: ${vol}`;
+      s1.innerText =
+        `STRUCTURE STATE: ${structureState || '—'}`;
 
-        let color = 'var(--text)';
-
-        if (vol === 'COMPRESSION'){
-          color = 'var(--amber)';
-        }
-        else if (vol === 'STABLE'){
-          color = 'var(--lime)';
-        }
-        else if (vol === 'EXPANSION'){
-          color = '#8a8f98';
-        }
-
-        if (walclState === 'CONTRACTING' && vol === 'STABLE'){
-          color = '#c7a96b';
-        }
-        else if (walclState === 'EXPANDING' && vol === 'STABLE'){
-          color = 'var(--lime)';
-        }
-
-        s1.style.color = color;
-      }
+      s1.style.color =
+        structureState === 'COMPRESSION'
+          ? 'var(--orange)'
+        : structureState === 'EXPANSION'
+          ? 'var(--lime)'
+        : structureState === 'STABLE'
+          ? 'rgba(255,255,255,0.60)'
+        : 'var(--text)';
     }
 
-    // ============================
-    // CARD 1 — MACRO V2 INLINE LINES + TOOLTIPS
-    // (DISABLED IN SECRET MODE)
-    // ============================
+    // ------------------------------------------------------------
+    // PUBLIC CARD 1 CONTEXT
+    // ------------------------------------------------------------
     if (!secretMode){
-      const walclState2     = String(data?.macro_v2?.walcl?.state || '').toUpperCase();
-      const internalState2  = String(data?.macro_v2?.internal?.state || '').toUpperCase();
-      const fxContext2      = String(data?.macro_v2?.fx?.context || '').toUpperCase();
 
-      const walclExplain    = String(data?.macro_v2?.walcl?.explain || '');
-      const internalExplain = String(data?.macro_v2?.internal?.explain || '');
-      const fxExplain       = String(data?.macro_v2?.fx?.explain || '');
+      const walclState =
+        String(data?.macro_v2?.walcl?.state || '').toUpperCase();
 
-      const liqEl = document.getElementById('c1-liquidity');
-      const intEl = document.getElementById('c1-internal');
-      const fxEl  = document.getElementById('c1-fx');
+      const walclExplain =
+        String(data?.macro_v2?.walcl?.explain || '');
 
+      const fxState =
+        String(data?.macro_v2?.fx?.gbpcad?.state || '').toUpperCase();
+
+      const fxExplain =
+        String(data?.macro_v2?.fx?.gbpcad?.explain || '');
+
+      const liqEl =
+        document.getElementById('c1-liquidity');
+
+      const fxEl =
+        document.getElementById('c1-fx');
+
+      // ----------------------------------------------------------
+      // LIQUIDITY
+      // ----------------------------------------------------------
       if (liqEl){
-        liqEl.textContent = `LIQUIDITY: ${walclState2 || '—'}`;
+        liqEl.textContent =
+          `LIQUIDITY: ${walclState || '—'}`;
+
         liqEl.style.color =
-          walclState2 === 'EXPANDING'   ? 'var(--lime)' :
-          walclState2 === 'STABILISING' ? 'var(--orange)' :
-          walclState2 === 'CONTRACTING' ? 'var(--red)' :
-                                          'rgba(255,255,255,0.60)';
+          walclState === 'EXPANDING'
+            ? 'var(--lime)'
+          : walclState === 'STABILISING'
+            ? 'var(--orange)'
+          : walclState === 'CONTRACTING'
+            ? 'var(--red)'
+          : 'rgba(255,255,255,0.60)';
+
         setTooltip(
           liqEl,
-          walclExplain || 'Liquidity regime derived from central bank balance sheet behaviour.'
+          walclExplain ||
+          'Monthly WALCL structure.'
         );
       }
 
-      if (intEl){
-        intEl.textContent = `INTERNAL: ${internalState2 || '—'}`;
-        intEl.style.color =
-          internalState2 === 'GOLD ALIGNMENT'   ? 'var(--lime)' :
-          internalState2 === 'TRANSITIONAL'     ? 'var(--orange)' :
-          internalState2 === 'GROWTH ALIGNMENT' ? 'var(--red)' :
-                                                  'rgba(255,255,255,0.60)';
-        setTooltip(
-          intEl,
-          internalExplain || 'Internal commodity alignment (Gold vs Silver / Copper structure).'
-        );
-      }
-
+      // ----------------------------------------------------------
+      // GBP/CAD
+      // ----------------------------------------------------------
       if (fxEl){
-        fxEl.textContent = `FX: ${fxContext2 || '—'}`;
+
+        const fxDisplay =
+          fxState
+            ? fxState.replaceAll('_', ' ')
+            : '—';
+
+        fxEl.textContent =
+          `FX: ${fxDisplay}`;
+
         fxEl.style.color =
-          fxContext2 === 'TAILWIND' ? 'var(--lime)' :
-          fxContext2 === 'HEADWIND' ? 'var(--red)' :
-                                      'rgba(255,255,255,0.60)';
+          fxState === 'GBP_STRENGTH'
+            ? 'var(--lime)'
+          : (
+              fxState === 'CAD_STRENGTH' ||
+              fxState === 'GBP_WEAKNESS' ||
+              fxState === 'GBP_WEAK'
+            )
+            ? 'var(--red)'
+          : 'rgba(255,255,255,0.60)';
+
         setTooltip(
           fxEl,
-          fxExplain || 'Currency pressure on commodity exposure (GBP vs CAD/AUD).'
+          fxExplain ||
+          'Monthly GBP/CAD structural currency context.'
         );
       }
-    }
+
+      // ----------------------------------------------------------
+      // STRUCTURE AWARENESS TILE
+      //
+      // HUMAN VISUAL STANDARD:
+      // continuation = from below
+      // correction   = from above
+      //
+      // Regime determines frame:
+      // REAL = gold
+      // FIN  = blue steel
+      // ----------------------------------------------------------
+
+      const tileShell =
+        document.getElementById('structure-tile-shell');
+
+      const tileImg =
+        document.getElementById('structure-tile-img');
+
+      const tileIdle =
+        document.getElementById('structure-tile-idle');
+
+      const boundaryText =
+        document.getElementById('structure-boundary-text');
+
+      const isContinuation =
+        structureBoundaryRaw.includes('CONTINUATION');
+
+      const isCorrection =
+        structureBoundaryRaw.includes('CORRECTION');
+
+      if (tileShell){
+        tileShell.classList.remove(
+          'structure-continuation',
+          'structure-correction'
+        );
+      }
+
+      if (boundaryText){
+        boundaryText.classList.remove(
+          'continuation',
+          'correction'
+        );
+      }
+
+      if (isContinuation || isCorrection){
+
+        const regimeFile =
+          dir === 'FIN'
+            ? 'fin'
+            : 'real';
+
+        const structureFile =
+          isContinuation
+            ? 'continuation'
+            : 'correction';
+
+        if (tileImg){
+          tileImg.src =
+            `/static/structure_${regimeFile}_${structureFile}.png`;
+
+          tileImg.style.display = 'block';
+        }
+
+        if (tileIdle){
+          tileIdle.style.display = 'none';
+        }
+
+        if (isContinuation){
+
+          if (tileShell){
+            tileShell.classList.add(
+              'structure-continuation'
+            );
+          }
+
+          if (boundaryText){
+            boundaryText.textContent =
+              'LOWER STRUCTURE · CONTINUATION';
+
+            boundaryText.classList.add(
+              'continuation'
+            );
+          }
+
+        } else {
+
+          if (tileShell){
+            tileShell.classList.add(
+              'structure-correction'
+            );
+          }
+
+          if (boundaryText){
+            boundaryText.textContent =
+              'UPPER STRUCTURE · CORRECTION';
+
+            boundaryText.classList.add(
+              'correction'
+            );
+          }
+        }
+
+      } else {
+
+        if (tileImg){
+          tileImg.style.display = 'none';
+          tileImg.removeAttribute('src');
+        }
+
+        if (tileIdle){
+          tileIdle.style.display = 'flex';
+          tileIdle.textContent = 'IN RANGE';
+        }
+
+        if (boundaryText){
+          boundaryText.textContent = 'IN RANGE';
+        }
+      }
+
+      // Preserve raw Pine structure information as tooltip detail.
+      const awarenessEl =
+        document.getElementById('structure-awareness');
+
+      if (awarenessEl){
+
+        const positionText =
+          Number.isFinite(structurePosition)
+            ? `${structurePosition.toFixed(2)}%`
+            : '—';
+
+        setTooltip(
+          awarenessEl,
+          `Gold/WIL Structure • ${structureBoundaryRaw || 'IN RANGE'} • MSA ${positionText}`
+        );
+      }
+    }  
   }
 
   // ============================================================
