@@ -105,7 +105,8 @@ STATE: Dict[str, Any] = {
         "source": "system"
     },
     # ============================================================
-    # MACRO V2 — EXTENDED LAYER (NON-DESTRUCTIVE TO V1)
+    # MACRO V2 — CARD 1 CONTEXT LAYER
+    # Pine owns sensor truth. Python stores / exposes only.
     # ============================================================
     "macro_v2": {
         # ------------------------
@@ -131,47 +132,57 @@ STATE: Dict[str, Any] = {
         },
 
         # ------------------------
-        # Liquidity (WALCL)
+        # Gold/WIL Structure Awareness
+        # ------------------------
+        "structure": {
+            "state": None,       # STABLE / COMPRESSION / EXPANSION
+            "boundary": None,    # regime-relative structural boundary
+            "position": None,    # confirmed Weekly Ratio MSA
+            "age_weeks": None,
+        },
+
+        # ------------------------
+        # Liquidity — WALCL
         # ------------------------
         "walcl": {
-            "state": None,
-            "trend": None,
-            "roc": None,
+            "state": None,       # EXPANDING / CONTRACTING / STABILISING
+            "trend": None,       # RISING / FALLING / FLAT
+            "close": None,
+            "sma50": None,
+            "above_sma50": None,
+            "below_sma50": None,
+            "sma50_rising": None,
+            "sma50_falling": None,
+            "sma_length": None,
+            "slope_lookback": None,
             "explain": None,
         },
 
         # ------------------------
-        # FX Context (GBP lens only)
+        # FX — GBP/CAD only
         # ------------------------
         "fx": {
             "gbpcad": {
                 "state": None,
-                "trend_50sma": None,
-                "msa_pct": None,
+                "trend": None,
+                "close": None,
+                "sma50": None,
+                "above_sma50": None,
+                "below_sma50": None,
+                "sma50_rising": None,
+                "sma50_falling": None,
+                "sma_length": None,
+                "slope_lookback": None,
+                "explain": None,
             },
-            "gbpaud": {
-                "state": None,
-                "trend_50sma": None,
-                "msa_pct": None,
-            },
-            # derived layer
-            "context": None,  # TAILWIND / HEADWIND / NEUTRAL
         },
 
         # ------------------------
-        # Combined Commodity Internal State
-        # ------------------------
-        "internal": {
-            "state": None,     # GOLD ALIGNMENT / GROWTH ALIGNMENT / TRANSITIONAL
-            "explain": None,
-        },
-
-        # ------------------------
-        # Cycle Phase (derived from 0–120 clock)
+        # Cycle Phase
         # ------------------------
         "phase": {
             "id": None,
-            "name": None,   # ACCUMULATION / EXPANSION / MATURATION / DISTRIBUTION
+            "name": None,
         },
     },
 
@@ -3053,6 +3064,11 @@ def _load_state_from_disk() -> None:
             if not state_is_stale and isinstance(cached.get("macro_v2"), dict):
                 STATE["macro_v2"] = cached.get("macro_v2")
 
+                # Remove retired Card 1 fields and restore current schema.
+                try:
+                    _apply_macro_v2_normalisation()
+                except Exception:
+                    pass
             # -----------------------------------------
             # Card 2
             # -----------------------------------------
@@ -3187,30 +3203,46 @@ def _bootstrap_sentinel_logging_memory_from_state():
 
 def _apply_macro_v2_normalisation() -> None:
     """
-    Derives combined Macro V2 state from raw V2 lanes.
-    Does NOT overwrite Macro V1 core fields.
+    Maintain the current Card 1 Macro V2 schema.
+    Pine owns Structure / WALCL / GBP-CAD truth.
+    Python stores / exposes only.
     """
     mv2 = STATE.setdefault("macro_v2", {})
 
-    gc = mv2.setdefault("gc", {})
-    gs = mv2.setdefault("gs", {})
+    mv2.setdefault("gc", {})
+    mv2.setdefault("gs", {})
+
+    structure = mv2.setdefault("structure", {})
+    for key in ("state", "boundary", "position", "age_weeks"):
+        structure.setdefault(key, None)
+
     walcl = mv2.setdefault("walcl", {})
-    fx = mv2.setdefault("fx", {"gbpcad": {}, "gbpaud": {}, "context": None})
-    internal = mv2.setdefault("internal", {"state": None, "explain": None})
+    for key in (
+        "state", "trend", "close", "sma50",
+        "above_sma50", "below_sma50",
+        "sma50_rising", "sma50_falling",
+        "sma_length", "slope_lookback", "explain",
+    ):
+        walcl.setdefault(key, None)
 
-    # Phase from cycle (0..120 canonical)
-    phase = _phase_from_cycle(_safe_int(STATE.get("cycle")))
-    mv2["phase"] = phase
+    fx = mv2.setdefault("fx", {})
+    gbpcad = fx.setdefault("gbpcad", {})
+    for key in (
+        "state", "trend", "close", "sma50",
+        "above_sma50", "below_sma50",
+        "sma50_rising", "sma50_falling",
+        "sma_length", "slope_lookback", "explain",
+    ):
+        gbpcad.setdefault(key, None)
 
-    # Combined commodity internal state
-    internal_state = _derive_internal_state(gc.get("state"), gs.get("state"))
-    mv2["internal"] = internal_state
+    # Retired V1 Card 1 fields must not return from warm-start cache.
+    mv2.pop("internal", None)
+    walcl.pop("roc", None)
+    fx.pop("gbpaud", None)
+    fx.pop("context", None)
 
-    # FX context
-    fx["context"] = _derive_fx_context(
-        (fx.get("gbpcad") or {}).get("state"),
-        (fx.get("gbpaud") or {}).get("state"),
-    )
+    # Cycle phase remains derived from the existing Cycle Clock.
+    mv2["phase"] = _phase_from_cycle(_safe_int(STATE.get("cycle")))
 # ----------------------------
 # Merge logic (field-based payload)
 # ----------------------------
@@ -4216,35 +4248,45 @@ def webhook():
                         "valid_signal": None,
                         "explain": None,
                     },
+                    "structure": {
+                        "state": None,
+                        "boundary": None,
+                        "position": None,
+                        "age_weeks": None,
+                    },
                     "walcl": {
                         "state": None,
                         "trend": None,
-                        "roc": None,
+                        "close": None,
+                        "sma50": None,
+                        "above_sma50": None,
+                        "below_sma50": None,
+                        "sma50_rising": None,
+                        "sma50_falling": None,
+                        "sma_length": None,
+                        "slope_lookback": None,
                         "explain": None,
                     },
                     "fx": {
                         "gbpcad": {
                             "state": None,
-                            "trend_50sma": None,
-                            "msa_pct": None,
+                            "trend": None,
+                            "close": None,
+                            "sma50": None,
+                            "above_sma50": None,
+                            "below_sma50": None,
+                            "sma50_rising": None,
+                            "sma50_falling": None,
+                            "sma_length": None,
+                            "slope_lookback": None,
+                            "explain": None,
                         },
-                        "gbpaud": {
-                            "state": None,
-                            "trend_50sma": None,
-                            "msa_pct": None,
-                        },
-                        "context": None,
-                    },
-                    "internal": {
-                        "state": None,
-                        "explain": None,
                     },
                     "phase": {
                         "id": None,
                         "name": None,
                     },
                 }
-
             # ----------------------------------------------------
             # Local helpers for Macro V2 derivations
             # ----------------------------------------------------
@@ -4303,22 +4345,38 @@ def webhook():
             def _apply_macro_v2_normalisation():
                 mv2 = STATE.setdefault("macro_v2", {})
 
-                gc = mv2.setdefault("gc", {})
-                gs = mv2.setdefault("gs", {})
+                mv2.setdefault("gc", {})
+                mv2.setdefault("gs", {})
+
+                structure = mv2.setdefault("structure", {})
+                for key in ("state", "boundary", "position", "age_weeks"):
+                    structure.setdefault(key, None)
+
                 walcl = mv2.setdefault("walcl", {})
-                fx = mv2.setdefault("fx", {"gbpcad": {}, "gbpaud": {}, "context": None})
+                for key in (
+                    "state", "trend", "close", "sma50",
+                    "above_sma50", "below_sma50",
+                    "sma50_rising", "sma50_falling",
+                    "sma_length", "slope_lookback", "explain",
+                ):
+                    walcl.setdefault(key, None)
+
+                fx = mv2.setdefault("fx", {})
+                gbpcad = fx.setdefault("gbpcad", {})
+                for key in (
+                    "state", "trend", "close", "sma50",
+                    "above_sma50", "below_sma50",
+                    "sma50_rising", "sma50_falling",
+                    "sma_length", "slope_lookback", "explain",
+                ):
+                    gbpcad.setdefault(key, None)
+
+                mv2.pop("internal", None)
+                walcl.pop("roc", None)
+                fx.pop("gbpaud", None)
+                fx.pop("context", None)
 
                 mv2["phase"] = _phase_from_cycle(STATE.get("cycle"))
-
-                mv2["internal"] = _derive_internal_state(
-                    gc.get("state"),
-                    gs.get("state"),
-                )
-
-                fx["context"] = _derive_fx_context(
-                    (fx.get("gbpcad") or {}).get("state"),
-                    (fx.get("gbpaud") or {}).get("state"),
-                )
 
             # ====================================================
             # MARKET ANCHOR FAST PATH
@@ -4965,34 +5023,71 @@ def webhook():
                             "valid_signal": None,
                             "explain": None,
                         },
+                        "structure": {
+                            "state": None,
+                            "boundary": None,
+                            "position": None,
+                            "age_weeks": None,
+                        },
                         "walcl": {
                             "state": None,
                             "trend": None,
-                            "roc": None,
+                            "close": None,
+                            "sma50": None,
+                            "above_sma50": None,
+                            "below_sma50": None,
+                            "sma50_rising": None,
+                            "sma50_falling": None,
+                            "sma_length": None,
+                            "slope_lookback": None,
                             "explain": None,
                         },
                         "fx": {
                             "gbpcad": {
                                 "state": None,
-                                "trend_50sma": None,
-                                "msa_pct": None,
+                                "trend": None,
+                                "close": None,
+                                "sma50": None,
+                                "above_sma50": None,
+                                "below_sma50": None,
+                                "sma50_rising": None,
+                                "sma50_falling": None,
+                                "sma_length": None,
+                                "slope_lookback": None,
+                                "explain": None,
                             },
-                            "gbpaud": {
-                                "state": None,
-                                "trend_50sma": None,
-                                "msa_pct": None,
-                            },
-                            "context": None,
-                        },
-                        "internal": {
-                            "state": None,
-                            "explain": None,
                         },
                         "phase": {
                             "id": None,
                             "name": None,
                         },
                     }
+
+                # ------------------------------------------------
+                # GOLD/WIL STRUCTURE AWARENESS — MASTER PINE AUTHORITY
+                # Python stores / exposes only.
+                # ------------------------------------------------
+                if typ == "MACRO":
+                    if any(k in data for k in (
+                        "structure_state",
+                        "structure_boundary",
+                        "structure_position",
+                        "structure_age_weeks",
+                    )):
+                        STATE["macro_v2"]["structure"] = {
+                            "state": _normalise_str(
+                                data.get("structure_state")
+                            ),
+                            "boundary": _normalise_str(
+                                data.get("structure_boundary")
+                            ),
+                            "position": _safe_float(
+                                data.get("structure_position")
+                            ),
+                            "age_weeks": _safe_int(
+                                data.get("structure_age_weeks")
+                            ),
+                        }
 
                 if typ == "MACRO_V2_RATIO":
                     lane = str(data.get("lane") or "").strip().lower()
@@ -5029,26 +5124,86 @@ def webhook():
                 elif typ == "MACRO_V2_LIQUIDITY":
                     if str(data.get("lane") or "").strip().lower() == "walcl":
                         STATE["macro_v2"]["walcl"] = {
-                            "state": _normalise_str(data.get("walcl_state")),
-                            "trend": _normalise_str(data.get("walcl_trend")),
-                            "roc": _safe_float(data.get("walcl_roc")),
-                            "explain": _normalise_str(data.get("walcl_explain")),
+                            "state": _normalise_str(
+                                data.get("walcl_state")
+                            ),
+                            "trend": _normalise_str(
+                                data.get("walcl_trend")
+                            ),
+                            "close": _safe_float(
+                                data.get("walcl_close")
+                            ),
+                            "sma50": _safe_float(
+                                data.get("walcl_sma50")
+                            ),
+                            "above_sma50": (
+                                _truthy(data.get("walcl_above_sma50"))
+                                if "walcl_above_sma50" in data else None
+                            ),
+                            "below_sma50": (
+                                _truthy(data.get("walcl_below_sma50"))
+                                if "walcl_below_sma50" in data else None
+                            ),
+                            "sma50_rising": (
+                                _truthy(data.get("walcl_sma50_rising"))
+                                if "walcl_sma50_rising" in data else None
+                            ),
+                            "sma50_falling": (
+                                _truthy(data.get("walcl_sma50_falling"))
+                                if "walcl_sma50_falling" in data else None
+                            ),
+                            "sma_length": _safe_int(
+                                data.get("sma_length")
+                            ),
+                            "slope_lookback": _safe_int(
+                                data.get("slope_lookback")
+                            ),
+                            "explain": _normalise_str(
+                                data.get("walcl_explain")
+                            ),
                         }
 
                 elif typ == "MACRO_V2_FX":
                     if str(data.get("lane") or "").strip().lower() == "fx":
                         STATE["macro_v2"]["fx"]["gbpcad"] = {
-                            "state": _normalise_str(data.get("gbpcad_state")),
-                            "trend_50sma": _normalise_str(data.get("gbpcad_trend")),
-                            "msa_pct": _safe_float(data.get("gbpcad_msa")),
+                            "state": _normalise_str(
+                                data.get("gbpcad_state")
+                            ),
+                            "trend": _normalise_str(
+                                data.get("gbpcad_trend")
+                            ),
+                            "close": _safe_float(
+                                data.get("gbpcad_close")
+                            ),
+                            "sma50": _safe_float(
+                                data.get("gbpcad_sma50")
+                            ),
+                            "above_sma50": (
+                                _truthy(data.get("gbpcad_above_sma50"))
+                                if "gbpcad_above_sma50" in data else None
+                            ),
+                            "below_sma50": (
+                                _truthy(data.get("gbpcad_below_sma50"))
+                                if "gbpcad_below_sma50" in data else None
+                            ),
+                            "sma50_rising": (
+                                _truthy(data.get("gbpcad_sma50_rising"))
+                                if "gbpcad_sma50_rising" in data else None
+                            ),
+                            "sma50_falling": (
+                                _truthy(data.get("gbpcad_sma50_falling"))
+                                if "gbpcad_sma50_falling" in data else None
+                            ),
+                            "sma_length": _safe_int(
+                                data.get("sma_length")
+                            ),
+                            "slope_lookback": _safe_int(
+                                data.get("slope_lookback")
+                            ),
+                            "explain": _normalise_str(
+                                data.get("gbpcad_explain")
+                            ),
                         }
-
-                        STATE["macro_v2"]["fx"]["gbpaud"] = {
-                            "state": _normalise_str(data.get("gbpaud_state")),
-                            "trend_50sma": _normalise_str(data.get("gbpaud_trend")),
-                            "msa_pct": _safe_float(data.get("gbpaud_msa")),
-                        }
-
                 try:
                     if "card2" not in STATE or not isinstance(STATE.get("card2"), dict):
                         STATE["card2"] = {
