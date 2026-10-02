@@ -1257,6 +1257,12 @@ body.secret-mode #clock-strategy-authority{
   margin:0;
 }
 
+/* ============================================================
+   STRUCTURE AWARENESS — CARD 1
+   Full diagnostic tile on normal screens.
+   Never changes Card 1 geometry.
+   ============================================================ */
+
 /* Structure Awareness sits independently in upper-right */
 .structure-awareness{
   position:absolute;
@@ -1264,7 +1270,7 @@ body.secret-mode #clock-strategy-authority{
   right:34px;
   top:58px;
 
-  width:116px;
+  width:136px;
 
   display:flex;
   flex-direction:column;
@@ -1273,6 +1279,9 @@ body.secret-mode #clock-strategy-authority{
 
   gap:5px;
   margin:0;
+
+  z-index:1;
+  pointer-events:none;
 }
 
 .structure-awareness-title{
@@ -1280,17 +1289,21 @@ body.secret-mode #clock-strategy-authority{
   line-height:1;
   letter-spacing:1.4px;
   font-weight:600;
+
   text-transform:uppercase;
   color:rgba(255,255,255,0.34);
+
   white-space:nowrap;
 }
 
 .structure-tile-shell{
-  width:116px;
-  height:94px;
+  width:132px;
+  height:106px;
+
   display:flex;
   align-items:center;
   justify-content:center;
+
   position:relative;
 
   border-radius:8px;
@@ -1298,13 +1311,16 @@ body.secret-mode #clock-strategy-authority{
 
   transition:
     filter .35s ease,
-    opacity .35s ease;
+    opacity .35s ease,
+    transform .35s ease;
 }
 
 #structure-tile-img{
   display:none;
+
   width:100%;
   height:100%;
+
   object-fit:contain;
   border-radius:8px;
 }
@@ -1312,8 +1328,10 @@ body.secret-mode #clock-strategy-authority{
 /* Neutral / no structural boundary currently active */
 .structure-tile-idle{
   display:flex;
+
   width:100%;
   height:100%;
+
   align-items:center;
   justify-content:center;
 
@@ -1321,6 +1339,7 @@ body.secret-mode #clock-strategy-authority{
   border-radius:8px;
 
   color:rgba(255,255,255,0.30);
+
   font-size:8px;
   letter-spacing:1.8px;
   text-transform:uppercase;
@@ -1341,7 +1360,7 @@ body.secret-mode #clock-strategy-authority{
 }
 
 .structure-boundary-text{
-  width:122px;
+  width:136px;
   min-height:18px;
 
   font-size:7px;
@@ -1362,7 +1381,65 @@ body.secret-mode #clock-strategy-authority{
 .structure-boundary-text.correction{
   color:var(--red);
 }
-/* ============================
+
+/* ============================================================
+   CARD 1 — GEOMETRY LOCK
+   Tile must never resize the card.
+   ============================================================ */
+
+#card-1{
+  position:relative;
+  overflow:hidden;
+}
+
+#card-1 #macro-v2-card1{
+  position:relative;
+  min-height:0;
+}
+
+/* Keep text/readouts above tile if overlap occurs */
+#card-1 h3,
+#card-1 #val-1,
+#card-1 #sub-1,
+#card-1 .card1-support-lines{
+  position:relative;
+  z-index:3;
+}
+
+/* ============================================================
+   SMALL SCREEN FAIL-SAFE
+   Text stays foreground.
+   Tile becomes a softer background diagnostic.
+   Card size remains unchanged.
+   ============================================================ */
+
+@media (max-width:1100px){
+
+  .structure-awareness{
+    right:14px;
+    top:54px;
+
+    opacity:.28;
+    z-index:1;
+  }
+
+  .structure-tile-shell{
+    transform:scale(.92);
+    transform-origin:top right;
+  }
+
+  .structure-tile-shell.structure-continuation{
+    filter:
+      drop-shadow(0 0 6px rgba(50,205,50,.36))
+      drop-shadow(0 0 14px rgba(50,205,50,.15));
+  }
+
+  .structure-tile-shell.structure-correction{
+    filter:
+      drop-shadow(0 0 6px rgba(255,68,68,.38))
+      drop-shadow(0 0 14px rgba(255,68,68,.16));
+  }
+}/* ============================
    SENTINEL STRIP
 ============================ */
 .sentinel-strip{
