@@ -1302,7 +1302,7 @@ body.secret-mode #clock-strategy-authority{
   width:132px;
   height:106px;
 
-  display:flex;
+  display:none;
   align-items:center;
   justify-content:center;
 
@@ -6192,6 +6192,9 @@ function applyPublicFromState(data){
       const boundaryText =
         document.getElementById('structure-boundary-text');
 
+      const awarenessEl =
+        document.getElementById('structure-awareness');
+      
       const isContinuation =
         structureBoundaryRaw.includes('CONTINUATION');
 
@@ -6212,80 +6215,95 @@ function applyPublicFromState(data){
         );
       }
 
-      if (isContinuation || isCorrection){
+if (isContinuation || isCorrection){
 
-        const regimeFile =
-          dir === 'FIN'
-            ? 'fin'
-            : 'real';
+  // Active structural boundary = show Structure Awareness.
+  if (awarenessEl){
+    awarenessEl.style.display = 'flex';
+  }
 
-        const structureFile =
-          isContinuation
-            ? 'continuation'
-            : 'correction';
+  const regimeFile =
+    dir === 'FIN'
+      ? 'fin'
+      : 'real';
 
-        if (tileImg){
-          tileImg.src =
-            `/static/structure_${regimeFile}_${structureFile}.png`;
+  const structureFile =
+    isContinuation
+      ? 'continuation'
+      : 'correction';
 
-          tileImg.style.display = 'block';
-        }
+  if (tileImg){
+    tileImg.src =
+      `/static/structure_${regimeFile}_${structureFile}.png`;
 
-        if (tileIdle){
-          tileIdle.style.display = 'none';
-        }
+    tileImg.style.display = 'block';
+  }
 
-        if (isContinuation){
+  if (tileIdle){
+    tileIdle.style.display = 'none';
+  }
 
-          if (tileShell){
-            tileShell.classList.add(
-              'structure-continuation'
-            );
-          }
+  if (boundaryText){
+    boundaryText.style.display = 'block';
+  }
 
-          if (boundaryText){
-            boundaryText.textContent =
-              'LOWER STRUCTURE · CONTINUATION';
+  if (isContinuation){
 
-            boundaryText.classList.add(
-              'continuation'
-            );
-          }
+    if (tileShell){
+      tileShell.classList.add(
+        'structure-continuation'
+      );
+    }
 
-        } else {
+    if (boundaryText){
+      boundaryText.textContent =
+        'LOWER STRUCTURE · CONTINUATION';
 
-          if (tileShell){
-            tileShell.classList.add(
-              'structure-correction'
-            );
-          }
+      boundaryText.classList.add(
+        'continuation'
+      );
+    }
 
-          if (boundaryText){
-            boundaryText.textContent =
-              'UPPER STRUCTURE · CORRECTION';
+  } else {
 
-            boundaryText.classList.add(
-              'correction'
-            );
-          }
-        }
+    if (tileShell){
+      tileShell.classList.add(
+        'structure-correction'
+      );
+    }
 
-      } else {
+    if (boundaryText){
+      boundaryText.textContent =
+        'UPPER STRUCTURE · CORRECTION';
 
-        if (tileImg){
-          tileImg.style.display = 'none';
-          tileImg.removeAttribute('src');
-        }
+      boundaryText.classList.add(
+        'correction'
+      );
+    }
+  }
 
-        if (tileIdle){
-          tileIdle.style.display = 'flex';
-          tileIdle.textContent = 'IN RANGE';
-        }
+} else {
 
-        if (boundaryText){
-          boundaryText.textContent = 'IN RANGE';
-        }
-      }
+  // IN RANGE = silence.
+  // No Structure Awareness object is shown.
+  if (awarenessEl){
+    awarenessEl.style.display = 'none';
+  }
+
+  if (tileImg){
+    tileImg.style.display = 'none';
+    tileImg.removeAttribute('src');
+  }
+
+  if (tileIdle){
+    tileIdle.style.display = 'none';
+  }
+
+  if (boundaryText){
+    boundaryText.textContent = '';
+    boundaryText.style.display = 'none';
+  }
+}
 
       // Preserve raw Pine structure information as tooltip detail.
       const awarenessEl =
