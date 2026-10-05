@@ -6122,11 +6122,19 @@ function applyPublicFromState(data){
             ? 'var(--red)'
           : 'rgba(255,255,255,0.60)';
 
-        setTooltip(
-          liqEl,
-          walclExplain ||
-          'Monthly WALCL structure.'
-        );
+      const liquidityTooltip =
+        walclState === 'EXPANDING'
+          ? 'Fed balance sheet is expanding. Liquidity conditions are supportive.'
+        : walclState === 'CONTRACTING'
+          ? 'Fed balance sheet is contracting. Liquidity conditions are tightening.'
+        : walclState === 'STABILISING'
+          ? 'Fed balance sheet is stabilising. No strong liquidity impulse is present.'
+        : 'Fed balance sheet liquidity context.';
+
+      setTooltip(
+        liqEl,
+        liquidityTooltip
+      );
       }
 
       // ----------------------------------------------------------
