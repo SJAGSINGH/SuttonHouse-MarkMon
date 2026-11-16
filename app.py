@@ -1206,7 +1206,14 @@ def _derive_fx_context(gbpcad_state: Optional[str], gbpaud_state: Optional[str])
     if gc or ga:
         return "NEUTRAL"
     return None
-
+# ============================================================
+# CANONICAL NODE ASSIGNMENTS
+# Used to prevent stale persisted ticker identity after a slot
+# has been reassigned to a different instrument.
+# ============================================================
+CANONICAL_NODE_TICKERS = {
+    20: "TSX_DLY:NXE",
+}
 NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH", "EVENT"}
 
 def _store_node_payload(data: Dict[str, Any]) -> None:
@@ -3000,7 +3007,65 @@ def _rehydrate_xy_h4_warm_start():
                 resolved_lanes,
             )
 
+def _reconcile_node_assignments() -> None:
+    """
+    Remove stale persisted state when a ref_id has been reassigned
+    to a different instrument.
+    """
 
+    nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
+    stocks = STATE.setdefault("stocks", {})
+
+    last_scada = stocks.setdefault("last_scada_by_ref", {})
+    last_watch = stocks.setdefault("last_watch_by_ref", {})
+
+    for ref_id, canonical_ticker in CANONICAL_NODE_TICKERS.items():
+        key = str(ref_id)
+
+        canonical_clean = _clean_msa_symbol(canonical_ticker)
+
+        rec = nodes.get(key)
+
+        existing_ticker = None
+
+        if isinstance(rec, dict):
+            existing_ticker = (
+                rec.get("ticker_id")
+                or rec.get("ticker")
+            )
+
+        existing_clean = _clean_msa_symbol(existing_ticker)
+
+        # Slot was previously used by another instrument.
+        if existing_clean and existing_clean != canonical_clean:
+
+            # Old SCADA/WATCH messages belong to the previous instrument.
+            last_scada.pop(key, None)
+            last_watch.pop(key, None)
+
+            # Reset this node rather than relabelling old state.
+            nodes[key] = {
+                "ref_id": ref_id,
+                "ticker": canonical_ticker,
+                "ticker_id": canonical_clean,
+                "_ts": {},
+            }
+
+        else:
+            # Ensure correct identity exists even before the first
+            # fresh SCADA_STATUS transmission arrives.
+            if not isinstance(rec, dict):
+                rec = {
+                    "ref_id": ref_id,
+                    "_ts": {},
+                }
+
+            rec["ref_id"] = ref_id
+            rec["ticker"] = canonical_ticker
+            rec["ticker_id"] = canonical_clean
+
+            nodes[key] = rec
+            
 def _load_state_from_disk() -> None:
     try:
         if not os.path.exists(STATE_FILE):
@@ -3097,12 +3162,19 @@ def _load_state_from_disk() -> None:
             # -----------------------------------------
             if isinstance(cached.get("pill_memory"), dict):
                 STATE["pill_memory"] = cached.get("pill_memory")
+
             if isinstance(cached.get("xy_h4"), dict):
                 STATE["xy_h4"] = cached.get("xy_h4")
+
+            # -----------------------------------------
+            # Canonical node assignment reconciliation
+            # -----------------------------------------
+            _reconcile_node_assignments()
+
             # -----------------------------------------
             # H4 X/Y warm-start reconciliation
             # -----------------------------------------
-            _rehydrate_xy_h4_warm_start()    
+            _rehydrate_xy_h4_warm_start()
             print(
                 "LOAD pill_memory refs =",
                 list(STATE.get("pill_memory", {}).get("by_ref", {}).keys()),
