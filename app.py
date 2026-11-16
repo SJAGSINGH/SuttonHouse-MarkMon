@@ -1209,6 +1209,112 @@ def _derive_fx_context(gbpcad_state: Optional[str], gbpaud_state: Optional[str])
 
 NODE_TYPES = {"SETUP", "SCADA_STATUS", "WATCH", "EVENT"}
 
+def _reset_ref_if_ticker_changed(data: Dict[str, Any]) -> bool:
+    """
+    Dynamic node reassignment.
+
+    ref_id decides the SCADA slot.
+    Incoming SCADA_STATUS ticker decides the current instrument.
+
+    If a slot receives a different ticker from the one currently stored
+    against that ref_id, clear stale instrument-specific state before
+    accepting the new instrument.
+    """
+
+    if not isinstance(data, dict):
+        return False
+
+    typ = str(data.get("type") or "").strip().upper()
+
+    # Only SCADA_STATUS is allowed to redefine slot identity.
+    if typ != "SCADA_STATUS":
+        return False
+
+    ref = data.get("ref_id")
+    if ref is None:
+        return False
+
+    try:
+        ref_i = int(float(ref))
+    except Exception:
+        return False
+
+    incoming_raw = str(data.get("ticker") or "").strip().upper()
+    incoming_ticker = _clean_msa_symbol(incoming_raw)
+
+    if not incoming_ticker:
+        return False
+
+    ref_key = str(ref_i)
+
+    nodes = STATE.setdefault("nodes", {}).setdefault("by_ref", {})
+    rec = nodes.get(ref_key)
+
+    # No existing node = nothing stale to clear.
+    if not isinstance(rec, dict):
+        return False
+
+    existing_raw = (
+        rec.get("ticker_id")
+        or rec.get("ticker")
+        or ""
+    )
+
+    existing_ticker = _clean_msa_symbol(existing_raw)
+
+    # Same company/instrument = normal update.
+    if not existing_ticker or existing_ticker == incoming_ticker:
+        return False
+
+    print(
+        f"[NODE REASSIGN] ref={ref_i} "
+        f"{existing_ticker} -> {incoming_ticker}",
+        flush=True
+    )
+
+    # --------------------------------------------------------
+    # Clear stale state belonging to the previous instrument.
+    # --------------------------------------------------------
+
+    stocks = STATE.setdefault("stocks", {})
+    stocks.setdefault("last_scada_by_ref", {}).pop(ref_key, None)
+    stocks.setdefault("last_watch_by_ref", {}).pop(ref_key, None)
+
+    nodes.pop(ref_key, None)
+
+    STATE.setdefault("pill_memory", {}).setdefault(
+        "by_ref", {}
+    ).pop(ref_key, None)
+
+    STATE.setdefault("xy_h4", {}).setdefault(
+        "by_ref", {}
+    ).pop(ref_key, None)
+
+    screener = STATE.setdefault("screener", {})
+
+    for lane in ("rs", "s2"):
+        lane_obj = screener.get(lane)
+
+        if isinstance(lane_obj, dict):
+            by_ref = lane_obj.get("by_ref")
+
+            if isinstance(by_ref, dict):
+                by_ref.pop(ref_key, None)
+                by_ref.pop(ref_i, None)
+
+    message = STATE.get("message")
+
+    if isinstance(message, dict) and message.get("ref_id") == ref_i:
+        STATE["message"] = {
+            "setup": False,
+            "trigger": "—",
+            "ticker": "",
+            "ref_id": None,
+            "_ts": int(time.time() * 1000),
+        }
+
+    return True
+    
 def _store_node_payload(data: Dict[str, Any]) -> None:
     """
     Stores latest node-level payloads keyed by ref_id.
@@ -4576,6 +4682,14 @@ def webhook():
 
                 if ref_id is None:
                     abort(400)
+
+                # ----------------------------------------------------
+                # Dynamic node reassignment
+                # ref_id owns the slot
+                # SCADA_STATUS ticker owns the current instrument
+                # ----------------------------------------------------
+                if typ == "SCADA_STATUS":
+                    _reset_ref_if_ticker_changed(data)
 
                 out = dict(data)
                 out["type"] = typ
