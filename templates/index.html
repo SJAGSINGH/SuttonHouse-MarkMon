@@ -7901,6 +7901,7 @@ if (socket) {
     const stocks = (state && state.stocks && typeof state.stocks === "object") ? state.stocks : {};
 
     // 1) SCADA first (defines halo + msa + ticker)
+    // 1) SCADA first (defines halo + msa + ticker)
     if (stocks.last_scada_by_ref && typeof stocks.last_scada_by_ref === "object"){
       Object.keys(stocks.last_scada_by_ref)
         .sort((a,b) => (Number(a) - Number(b)))
@@ -7908,26 +7909,51 @@ if (socket) {
           const msg = stocks.last_scada_by_ref[k];
           if (!msg || typeof msg !== "object") return;
 
-          if (!msg.type) msg.type = "SCADA_STATUS";
-          if (msg.ref_id == null) msg.ref_id = Number(k);
+          // Current configured node identity for this ref_id.
+          // Prevents stale historical ticker (e.g. BTCUSD) repainting
+          // a slot that has since been reassigned (e.g. NXE).
+          const currentNode =
+            state?.nodes?.by_ref?.[String(k)] ||
+            state?.nodes?.by_ref?.[Number(k)] ||
+            null;
+
+          const configuredTicker =
+            currentNode?.ticker ||
+            msg.ticker ||
+            null;
+
+          // Warm-start presentation copy only.
+          // Preserve all historical SCADA state, but initialise ticker
+          // from the instrument currently assigned to this ref_id.
+          const warmMsg = {
+            ...msg,
+            ticker: configuredTicker
+          };
+
+          if (!warmMsg.type) warmMsg.type = "SCADA_STATUS";
+          if (warmMsg.ref_id == null) warmMsg.ref_id = Number(k);
 
           console.log(
-            "WARMSTART SCADA",
+          "WARMSTART SCADA",
+          k,
+          warmMsg.ticker,
+          "msa_src:", warmMsg.msa_src,
+          "D:", warmMsg.msa_src_D,
+          "4H:", warmMsg.msa_src_4H
+        );
+
+        try {
+          applyScadaStatus(warmMsg);
+        } catch(e) {
+          console.warn(
+            "warmstart applyScadaStatus failed",
             k,
-            msg.ticker,
-            "msa_src:", msg.msa_src,
-            "D:", msg.msa_src_D,
-            "4H:", msg.msa_src_4H
+            e,
+            warmMsg
           );
-
-          try {
-            applyScadaStatus(msg);
-          } catch(e) {
-            console.warn("warmstart applyScadaStatus failed", k, e, msg);
-          }
-        });
-    }
-
+        }
+      });
+  }
     // 2) WATCH second (adds watch info without owning halo)
     if (stocks.last_watch_by_ref && typeof stocks.last_watch_by_ref === "object"){
       Object.keys(stocks.last_watch_by_ref)
