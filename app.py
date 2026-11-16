@@ -4688,7 +4688,7 @@ def webhook():
                 # ref_id owns the slot
                 # SCADA_STATUS ticker owns the current instrument
                 # ----------------------------------------------------
-                //
+                
                 node_reassigned = False
 
                 if typ == "SCADA_STATUS":
