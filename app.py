@@ -4688,8 +4688,11 @@ def webhook():
                 # ref_id owns the slot
                 # SCADA_STATUS ticker owns the current instrument
                 # ----------------------------------------------------
+                //
+                node_reassigned = False
+
                 if typ == "SCADA_STATUS":
-                    _reset_ref_if_ticker_changed(data)
+                    node_reassigned = _reset_ref_if_ticker_changed(data)
 
                 out = dict(data)
                 out["type"] = typ
