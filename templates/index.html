@@ -7887,7 +7887,41 @@ if (socket) {
     if (!j || !j.state) return;
 
     const state = j.state;
+    // ---- Initialise current node identities first ----
+    // Slot identity comes from the current node registry,
+    // not from historical SCADA / WATCH transmissions.
+    const currentNodes = state?.nodes?.by_ref || {};
 
+    Object.keys(currentNodes)
+      .sort((a,b) => Number(a) - Number(b))
+      .forEach((k) => {
+        const rec = currentNodes[k];
+        if (!rec || typeof rec !== "object") return;
+
+        const ticker = rec.ticker;
+        if (!ticker) return;
+
+        const item =
+          document.querySelector(`.stock-item[data-slot="${k}"]`) ||
+          document.querySelector(`.stock-item[data-slot="${Number(k) - 1}"]`);
+
+        if (!item) return;
+
+        const label = item.querySelector(".stock-label");
+        if (!label) return;
+
+        let tkr = String(ticker).toUpperCase().trim();
+
+        if (tkr.includes(":")) {
+          tkr = tkr.split(":").pop();
+        }
+
+        tkr = tkr.replace(/_DLY|_4H|_1H|_W|_M/g, "").trim();
+
+        if (tkr) {
+          label.textContent = tkr;
+        }
+      });
     // ---- Macro first (authoritative) ----
     try { rscSetComms("warmstart /health", state); } catch(e){}
 
