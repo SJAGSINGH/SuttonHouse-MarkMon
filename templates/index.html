@@ -7955,6 +7955,7 @@ if (socket) {
       });
   }
     // 2) WATCH second (adds watch info without owning halo)
+    // 2) WATCH second (adds watch info without owning halo)
     if (stocks.last_watch_by_ref && typeof stocks.last_watch_by_ref === "object"){
       Object.keys(stocks.last_watch_by_ref)
         .sort((a,b) => (Number(a) - Number(b)))
@@ -7962,13 +7963,26 @@ if (socket) {
           const msg = stocks.last_watch_by_ref[k];
           if (!msg || typeof msg !== "object") return;
 
-          if (!msg.type) msg.type = "WATCH";
-          if (msg.ref_id == null) msg.ref_id = Number(k);
+          const currentNode =
+            state?.nodes?.by_ref?.[String(k)] ||
+            state?.nodes?.by_ref?.[Number(k)] ||
+            null;
 
-          try { applyWatch(msg); } catch(e){ console.warn("warmstart applyWatch failed", e, msg); }
+          const warmMsg = {
+            ...msg,
+            ticker: currentNode?.ticker || msg.ticker || null
+          };
+
+          if (!warmMsg.type) warmMsg.type = "WATCH";
+          if (warmMsg.ref_id == null) warmMsg.ref_id = Number(k);
+
+          try {
+            applyWatch(warmMsg);
+          } catch(e) {
+            console.warn("warmstart applyWatch failed", e, warmMsg);
+          }
         });
     }
-
     // 3) EVENT third (context only; does not own halo)
     const byRef = (((state || {}).nodes || {}).by_ref || {});
     if (byRef && typeof byRef === "object"){
